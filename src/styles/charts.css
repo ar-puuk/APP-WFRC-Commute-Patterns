@@ -1,0 +1,83 @@
+/* ── Right panel / chart sections ───────────────────────────────────────────── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+
+.chart-divider {
+  height: 1px;
+  background: var(--sidebar-border);
+  flex-shrink: 0;
+}
+
+.chart-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 6px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--sidebar-border);
+  min-height: 34px;
+}
+
+.chart-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sidebar-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Export buttons — hidden by default, shown on hover */
+.chart-export-group {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.chart-section:hover .chart-export-group,
+.chart-section-header:focus-within .chart-export-group {
+  opacity: 1;
+}
+
+.export-btn {
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  background: var(--toggle-bg);
+  color: var(--toggle-text);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.export-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--sidebar-text);
+}
+
+/* Canvas div that ECharts renders into */
+.chart-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}

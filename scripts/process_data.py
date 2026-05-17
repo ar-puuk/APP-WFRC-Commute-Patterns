@@ -338,6 +338,49 @@ def export_parquet(df, path, int_cols):
     print(f"  Wrote {path.name} ({len(df):,} rows, {size_kb:.1f} KB)")
 
 
+def generate_boundaries(places=None, counties=None, force=False):
+    """Generate static county and city boundary GeoJSON files (year-independent).
+
+    Writes to data/county_boundaries.geojson and data/city_boundaries.geojson.
+    Skips if files already exist unless force=True.
+    """
+    county_out = DATA_DIR / "county_boundaries.geojson"
+    city_out   = DATA_DIR / "city_boundaries.geojson"
+
+    if not force and county_out.exists() and city_out.exists():
+        print("  Boundary files already exist, skipping.")
+        return
+
+    if places is None:
+        print("  Loading TIGER places for boundaries...")
+        places = load_tiger_places()
+    if counties is None:
+        print("  Loading TIGER counties for boundaries...")
+        counties = load_tiger_counties()
+
+    # ── County boundaries: filter to WFRC, simplify, export ──────────────────
+    wfrc_gdf = counties[counties["COUNTYFP_full"].isin(WFRC_COUNTIES)].copy()
+    wfrc_gdf["name"] = wfrc_gdf["COUNTYFP_full"].map(WFRC_COUNTIES)
+    county_gdf = wfrc_gdf[["name", "geometry"]].copy()
+    # Simplify in projected CRS (200 m tolerance) then convert back
+    county_gdf = county_gdf.to_crs(epsg=26912)
+    county_gdf["geometry"] = county_gdf["geometry"].simplify(200, preserve_topology=True)
+    county_gdf = county_gdf.to_crs(epsg=4326)
+    county_gdf.to_file(county_out, driver="GeoJSON")
+    print(f"  Wrote {county_out.name} ({len(county_gdf)} county polygons)")
+
+    # ── City/place boundaries: filter to WFRC region, simplify, export ───────
+    wfrc_union = wfrc_gdf.geometry.union_all()
+    places_in = places[places.geometry.intersects(wfrc_union)].copy()
+    places_in["name"] = places_in["NAME"]
+    city_gdf = places_in[["name", "geometry"]].copy()
+    city_gdf = city_gdf.to_crs(epsg=26912)
+    city_gdf["geometry"] = city_gdf["geometry"].simplify(100, preserve_topology=True)
+    city_gdf = city_gdf.to_crs(epsg=4326)
+    city_gdf.to_file(city_out, driver="GeoJSON")
+    print(f"  Wrote {city_out.name} ({len(city_gdf)} city polygons)")
+
+
 def update_manifest(year_int):
     """Add year to data/manifest.json; create the file if it doesn't exist."""
     manifest_path = DATA_DIR / "manifest.json"
@@ -361,7 +404,17 @@ def main():
         "--year", type=int, metavar="YYYY",
         help="LODES year to process (default: auto-detect latest available, 2002-2023)"
     )
+    parser.add_argument(
+        "--boundaries", action="store_true",
+        help="Generate/regenerate boundary GeoJSON files only (year-independent)"
+    )
     args = parser.parse_args()
+
+    if args.boundaries:
+        print("=== Generating Boundary Files ===\n")
+        generate_boundaries(force=True)
+        print("\nDone!")
+        return
 
     print("=== WFRC Commute Patterns Data Pipeline ===\n")
 
@@ -406,19 +459,23 @@ def main():
     places = load_tiger_places()
     counties = load_tiger_counties()
 
-    # 10. Build metadata
-    print("\n9. Building city and county metadata...")
+    # 10. Generate boundary GeoJSON files if needed (uses already-loaded TIGER data)
+    print("\n9b. Generating boundary files (if needed)...")
+    generate_boundaries(places, counties)
+
+    # 11. Build metadata
+    print("\n10. Building city and county metadata...")
     city_meta = build_city_meta(city_flows, xw, places)
     county_meta = build_county_meta(counties)
     print(f"  City metadata entries: {len(city_meta)}")
     print(f"  County metadata entries: {len(county_meta)}")
 
-    # 11. Export Parquet files
-    print("\n10. Exporting data files...")
+    # 12. Export Parquet files
+    print("\n11. Exporting data files...")
     export_parquet(city_flows, year_dir / "city_flows.parquet", AGG_COLS)
     export_parquet(county_flows, year_dir / "county_flows.parquet", AGG_COLS)
 
-    # 12. Export JSON metadata
+    # 13. Export JSON metadata
     with open(year_dir / "city_meta.json", "w") as f:
         json.dump(city_meta, f, indent=2)
     print(f"  Wrote city_meta.json ({len(city_meta)} entries)")
@@ -427,8 +484,8 @@ def main():
         json.dump(county_meta, f, indent=2)
     print(f"  Wrote county_meta.json ({len(county_meta)} entries)")
 
-    # 13. Update manifest
-    print("\n11. Updating manifest...")
+    # 14. Update manifest
+    print("\n12. Updating manifest...")
     update_manifest(int(year))
 
     print(f"\n=== Done! Data year: {year}. Files in {year_dir} ===")

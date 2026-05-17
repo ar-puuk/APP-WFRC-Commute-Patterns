@@ -1,14 +1,15 @@
 /* ── Color tokens ───────────────────────────────────────────────────────────── */
 :root {
   --header-height: 48px;
-  --sidebar-width: 360px;
+  --left-panel-width: 280px;
+  --right-panel-width: 340px;
 
   /* Header */
   --header-bg: #1a3a5c;
   --header-text: #ffffff;
   --header-subtitle: rgba(255, 255, 255, 0.65);
 
-  /* Sidebar */
+  /* Panels */
   --sidebar-bg: #ffffff;
   --sidebar-text: #1a1a1a;
   --sidebar-text-muted: #666;
@@ -125,13 +126,8 @@ html, body {
 }
 
 /* ── Year selector ───────────────────────────────────────────────────────────── */
-.year-select-wrap {
-  flex-shrink: 0;
-}
-
-.year-select-hidden {
-  display: none;
-}
+.year-select-wrap { flex-shrink: 0; }
+.year-select-hidden { display: none; }
 
 .year-select {
   background: transparent;
@@ -148,22 +144,11 @@ html, body {
   transition: background 0.15s, border-color 0.15s;
 }
 
-.year-select:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.5);
-}
+.year-select:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
+.year-select:disabled { opacity: 0.5; cursor: not-allowed; }
+.year-select option { background: var(--header-bg); color: var(--header-text); }
 
-.year-select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.year-select option {
-  background: var(--header-bg);
-  color: var(--header-text);
-}
-
-/* ── Theme toggle button ─────────────────────────────────────────────────────── */
+/* ── Theme toggle ────────────────────────────────────────────────────────────── */
 .theme-toggle {
   flex-shrink: 0;
   background: transparent;
@@ -180,38 +165,21 @@ html, body {
   transition: background 0.15s, border-color 0.15s;
 }
 
-.theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Show sun in light mode, moon in dark mode */
+.theme-toggle:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); }
 [data-theme="light"] .icon-moon { display: none; }
 [data-theme="dark"]  .icon-sun  { display: none; }
 
-/* ── Body layout ─────────────────────────────────────────────────────────────── */
+/* ── Body layout — 3-column grid ─────────────────────────────────────────────── */
 .app-body {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--left-panel-width) 1fr var(--right-panel-width);
   height: calc(100vh - var(--header-height));
   margin-top: var(--header-height);
-}
-
-/* ── Map ─────────────────────────────────────────────────────────────────────── */
-.map-container {
-  flex: 1;
-  position: relative;
   overflow: hidden;
 }
 
-#map {
-  width: 100%;
-  height: 100%;
-}
-
-/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
-.sidebar {
-  width: var(--sidebar-width);
-  flex-shrink: 0;
+/* ── Left panel ──────────────────────────────────────────────────────────────── */
+.left-panel {
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   border-right: 1px solid var(--sidebar-border);
@@ -223,7 +191,29 @@ html, body {
   transition: background 0.2s, color 0.2s;
 }
 
-/* ── Loading overlay (inside sidebar before data loads) ─────────────────────── */
+/* ── Map ─────────────────────────────────────────────────────────────────────── */
+.map-container {
+  position: relative;
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Right panel ─────────────────────────────────────────────────────────────── */
+.right-panel {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-left: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ── Loading overlay ─────────────────────────────────────────────────────────── */
 .sidebar-loading {
   display: flex;
   flex-direction: column;
@@ -245,9 +235,7 @@ html, body {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .progress-bar-wrap {
   width: 140px;

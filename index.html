@@ -34,7 +34,8 @@
   </header>
 
   <div class="app-body">
-    <aside class="sidebar" id="sidebar">
+    <!-- Left panel: inputs + stats -->
+    <aside class="left-panel" id="left-panel">
       <div class="sidebar-loading">
         <div class="spinner"></div>
         <p>Loading data&hellip;</p>
@@ -43,9 +44,53 @@
         </div>
       </div>
     </aside>
+
+    <!-- Center: map with floating toolbar -->
     <main class="map-container">
+      <div class="map-toolbar" id="map-toolbar">
+        <button class="tb-btn" id="tb-filter" title="Filter minimum commuter flow" aria-expanded="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+          </svg>
+          <span>Filter</span>
+        </button>
+        <div class="tb-popover" id="filter-popover" hidden>
+          <div class="tb-popover-title">Minimum commuters</div>
+          <div class="tb-filter-row">
+            <input type="number" id="min-flow-input" class="tb-number-input"
+              min="0" value="0" step="50" aria-label="Minimum commuter flow" />
+            <span class="tb-filter-hint">per corridor</span>
+          </div>
+          <div class="tb-filter-note">Hides flow lines below this threshold</div>
+        </div>
+      </div>
       <div id="map"></div>
     </main>
+
+    <!-- Right panel: charts -->
+    <aside class="right-panel" id="right-panel">
+      <div class="chart-section" id="bar-section">
+        <div class="chart-section-header">
+          <span class="chart-title" id="bar-title">Top 5 Destinations</span>
+          <div class="chart-export-group">
+            <button class="export-btn" id="export-bar-png" title="Download chart as PNG">PNG</button>
+            <button class="export-btn" id="export-bar-csv" title="Download data as CSV">CSV</button>
+          </div>
+        </div>
+        <div id="bar-chart" class="chart-canvas"></div>
+      </div>
+      <div class="chart-divider"></div>
+      <div class="chart-section" id="sankey-section">
+        <div class="chart-section-header">
+          <span class="chart-title">Flow Distribution</span>
+          <div class="chart-export-group">
+            <button class="export-btn" id="export-sankey-png" title="Download chart as PNG">PNG</button>
+            <button class="export-btn" id="export-sankey-csv" title="Download data as CSV">CSV</button>
+          </div>
+        </div>
+        <div id="sankey-chart" class="chart-canvas"></div>
+      </div>
+    </aside>
   </div>
 
   <script type="module" src="/src/main.js"></script>

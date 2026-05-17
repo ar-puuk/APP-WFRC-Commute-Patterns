@@ -1,0 +1,103 @@
+/* ── Map overlay toolbar ─────────────────────────────────────────────────────── */
+.map-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none; /* let clicks through where there's no button */
+}
+
+.tb-btn {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  color: var(--sidebar-text);
+  font-size: 12px;
+  font-family: var(--font-main);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.tb-btn:hover {
+  background: var(--accent-light);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+}
+
+.tb-btn.active {
+  background: var(--toggle-active-bg);
+  color: var(--toggle-active-text);
+  border-color: var(--toggle-active-bg);
+}
+
+.tb-btn.active:hover {
+  background: var(--toggle-active-bg);
+}
+
+/* ── Filter popover ──────────────────────────────────────────────────────────── */
+.tb-popover {
+  pointer-events: all;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  min-width: 220px;
+}
+
+.tb-popover[hidden] { display: none; }
+
+.tb-popover-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sidebar-text-muted);
+  margin-bottom: 8px;
+}
+
+.tb-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tb-number-input {
+  width: 90px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-family: var(--font-main);
+  background: var(--input-bg);
+  color: var(--sidebar-text);
+  border: 1px solid var(--input-border);
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.tb-number-input:focus {
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.tb-filter-hint {
+  font-size: 11px;
+  color: var(--sidebar-text-muted);
+}
+
+.tb-filter-note {
+  font-size: 10px;
+  color: var(--sidebar-text-muted);
+  font-style: italic;
+}
