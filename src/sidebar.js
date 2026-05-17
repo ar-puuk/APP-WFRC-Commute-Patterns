@@ -122,10 +122,25 @@ export function updateSidebarStats(flows, total, appState) {
     SE01: acc.SE01 + Number(f.SE01 || 0),
     SE02: acc.SE02 + Number(f.SE02 || 0),
     SE03: acc.SE03 + Number(f.SE03 || 0),
-  }), { SA01: 0, SA02: 0, SA03: 0, SE01: 0, SE02: 0, SE03: 0 });
+    SI01: acc.SI01 + Number(f.SI01 || 0),
+    SI02: acc.SI02 + Number(f.SI02 || 0),
+    SI03: acc.SI03 + Number(f.SI03 || 0),
+  }), { SA01: 0, SA02: 0, SA03: 0, SE01: 0, SE02: 0, SE03: 0, SI01: 0, SI02: 0, SI03: 0 });
 
   const ageSum      = bd.SA01 + bd.SA02 + bd.SA03 || 1;
   const earningsSum = bd.SE01 + bd.SE02 + bd.SE03 || 1;
+  const industrySum = bd.SI01 + bd.SI02 + bd.SI03 || 1;
+
+  // Weighted-average straight-line commute distance (centroid to centroid)
+  let distNumerator = 0, distDenominator = 0;
+  flows.forEach(f => {
+    if (f.home_lat == null || f.work_lat == null) return;
+    const miles = _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon);
+    const n = Number(f.S000);
+    distNumerator   += miles * n;
+    distDenominator += n;
+  });
+  const avgMiles = distDenominator > 0 ? distNumerator / distDenominator : null;
 
   const row = (label, count, sum) => {
     const pct = Math.round((count / sum) * 100);
@@ -152,11 +167,31 @@ export function updateSidebarStats(flows, total, appState) {
         ${row('$1,251–3,333', bd.SE02, earningsSum)}
         ${row('&gt;$3,333', bd.SE03, earningsSum)}
       </div>
+      <div class="bd-group">
+        <div class="bd-group-title">By Industry</div>
+        ${row('Goods',    bd.SI01, industrySum)}
+        ${row('Trade',    bd.SI02, industrySum)}
+        ${row('Services', bd.SI03, industrySum)}
+      </div>
+      ${avgMiles != null ? `
+      <div class="bd-distance">
+        <div class="bd-group-title">Avg. Commute Distance</div>
+        <div class="bd-distance-value">${avgMiles.toFixed(1)}<span class="bd-distance-unit"> mi &nbsp;·&nbsp; straight-line</span></div>
+      </div>` : ''}
     `;
   }
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
+
+function _haversineMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function _setAreaLabels(name) {
   const short = name.length > 18 ? name.slice(0, 16) + '…' : name;

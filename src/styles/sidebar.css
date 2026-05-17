@@ -211,6 +211,30 @@
   flex-shrink: 0;
 }
 
+/* ── Avg commute distance nugget ─────────────────────────────────────────────── */
+.bd-distance {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.bd-distance-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  margin-top: 3px;
+}
+
+.bd-distance-unit {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--sidebar-text-muted);
+  font-family: var(--font-main);
+}
+
 /* ── No data message ─────────────────────────────────────────────────────────── */
 .no-data-msg {
   padding: 10px 14px;

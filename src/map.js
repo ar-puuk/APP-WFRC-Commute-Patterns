@@ -11,10 +11,10 @@ const ATTRIBUTION =
 // Carto raster tiles — free, no API key, subdomain load-balanced
 const TILE_URLS = {
   light: [
-    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+    'https://a.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
+    'https://b.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
+    'https://c.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
+    'https://d.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
   ],
   dark: [
     'https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
@@ -55,6 +55,29 @@ let _polygonsVisible = true;
 // Cached for replay when toggling visibility
 let _lastFlowArgs = null;
 let _selfFlowCount = 0;
+
+// ── Donut SVG helper ─────────────────────────────────────────────────────────
+
+function _donutSvg(pct, strokeColor, size = 66) {
+  const r   = size * 0.38;
+  const cx  = size / 2;
+  const cy  = size / 2;
+  const C   = 2 * Math.PI * r;
+  const arc = ((Math.min(Math.max(pct, 0), 100) / 100) * C).toFixed(2);
+  const fs  = Math.round(size * 0.195);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke-width="5.5"
+      style="stroke:var(--sidebar-border)"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke-width="5.5"
+      stroke-linecap="round"
+      stroke-dasharray="${arc} ${C.toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cy})"
+      style="stroke:${strokeColor}"/>
+    <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+      font-size="${fs}" font-weight="700"
+      style="fill:var(--sidebar-text);font-family:var(--font-heading)">${pct}%</text>
+  </svg>`;
+}
 
 // ── Custom tooltip (FlowmapLayer onHover is async — can't use MapboxOverlay.getTooltip) ──
 
@@ -215,23 +238,31 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         const destTotal = flowTotals.get(`${originId}||${destId}`) ?? 0;
         const isOutflow = state.direction === 'outflow';
 
-        const selPct = total     > 0 ? (count / total     * 100).toFixed(1) : null;
-        const dstPct = destTotal > 0 ? (count / destTotal * 100).toFixed(1) : null;
+        const selPct = total     > 0 ? parseFloat((count / total     * 100).toFixed(1)) : null;
+        const dstPct = destTotal > 0 ? parseFloat((count / destTotal * 100).toFixed(1)) : null;
 
-        const row = (pct, label) =>
-          `<div class="ft-row"><span class="ft-pct">${pct}%</span><span class="ft-label">${label}</span></div>`;
+        // teal = selected-area context, orange (accent) = other-area context
+        const selDonut = selPct != null ? _donutSvg(selPct, 'var(--accent-teal)') : '';
+        const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--accent)')      : '';
 
-        const selRow = selPct ? row(selPct, isOutflow
-          ? `of <strong>${originId}</strong> residents`
-          : `of workers in <strong>${destId}</strong>`) : '';
-        const dstRow = dstPct ? row(dstPct, isOutflow
-          ? `of workers in <strong>${destId}</strong>`
-          : `of <strong>${originId}</strong> residents`) : '';
+        const selLabel = isOutflow
+          ? `of <strong>${originId}</strong><br>residents`
+          : `of workers in<br><strong>${destId}</strong>`;
+        const dstLabel = isOutflow
+          ? `of workers in<br><strong>${destId}</strong>`
+          : `of <strong>${originId}</strong><br>residents`;
+
+        const donuts = (selDonut || dstDonut) ? `
+          <div class="ft-divider"></div>
+          <div class="ft-donuts">
+            ${selDonut ? `<div class="ft-donut-wrap">${selDonut}<div class="ft-donut-label">${selLabel}</div></div>` : ''}
+            ${dstDonut ? `<div class="ft-donut-wrap">${dstDonut}<div class="ft-donut-label">${dstLabel}</div></div>` : ''}
+          </div>` : '';
 
         _showTooltip(info, `
           <div class="ft-route">${originId} <span class="ft-arrow">→</span> ${destId}</div>
           <div class="ft-count">${count.toLocaleString()}<span class="ft-unit">commuters</span></div>
-          ${selRow || dstRow ? `<div class="ft-divider"></div>${selRow}${dstRow}` : ''}
+          ${donuts}
         `);
       } else if (obj.type === 'location') {
         const locId = obj.name ?? obj.location?.id ?? '';
@@ -241,7 +272,10 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
             <div class="ft-count">${Number(_selfFlowCount).toLocaleString()}<span class="ft-unit">live &amp; work here</span></div>
           `);
         } else {
-          _showTooltip(info, `<div class="ft-route">${locId}</div>`);
+          const cta = state.direction === 'outflow'
+            ? `Click to see where <strong>${locId}</strong> residents work`
+            : `Click to see where <strong>${locId}</strong> workers reside`;
+          _showTooltip(info, `<div class="ft-cta">${cta}</div>`);
         }
       } else {
         _hideTooltip();
