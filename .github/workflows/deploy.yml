@@ -35,6 +35,9 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Copy data to dist
+        run: cp -r data dist/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
