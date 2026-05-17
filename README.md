@@ -1,6 +1,6 @@
 # Wasatch Front Commuter Patterns
 
-An interactive WebAssembly-powered map for exploring commute flow patterns across the Wasatch Front region, built on open-source tools and hosted on GitHub Pages — no ArcGIS or proprietary dependencies.
+An interactive WebAssembly-powered map for exploring commute flow patterns across the Wasatch Front region, built entirely on open-source tools and hosted on GitHub Pages — no ArcGIS or proprietary dependencies.
 
 **Live app:** https://ar-puuk.github.io/APP-WFRC-Commute-Patterns/
 
@@ -11,36 +11,49 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
 ## Features
 
 - **Arc flow map** — curved arcs connect origins and destinations; arc width and opacity scale with commuter volume
-- **Four aggregation combinations** — select any city or county, then display destinations at city or county granularity independently
+- **City and county aggregation** — select any city or county; display destinations at city or county granularity independently
 - **Both flow directions** — "where residents work" and "where workers live"
-- **Top 10 list** — click any row to jump to that area
-- **Light / dark mode** — full theme switching including map tiles and arc colors
+- **22 years of data** — LEHD LODES data from 2002–2023; switch years from the header
+- **Five chart panels** (right sidebar, collapsible and resizable):
+  - *Commute Balance* — diverging bar showing top destinations and origins simultaneously
+  - *Flow Diagram* — bilateral Sankey (top 4 + Others per side)
+  - *Worker Demographics* — age, earnings, and industry breakdowns with direction toggle
+  - *Commute Reach* — distance-band distribution (< 10 mi, 10–25 mi, 25–50 mi, 50+ mi)
+  - *Industry Mix* — stacked bar across top-5 cities with inflow/outflow toggle
+- **Export** — every chart exports as PNG or CSV
+- **Layer controls** — toggle flow lines and polygon choropleth; set a minimum-commuter threshold for flow lines
+- **Map controls** — zoom, compass with pitch visualization, reset tilt & north, reset view, geolocate, fullscreen, scale bar
+- **Light / dark mode** — full theme switching including map tiles, arc colors, chart colors, and map controls
 - **Fully client-side** — DuckDB-WASM queries pre-processed Parquet files directly in the browser; no server or API keys required
 
 ## Data
 
-**Source:** [US Census LEHD LODES 8](https://lehd.ces.census.gov/data/lodes/LODES8/), Origin-Destination Employment Statistics for Utah, 2022.
+**Source:** [US Census LEHD LODES 8](https://lehd.ces.census.gov/data/lodes/LODES8/), Origin-Destination Employment Statistics for Utah, 2002–2023.
 
 **Coverage:** Nine WFRC-region counties — Box Elder, Davis, Weber, Morgan, Salt Lake, Utah, Tooele, Wasatch, and Summit.
 
 **Geography:** Block-level OD pairs are aggregated to city (Census-designated place) and county level using the LEHD geographic crosswalk. Centroids are derived from Census TIGER/Line 2020 shapefiles.
 
-Pre-processed data files committed to the repo (`data/`) so the app runs with no server-side processing:
+Pre-processed data files are committed to the repo under `data/<year>/` so the app runs with no server-side processing:
 
-| File | Rows | Description |
-|---|---|---|
-| `data/city_flows.parquet` | 13,479 | City-to-city OD pairs with commuter counts and breakdowns by age, earnings, and industry |
-| `data/county_flows.parquet` | 81 | County-to-county OD pairs |
-| `data/city_meta.json` | 160 | City centroids (lat/lon from TIGER polygons) |
-| `data/county_meta.json` | 9 | County centroids |
+| File | Description |
+|---|---|
+| `data/manifest.json` | Available years and default year |
+| `data/<year>/city_flows.parquet` | City-to-city OD pairs with commuter counts and breakdowns by age, earnings, and industry |
+| `data/<year>/county_flows.parquet` | County-to-county OD pairs |
+| `data/<year>/city_meta.json` | City centroids (lat/lon from TIGER polygons) |
+| `data/<year>/county_meta.json` | County centroids |
+| `data/city_boundaries.geojson` | City polygon boundaries for choropleth |
+| `data/county_boundaries.geojson` | County polygon boundaries for choropleth |
 
 ## Tech stack
 
 | Layer | Library |
 |---|---|
 | Build | [Vite](https://vitejs.dev/) |
-| Map | [MapLibre GL JS](https://maplibre.org/) + [Stadia Maps](https://stadiamaps.com/) tiles |
-| Flow visualization | [deck.gl](https://deck.gl/) ArcLayer via `@deck.gl/mapbox` |
+| Map | [MapLibre GL JS](https://maplibre.org/) + [CARTO](https://carto.com/) raster tiles |
+| Flow visualization | [Flowmap.gl](https://flowmap.gl/) FlowmapLayer via `@deck.gl/mapbox` |
+| Charts | [ECharts](https://echarts.apache.org/) v5 |
 | In-browser data | [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview.html) querying Parquet files |
 | Data pipeline | Python — pandas, GeoPandas, PyArrow |
 | Python env | [uv](https://docs.astral.sh/uv/) |
@@ -75,7 +88,7 @@ The pre-processed `data/` files are already committed. Only re-run this if you w
 uv run python scripts/process_data.py
 ```
 
-The script downloads ~200 MB of source data (LEHD OD files + Census TIGER shapefiles) and writes the four output files into `data/`.
+The script downloads LEHD OD files and Census TIGER shapefiles and writes the output files into `data/`.
 
 ### 4. Start the dev server
 
@@ -110,21 +123,27 @@ To enable it on a new repository:
 ├── src/
 │   ├── main.js                 # App entry — state, boot, visualization loop
 │   ├── db.js                   # DuckDB-WASM init and query functions
-│   ├── map.js                  # MapLibre + deck.gl ArcLayer
+│   ├── map.js                  # MapLibre + Flowmap.gl + map controls
 │   ├── sidebar.js              # Sidebar UI — search, toggles, stats, Top 10
+│   ├── charts.js               # ECharts panels — all 5 charts + exports
 │   └── styles/
 │       ├── main.css            # Layout and CSS custom properties (light/dark tokens)
-│       └── sidebar.css         # Sidebar-specific styles
+│       ├── sidebar.css         # Sidebar-specific styles
+│       ├── charts.css          # Right panel chart section styles
+│       └── toolbar.css         # Map overlay toolbar + MapLibre control theme overrides
 │
 ├── data/                       # Pre-processed data files (committed)
-│   ├── city_flows.parquet
-│   ├── county_flows.parquet
-│   ├── city_meta.json
-│   └── county_meta.json
+│   ├── manifest.json           # Available years list
+│   ├── city_boundaries.geojson
+│   ├── county_boundaries.geojson
+│   └── <year>/                 # One directory per year (2002–2023)
+│       ├── city_flows.parquet
+│       ├── county_flows.parquet
+│       ├── city_meta.json
+│       └── county_meta.json
 │
 ├── scripts/
-│   ├── process_data.py         # Offline data pipeline
-│   └── requirements.txt        # Alternative pip install reference
+│   └── process_data.py         # Offline data pipeline
 │
 ├── assets/
 │   └── wfrc-logo.png
@@ -140,14 +159,14 @@ To enable it on a new repository:
 
 `scripts/process_data.py` runs entirely offline and produces the committed `data/` files:
 
-1. Downloads `ut_od_main_JT00_2022.csv.gz` from LEHD (1.4 M block-level OD records)
+1. Downloads `ut_od_main_JT00_<year>.csv.gz` from LEHD (block-level OD records)
 2. Downloads the LEHD geographic crosswalk (`ut_xwalk.csv.gz`) to map blocks → city and county names
 3. Filters to flows where both home and work blocks are within the WFRC 9-county region
 4. Labels unincorporated blocks as `"[County] Unincorporated"`
 5. Aggregates to city→city and county→county pairs, summing all job-count columns
 6. Downloads Census TIGER 2020 Place and County shapefiles for Utah
 7. Computes polygon centroids in Utah State Plane (EPSG:26912) and projects to WGS84
-8. Exports Parquet files (Snappy-compressed) and JSON metadata
+8. Exports Parquet files (Snappy-compressed), JSON metadata, and GeoJSON boundaries
 
 ---
 
@@ -155,4 +174,4 @@ To enable it on a new repository:
 
 - Commute data: [US Census Bureau LEHD Program](https://lehd.ces.census.gov/)
 - Geography: [US Census Bureau TIGER/Line Shapefiles](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html)
-- Map tiles: [Stadia Maps](https://stadiamaps.com/) / [OpenMapTiles](https://openmaptiles.org/) / [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
+- Map tiles: [CARTO](https://carto.com/attributions) / [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
