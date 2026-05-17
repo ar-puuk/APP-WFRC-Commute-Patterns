@@ -50,6 +50,10 @@ let _boundaries = { county: null, city: null };
 // Stored so it can be replayed after boundary layers are added asynchronously
 let _pendingChoropleth = null;
 let _tooltipEl  = null;
+let _flowVisible     = true;
+let _polygonsVisible = true;
+// Cached for replay when toggling visibility
+let _lastFlowArgs = null;
 
 // ── Custom tooltip (FlowmapLayer onHover is async — can't use MapboxOverlay.getTooltip) ──
 
@@ -118,34 +122,65 @@ export function initMap(containerId, theme = 'light') {
 export function switchTheme(theme, onReady) {
   if (!map) return;
   _theme = theme;
-  map.setStyle(buildStyle(theme));
-  map.once('style.load', () => {
-    _addBoundaryLayers();
-    map.addControl(deckOverlay);
-    onReady?.();
-  });
+  _hideTooltip();
+
+  // Swap tile URLs in-place — avoids setStyle() which destroys all sources/layers
+  // and makes style.load-based layer restoration unreliable.
+  map.getSource('basemap')?.setTiles(TILE_URLS[theme]);
+
+  // Update boundary outline/selection colors for the new theme
+  const outlineColor     = theme === 'dark' ? 'rgba(80,210,230,0.5)'  : 'rgba(0,100,120,0.30)';
+  const outlineColorCity = theme === 'dark' ? 'rgba(80,210,230,0.35)' : 'rgba(0,100,120,0.22)';
+  const selColor         = theme === 'dark' ? '#50d2e6'               : '#007888';
+  if (map.getLayer('county-outline'))  map.setPaintProperty('county-outline',  'line-color', outlineColor);
+  if (map.getLayer('county-selected')) map.setPaintProperty('county-selected', 'line-color', selColor);
+  if (map.getLayer('city-outline'))    map.setPaintProperty('city-outline',    'line-color', outlineColorCity);
+  if (map.getLayer('city-selected'))   map.setPaintProperty('city-selected',   'line-color', selColor);
+
+  // Re-render choropleth and flow layer with the new theme immediately
+  if (_pendingChoropleth) {
+    const { flows, selectedArea, aggregation } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, theme);
+  }
+  if (_lastFlowArgs) updateLayers(..._lastFlowArgs);
+
+  // Full re-query so charts etc. also reflect the new theme
+  onReady?.();
 }
 
 // ── Flow map layer ────────────────────────────────────────────────────────────
 
+export function setFlowVisible(v) {
+  _flowVisible = v;
+  if (_lastFlowArgs) updateLayers(..._lastFlowArgs);
+}
+
+export function setPolygonsVisible(v) {
+  _polygonsVisible = v;
+  if (!v) {
+    ['county-fill','county-outline','county-selected','city-fill','city-outline','city-selected'].forEach(id => {
+      if (map?.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    });
+  } else if (_pendingChoropleth) {
+    const { flows, selectedArea, aggregation, theme } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, theme);
+  }
+}
+
 export function updateLayers(flows, state, onArcClick) {
   if (!deckOverlay) return;
+  _lastFlowArgs = [flows, state, onArcClick];
 
-  if (!flows.length) {
+  if (!flows.length || !_flowVisible) {
     deckOverlay.setProps({ layers: [] });
     _hideTooltip();
     return;
   }
 
-  // Build unique location nodes from enriched flow data
   const locMap = new Map();
   flows.forEach(f => {
-    if (!locMap.has(f.home_name)) {
-      locMap.set(f.home_name, { id: f.home_name, lat: f.home_lat, lon: f.home_lon, name: f.home_name });
-    }
-    if (!locMap.has(f.work_name)) {
-      locMap.set(f.work_name, { id: f.work_name, lat: f.work_lat, lon: f.work_lon, name: f.work_name });
-    }
+    if (!locMap.has(f.home_name)) locMap.set(f.home_name, { id: f.home_name, lat: f.home_lat, lon: f.home_lon, name: f.home_name });
+    if (!locMap.has(f.work_name)) locMap.set(f.work_name, { id: f.work_name, lat: f.work_lat, lon: f.work_lon, name: f.work_name });
   });
 
   const flowLayer = new FlowmapLayer({
@@ -162,7 +197,6 @@ export function updateLayers(flows, state, onArcClick) {
     getFlowDestId:    flow => flow.dest,
     getFlowMagnitude: flow => flow.count,
     darkMode: state.theme === 'dark',
-    colorScheme: 'Oranges',
     flowLinesRenderingMode: 'animated-straight',
     clusteringEnabled: false,
     locationTotalsEnabled: true,
@@ -237,7 +271,9 @@ export async function loadBoundaries(base, theme) {
  */
 export function updateChoropleth(flows, selectedArea, aggregation, theme) {
   _pendingChoropleth = { flows, selectedArea, aggregation, theme };
-  if (!map?.isStyleLoaded()) return;
+  if (!map) return;
+  // Note: isStyleLoaded() can return false inside the load event callback itself,
+  // so we rely on getLayer() below to bail out when layers aren't ready yet.
 
   const isCounty = aggregation === 'county';
   const layers = {
@@ -251,6 +287,14 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme) {
 
   if (!map.getLayer(layers.fill)) return;
 
+  // If polygons hidden, keep everything invisible
+  if (!_polygonsVisible) {
+    ['county-fill','county-outline','county-selected','city-fill','city-outline','city-selected'].forEach(id => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    });
+    return;
+  }
+
   // Toggle layer visibility
   map.setLayoutProperty(layers.fill,    'visibility', 'visible');
   map.setLayoutProperty(layers.outline, 'visibility', 'visible');
@@ -263,30 +307,43 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme) {
   map.setFilter(layers.sel, ['==', ['get', 'name'], selectedArea ?? '']);
 
   if (!flows.length) {
-    map.setPaintProperty(layers.fill, 'fill-color', 'rgba(0,0,0,0)');
+    map.setPaintProperty(layers.fill, 'fill-color', ['rgba', 0, 0, 0, 0]);
     return;
   }
 
   const maxFlow = Math.max(...flows.map(d => Number(d.S000)), 1);
-  const [r, g, b] = theme === 'dark' ? [255, 180, 60] : [255, 140, 0];
 
   const matchPairs = [];
 
-  // Selected area: subtle highlight (it's the origin, not a destination)
+  // Selected area: subtle teal highlight (it's the origin, not a destination)
   if (selectedArea) {
-    const selFill = theme === 'dark' ? 'rgba(100,150,220,0.12)' : 'rgba(26,58,92,0.08)';
-    matchPairs.push(selectedArea, selFill);
+    const selColor = theme === 'dark'
+      ? ['rgba', 40, 130, 155, 0.28]
+      : ['rgba',  0, 120, 140, 0.14];
+    matchPairs.push(selectedArea, selColor);
   }
 
-  // Destination zones: orange choropleth proportional to flow volume
+  // Destination zones: teal choropleth proportional to flow volume.
+  // Light mode: alpha ramp (dark teal, transparent→opaque on white bg).
+  // Dark mode: luminosity ramp (dark→bright teal at fixed opacity) — inverted so
+  // high-flow zones read as bright against the dark basemap.
   flows.forEach(f => {
-    const opacity = (0.06 + 0.60 * Math.sqrt(f.S000 / maxFlow)).toFixed(3);
-    matchPairs.push(f.dest_name, `rgba(${r},${g},${b},${opacity})`);
+    const t = Math.sqrt(Number(f.S000) / maxFlow);
+    // Both themes scale opacity AND color for maximum clarity.
+    // Light: dark teal, opacity 0.08→0.80 (transparent→opaque on white bg).
+    // Dark:  luminosity 0.30→0.88 opacity + dark→bright teal (low blends into dark bg, high glows).
+    const rgba = theme === 'dark'
+      ? ['rgba', Math.round(20 + t * 80), Math.round(70 + t * 150), Math.round(90 + t * 150),
+          parseFloat((0.30 + 0.58 * t).toFixed(3))]
+      : ['rgba', 0, 120, 140, parseFloat((0.08 + 0.72 * t).toFixed(3))];
+    matchPairs.push(f.dest_name, rgba);
   });
 
+  // match expression: ['match', input, label, output, ..., fallback]
+  // outputs are ['rgba', r, g, b, a] sub-expressions — the only reliable color form in MapLibre
   const colorExpr = matchPairs.length
-    ? ['match', ['get', 'name'], ...matchPairs, 'rgba(0,0,0,0)']
-    : 'rgba(0,0,0,0)';
+    ? ['match', ['get', 'name'], ...matchPairs, ['rgba', 0, 0, 0, 0]]
+    : ['rgba', 0, 0, 0, 0];
 
   map.setPaintProperty(layers.fill, 'fill-color', colorExpr);
 }
@@ -313,9 +370,9 @@ export function fitToFlows(flows) {
 function _addBoundaryLayers() {
   if (!map || !_boundaries.county || !_boundaries.city) return;
 
-  const outlineColor     = _theme === 'dark' ? 'rgba(160,195,240,0.6)'  : 'rgba(40,70,110,0.25)';
-  const outlineColorCity = _theme === 'dark' ? 'rgba(160,195,240,0.4)'  : 'rgba(40,70,110,0.18)';
-  const selColor         = _theme === 'dark' ? '#7ab8f5'                : '#1a3a5c';
+  const outlineColor     = _theme === 'dark' ? 'rgba(80,210,230,0.5)'   : 'rgba(0,100,120,0.30)';
+  const outlineColorCity = _theme === 'dark' ? 'rgba(80,210,230,0.35)'  : 'rgba(0,100,120,0.22)';
+  const selColor         = _theme === 'dark' ? '#50d2e6'                : '#007888';
 
   // Add (or replace) GeoJSON sources
   if (map.getSource('county-zones')) {

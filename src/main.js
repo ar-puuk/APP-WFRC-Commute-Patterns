@@ -3,7 +3,7 @@ import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, fitToFlows, loadBoundaries, updateChoropleth } from './map.js';
+import { initMap, updateLayers, switchTheme, flyToArea, fitToFlows, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv } from './charts.js';
 
@@ -99,6 +99,9 @@ async function main() {
   // 11. Wire filter toolbar
   _initFilterToolbar();
 
+  // 11b. Wire layer toggle toolbar
+  _initLayerToolbar();
+
   // 12. Wire theme toggle
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
@@ -144,6 +147,35 @@ function _initFilterToolbar() {
     clearTimeout(_debounce);
     _debounce = setTimeout(() => _applyFilter(), 250);
   });
+}
+
+// ── Layer toggle toolbar ──────────────────────────────────────────────────────
+function _initLayerToolbar() {
+  const layerBtn     = document.getElementById('tb-layers');
+  const layerPopover = document.getElementById('layers-popover');
+  const flowChk      = document.getElementById('toggle-flow');
+  const polygonsChk  = document.getElementById('toggle-polygons');
+
+  if (!layerBtn || !layerPopover || !flowChk || !polygonsChk) return;
+
+  layerBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = layerPopover.hidden;
+    layerPopover.hidden = !open;
+    layerBtn.classList.toggle('active', open);
+    layerBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#map-toolbar')) {
+      layerPopover.hidden = true;
+      layerBtn.classList.remove('active');
+      layerBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  flowChk.addEventListener('change', () => setFlowVisible(flowChk.checked));
+  polygonsChk.addEventListener('change', () => setPolygonsVisible(polygonsChk.checked));
 }
 
 // ── Year selector ─────────────────────────────────────────────────────────────

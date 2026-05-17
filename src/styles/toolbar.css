@@ -101,3 +101,27 @@
   color: var(--sidebar-text-muted);
   font-style: italic;
 }
+
+/* ── Layers popover ──────────────────────────────────────────────────────────── */
+.tb-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--sidebar-text);
+  user-select: none;
+}
+
+.tb-layer-row:not(:last-child) {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.tb-layer-row input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--toggle-active-bg);
+  cursor: pointer;
+  flex-shrink: 0;
+}
