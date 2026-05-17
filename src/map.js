@@ -5,13 +5,23 @@ import { FlowmapLayer } from '@flowmap.gl/layers';
 // ── Base map tile styles ─────────────────────────────────────────────────────
 
 const ATTRIBUTION =
-  '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> ' +
-  '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> ' +
-  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors ' +
+  '&copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
 
+// Carto raster tiles — free, no API key, subdomain load-balanced
 const TILE_URLS = {
-  light: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}@2x.png',
-  dark:  'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}@2x.png',
+  light: [
+    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+    'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+    'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+  ],
+  dark: [
+    'https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
+    'https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
+    'https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
+    'https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
+  ],
 };
 
 function buildStyle(theme) {
@@ -21,7 +31,7 @@ function buildStyle(theme) {
     sources: {
       basemap: {
         type: 'raster',
-        tiles: [TILE_URLS[theme]],
+        tiles: TILE_URLS[theme],
         tileSize: 256,
         attribution: ATTRIBUTION,
       },
@@ -303,13 +313,9 @@ export function fitToFlows(flows) {
 function _addBoundaryLayers() {
   if (!map || !_boundaries.county || !_boundaries.city) return;
 
-  const outlineColor = _theme === 'dark'
-    ? 'rgba(130,165,210,0.35)'
-    : 'rgba(40,70,110,0.22)';
-  const outlineColorCity = _theme === 'dark'
-    ? 'rgba(130,165,210,0.2)'
-    : 'rgba(40,70,110,0.15)';
-  const selColor = _theme === 'dark' ? '#6a9fd8' : '#1a3a5c';
+  const outlineColor     = _theme === 'dark' ? 'rgba(160,195,240,0.6)'  : 'rgba(40,70,110,0.25)';
+  const outlineColorCity = _theme === 'dark' ? 'rgba(160,195,240,0.4)'  : 'rgba(40,70,110,0.18)';
+  const selColor         = _theme === 'dark' ? '#7ab8f5'                : '#1a3a5c';
 
   // Add (or replace) GeoJSON sources
   if (map.getSource('county-zones')) {
@@ -323,23 +329,29 @@ function _addBoundaryLayers() {
     map.addSource('city-zones', { type: 'geojson', data: _boundaries.city });
   }
 
-  // County layers (default visible)
+  // County layers — add if missing, then always sync paint to current theme
   if (!map.getLayer('county-fill')) {
-    map.addLayer({ id: 'county-fill',    type: 'fill', source: 'county-zones', paint: { 'fill-color': 'rgba(0,0,0,0)' } });
-    map.addLayer({ id: 'county-outline', type: 'line', source: 'county-zones', paint: { 'line-color': outlineColor, 'line-width': 1 } });
+    map.addLayer({ id: 'county-fill',     type: 'fill', source: 'county-zones', paint: { 'fill-color': 'rgba(0,0,0,0)' } });
+    map.addLayer({ id: 'county-outline',  type: 'line', source: 'county-zones', paint: { 'line-color': outlineColor,     'line-width': 1   } });
     map.addLayer({ id: 'county-selected', type: 'line', source: 'county-zones', filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } });
+  } else {
+    map.setPaintProperty('county-outline',  'line-color', outlineColor);
+    map.setPaintProperty('county-selected', 'line-color', selColor);
   }
 
-  // City layers (hidden until city aggregation is active)
+  // City layers — add if missing, then always sync paint to current theme
   if (!map.getLayer('city-fill')) {
-    map.addLayer({ id: 'city-fill',    type: 'fill', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } });
-    map.addLayer({ id: 'city-outline', type: 'line', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColorCity, 'line-width': 0.5 } });
+    map.addLayer({ id: 'city-fill',     type: 'fill', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } });
+    map.addLayer({ id: 'city-outline',  type: 'line', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColorCity, 'line-width': 0.5 } });
     map.addLayer({ id: 'city-selected', type: 'line', source: 'city-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } });
+  } else {
+    map.setPaintProperty('city-outline',  'line-color', outlineColorCity);
+    map.setPaintProperty('city-selected', 'line-color', selColor);
   }
 
-  // Replay any choropleth that was computed before layers existed
+  // Replay choropleth using the CURRENT theme (not the stored one)
   if (_pendingChoropleth) {
-    const { flows, selectedArea, aggregation, theme } = _pendingChoropleth;
-    updateChoropleth(flows, selectedArea, aggregation, theme);
+    const { flows, selectedArea, aggregation } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, _theme);
   }
 }
