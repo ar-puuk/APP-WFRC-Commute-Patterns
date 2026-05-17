@@ -43,32 +43,24 @@ export async function reloadYear(year, onProgress) {
 async function _loadYearFiles(year, onProgress) {
   const base = import.meta.env.BASE_URL ?? '/';
 
-  const [cityBuf, countyBuf] = await Promise.all([
-    fetch(`${base}data/${year}/city_flows.parquet`).then(r => {
-      if (!r.ok) throw new Error(`data/${year}/city_flows.parquet: ${r.status}`);
-      return r.arrayBuffer();
-    }),
-    fetch(`${base}data/${year}/county_flows.parquet`).then(r => {
-      if (!r.ok) throw new Error(`data/${year}/county_flows.parquet: ${r.status}`);
-      return r.arrayBuffer();
-    }),
-  ]);
+  const cityBuf = await fetch(`${base}data/${year}/city_flows.parquet`).then(r => {
+    if (!r.ok) throw new Error(`data/${year}/city_flows.parquet: ${r.status}`);
+    return r.arrayBuffer();
+  });
 
   onProgress?.(70);
 
-  // Drop existing view and files before re-registering
-  try { await _conn.query('DROP VIEW IF EXISTS city_flows'); } catch {}
-  try { await _db.dropFile('city_flows.parquet'); }   catch {}
-  try { await _db.dropFile('county_flows.parquet'); } catch {}
+  // Use year-stamped filename so re-registration across year switches never
+  // conflicts (registerFileBuffer throws if the name is already taken).
+  const cityFile = `city_flows_${year}.parquet`;
+  try { await _db.dropFile(cityFile); } catch {}
+  await _db.registerFileBuffer(cityFile, new Uint8Array(cityBuf));
 
-  await _db.registerFileBuffer('city_flows.parquet',   new Uint8Array(cityBuf));
-  await _db.registerFileBuffer('county_flows.parquet', new Uint8Array(countyBuf));
-
-  // city_flows has: home_name, work_name, home_county, work_county, S000, …
-  // All 4 combinations of areaType × aggregation are served from city_flows alone.
-  await _conn.query(`
-    CREATE VIEW city_flows AS SELECT * FROM read_parquet('city_flows.parquet');
-  `);
+  // CREATE OR REPLACE avoids a separate DROP VIEW that could fail silently
+  // and leave the view pointing at the previous year's data.
+  await _conn.query(
+    `CREATE OR REPLACE VIEW city_flows AS SELECT * FROM read_parquet('${cityFile}');`
+  );
 
   onProgress?.(100);
 }

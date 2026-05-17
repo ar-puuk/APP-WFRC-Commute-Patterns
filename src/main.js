@@ -208,6 +208,9 @@ async function _changeYear(newYear, base) {
     await refreshVisualization();
     setProgress(100);
 
+  } catch (err) {
+    console.error('Year switch failed:', err);
+    setProgress(0);
   } finally {
     _changingYear = false;
     if (sel) sel.disabled = false;
