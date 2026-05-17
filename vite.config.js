@@ -11,7 +11,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           maplibre: ['maplibre-gl'],
-          deckgl: ['@deck.gl/core', '@deck.gl/layers', '@deck.gl/mapbox'],
+          deckgl: ['@deck.gl/core', '@deck.gl/layers', '@deck.gl/mapbox', '@flowmap.gl/layers', '@flowmap.gl/data'],
           echarts: ['echarts'],
         },
       },

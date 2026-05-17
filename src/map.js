@@ -1,6 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { ArcLayer } from '@deck.gl/layers';
+import { FlowmapLayer } from '@flowmap.gl/layers';
 
 // ── Base map tile styles ─────────────────────────────────────────────────────
 
@@ -59,19 +59,26 @@ export function initMap(containerId, theme = 'light') {
     layers: [],
     getTooltip: ({ object }) => {
       if (!object) return null;
-      const count = Number(object.S000).toLocaleString();
-      return {
-        html: `<strong>${object.home_name} &rarr; ${object.work_name}</strong><br>${count} commuters`,
-        style: {
-          backgroundColor: _theme === 'dark' ? '#1a1a2e' : '#fff',
-          color: _theme === 'dark' ? '#e8e8f0' : '#1a1a1a',
-          fontSize: '13px',
-          borderRadius: '6px',
-          padding: '6px 10px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-          pointerEvents: 'none',
-        },
+      const style = {
+        backgroundColor: _theme === 'dark' ? '#1a1a2e' : '#fff',
+        color: _theme === 'dark' ? '#e8e8f0' : '#1a1a1a',
+        fontSize: '13px',
+        borderRadius: '6px',
+        padding: '6px 10px',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+        pointerEvents: 'none',
       };
+      if (object.type === 'flow') {
+        const count = Number(object.count).toLocaleString();
+        return {
+          html: `<strong>${object.origin?.id ?? ''} &rarr; ${object.dest?.id ?? ''}</strong><br>${count} commuters`,
+          style,
+        };
+      }
+      if (object.type === 'location') {
+        return { html: `<strong>${object.name ?? object.location?.id ?? ''}</strong>`, style };
+      }
+      return null;
     },
   });
 
@@ -98,7 +105,7 @@ export function switchTheme(theme, onReady) {
   });
 }
 
-// ── Arc layer ────────────────────────────────────────────────────────────────
+// ── Flow map layer ────────────────────────────────────────────────────────────
 
 export function updateLayers(flows, state, onArcClick) {
   if (!deckOverlay) return;
@@ -108,31 +115,55 @@ export function updateLayers(flows, state, onArcClick) {
     return;
   }
 
-  const maxFlow = Math.max(...flows.map(d => Number(d.S000)), 1);
-  const baseRgb = state.theme === 'dark' ? [255, 180, 60] : [255, 140, 0];
+  // Build unique location nodes from enriched flow data
+  const locMap = new Map();
+  flows.forEach(f => {
+    if (!locMap.has(f.home_name)) {
+      locMap.set(f.home_name, { id: f.home_name, lat: f.home_lat, lon: f.home_lon, name: f.home_name });
+    }
+    if (!locMap.has(f.work_name)) {
+      locMap.set(f.work_name, { id: f.work_name, lat: f.work_lat, lon: f.work_lon, name: f.work_name });
+    }
+  });
 
-  const arcLayer = new ArcLayer({
-    id: 'commute-arcs',
-    data: flows,
-    getSourcePosition: d => [d.home_lon, d.home_lat],
-    getTargetPosition: d => [d.work_lon, d.work_lat],
-    getSourceColor: d => [...baseRgb, 20 + Math.floor((d.S000 / maxFlow) * 140)],
-    getTargetColor: d => [...baseRgb, 60 + Math.floor((d.S000 / maxFlow) * 195)],
-    getWidth: d => 1 + Math.sqrt(d.S000 / maxFlow) * 12,
-    widthMinPixels: 1,
-    widthMaxPixels: 20,
-    greatCircle: true,
-    numSegments: 64,
+  const flowLayer = new FlowmapLayer({
+    id: 'commute-flows',
+    data: {
+      locations: Array.from(locMap.values()),
+      flows: flows.map(f => ({ origin: f.home_name, dest: f.work_name, count: Number(f.S000) })),
+    },
+    getLocationId:    loc  => loc.id,
+    getLocationLat:   loc  => loc.lat,
+    getLocationLon:   loc  => loc.lon,
+    getLocationName:  loc  => loc.name,
+    getFlowOriginId:  flow => flow.origin,
+    getFlowDestId:    flow => flow.dest,
+    getFlowMagnitude: flow => flow.count,
+    darkMode: state.theme === 'dark',
+    colorScheme: 'Oranges',
+    flowLinesRenderingMode: 'curved',
+    clusteringEnabled: false,
+    locationTotalsEnabled: true,
+    locationLabelsEnabled: false,
+    fadeEnabled: true,
+    adaptiveScalesEnabled: true,
+    flowLineThicknessScale: 1.5,
     pickable: true,
-    onClick: ({ object }) => object && onArcClick?.(object),
-    updateTriggers: {
-      getSourceColor: [state.theme, maxFlow],
-      getTargetColor: [state.theme, maxFlow],
-      getWidth: [maxFlow],
+    onClick: (info) => {
+      if (!onArcClick) return;
+      const obj = info?.object;
+      if (!obj) return;
+      if (obj.type === 'flow') {
+        const destId = obj.dest?.id;
+        if (destId) onArcClick({ dest_name: destId });
+      } else if (obj.type === 'location') {
+        const locId = obj.location?.id;
+        if (locId) onArcClick({ dest_name: locId });
+      }
     },
   });
 
-  deckOverlay.setProps({ layers: [arcLayer] });
+  deckOverlay.setProps({ layers: [flowLayer] });
 }
 
 // ── Polygon choropleth ────────────────────────────────────────────────────────
