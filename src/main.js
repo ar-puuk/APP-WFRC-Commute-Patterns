@@ -26,6 +26,28 @@ let countyMeta = {};
 let _lastEnrichedFlows = [];
 let _lastTotal         = 0;
 
+// Track last flew state so we don't re-fly on direction/theme/filter changes
+let _lastFlewArea        = null;
+let _lastFlewAggregation = null;
+
+// ── Zoom helpers ──────────────────────────────────────────────────────────────
+function _haversineMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
+    * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function _distanceToZoom(avgMiles) {
+  // At zoom 8, ~230 miles visible; each level halves that.
+  // Constant 20 ≈ 46/2.3, giving broad regional context around the avg commute distance.
+  const zoom = 8 + Math.log2(20 / Math.max(avgMiles, 1));
+  return Math.min(Math.max(zoom, 7.5), 11.5);
+}
+
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function main() {
   setProgress(5);
@@ -74,7 +96,7 @@ async function main() {
   initSidebar({
     cityNames, countyNames, state,
     onSelectionChange: () => refreshVisualization(),
-    onAreaFly: (name, type) => { const m = (type === 'city' ? cityMeta : countyMeta)[name]; if (m?.lat) flyToArea(m.lat, m.lon, type === 'county' ? 8.5 : 9.5); },
+    onAreaFly: () => {},
   });
 
   // 8. Init charts (right panel)
@@ -82,8 +104,6 @@ async function main() {
     state.selectedArea     = areaName;
     state.selectedAreaType = areaType;
     _updateSidebarAreaLabels(areaName);
-    const m = (areaType === 'city' ? cityMeta : countyMeta)[areaName];
-    if (m?.lat) flyToArea(m.lat, m.lon, areaType === 'county' ? 9 : 10);
     refreshVisualization();
   });
 
@@ -210,7 +230,7 @@ async function _changeYear(newYear, base) {
       countyNames: countyMetaArr.map(d => d.name).sort(),
       state,
       onSelectionChange: () => refreshVisualization(),
-      onAreaFly: (name, type) => { const m = (type === 'city' ? cityMeta : countyMeta)[name]; if (m?.lat) flyToArea(m.lat, m.lon, type === 'county' ? 8.5 : 9.5); },
+      onAreaFly: () => {},
     });
 
     await refreshVisualization();
@@ -255,6 +275,28 @@ async function refreshVisualization() {
 
     setSelfFlow(state.aggregation === 'city' ? selfCount : 0);
 
+    // Fly only when the selected area or aggregation level changes
+    const areaChanged = state.selectedArea !== _lastFlewArea
+                     || state.aggregation  !== _lastFlewAggregation;
+    if (src?.lat && areaChanged) {
+      let zoom;
+      if (state.aggregation === 'county') {
+        zoom = 8;
+      } else {
+        let distNum = 0, distDen = 0;
+        enriched.forEach(f => {
+          const n = Number(f.S000);
+          distNum += _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon) * n;
+          distDen += n;
+        });
+        const avgMiles = distDen > 0 ? distNum / distDen : 20;
+        zoom = _distanceToZoom(avgMiles);
+      }
+      flyToArea(src.lat, src.lon, zoom);
+      _lastFlewArea        = state.selectedArea;
+      _lastFlewAggregation = state.aggregation;
+    }
+
     _applyFilter();
 
   } finally {
@@ -280,9 +322,6 @@ function arcClickHandler(flow) {
 
   state.selectedArea     = newArea;
   state.selectedAreaType = state.aggregation;
-
-  const m = (state.aggregation === 'city' ? cityMeta : countyMeta)[newArea];
-  if (m?.lat) flyToArea(m.lat, m.lon, state.aggregation === 'county' ? 9 : 10);
 
   _updateSidebarAreaLabels(newArea);
   refreshVisualization();
