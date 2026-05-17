@@ -92,11 +92,11 @@
   flex-shrink: 0;
 }
 
-.item-type.county { background: rgba(26,58,92,0.12); color: #1a3a5c; }
-.item-type.city   { background: rgba(100,100,100,0.1); color: var(--sidebar-text-muted); }
+.item-type.county { background: rgba(255, 140, 0, 0.2); color: #ffb060; }
+.item-type.city   { background: rgba(255, 255, 255, 0.1); color: var(--sidebar-text-muted); }
 
-[data-theme="dark"] .item-type.county { background: rgba(106,159,216,0.2); color: #6a9fd8; }
-[data-theme="dark"] .item-type.city   { background: rgba(255,255,255,0.08); color: var(--sidebar-text-muted); }
+[data-theme="dark"] .item-type.county { background: rgba(255, 140, 0, 0.18); color: #ffa040; }
+[data-theme="dark"] .item-type.city   { background: rgba(255, 255, 255, 0.08); color: var(--sidebar-text-muted); }
 
 /* ── Direction / aggregation toggles ─────────────────────────────────────────── */
 .toggle-group {

@@ -10,20 +10,20 @@
   --header-subtitle: rgba(255, 255, 255, 0.65);
 
   /* Panels */
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #1a1a1a;
-  --sidebar-text-muted: #666;
-  --sidebar-border: #e0e0e0;
+  --sidebar-bg: #1a3a5c;
+  --sidebar-text: #e8f0f9;
+  --sidebar-text-muted: rgba(200, 220, 240, 0.6);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-section-gap: 14px;
 
   /* Controls */
-  --input-bg: #f5f5f5;
-  --input-border: #ccc;
-  --input-focus-border: #1a3a5c;
-  --toggle-bg: #efefef;
-  --toggle-active-bg: #1a3a5c;
+  --input-bg: rgba(255, 255, 255, 0.08);
+  --input-border: rgba(255, 255, 255, 0.18);
+  --input-focus-border: #ff8c00;
+  --toggle-bg: rgba(255, 255, 255, 0.07);
+  --toggle-active-bg: #ff8c00;
   --toggle-active-text: #ffffff;
-  --toggle-text: #333;
+  --toggle-text: rgba(232, 240, 249, 0.8);
 
   /* Map */
   --map-bg: #e8e0d8;
@@ -42,24 +42,24 @@
 }
 
 [data-theme="dark"] {
-  --header-bg: #0d1f33;
+  --header-bg: #0b1926;
 
-  --sidebar-bg: #1a1a2e;
-  --sidebar-text: #e8e8f0;
-  --sidebar-text-muted: #8888aa;
-  --sidebar-border: #2e2e4e;
+  --sidebar-bg: #0e2035;
+  --sidebar-text: #dce8f4;
+  --sidebar-text-muted: rgba(180, 210, 235, 0.55);
+  --sidebar-border: rgba(255, 255, 255, 0.09);
 
-  --input-bg: #252540;
-  --input-border: #3a3a5c;
-  --input-focus-border: #6a9fd8;
-  --toggle-bg: #252540;
-  --toggle-active-bg: #3a70a8;
+  --input-bg: rgba(255, 255, 255, 0.07);
+  --input-border: rgba(255, 255, 255, 0.15);
+  --input-focus-border: #ff8c00;
+  --toggle-bg: rgba(255, 255, 255, 0.07);
+  --toggle-active-bg: #e07800;
   --toggle-active-text: #ffffff;
-  --toggle-text: #c0c0d8;
+  --toggle-text: rgba(220, 232, 244, 0.7);
 
-  --map-bg: #1a1a2e;
-  --accent: #ffb440;
-  --accent-light: rgba(255, 180, 64, 0.15);
+  --map-bg: #0e2035;
+  --accent: #ff8c00;
+  --accent-light: rgba(255, 140, 0, 0.2);
   --accent-teal: #50d2e6;
 }
 
