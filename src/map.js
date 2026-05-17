@@ -92,11 +92,12 @@ function _ensureTooltip() {
   return _tooltipEl;
 }
 
-function _showTooltip(info, html) {
+function _showTooltip(info, html, extraClass = '') {
   const el = _ensureTooltip();
   const container = map?.getContainer();
   if (!container) return;
   const rect = container.getBoundingClientRect();
+  el.className = extraClass ? `map-tooltip ${extraClass}` : 'map-tooltip';
   el.innerHTML = html;
   el.style.display = 'block';
   el.style.left = `${rect.left + info.x + 16}px`;
@@ -288,9 +289,9 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
           `);
         } else {
           const cta = state.direction === 'outflow'
-            ? `Click to see where <strong>${locId}</strong> residents work`
-            : `Click to see where <strong>${locId}</strong> workers reside`;
-          _showTooltip(info, `<div class="ft-cta">${cta}</div>`);
+            ? `Where do <strong>${locId}</strong> residents work?`
+            : `Where do <strong>${locId}</strong> workers live?`;
+          _showTooltip(info, `<div class="ft-cta">${cta}</div>`, 'map-tooltip--cta');
         }
       } else {
         _hideTooltip();

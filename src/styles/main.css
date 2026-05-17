@@ -350,10 +350,15 @@ h1, h2, h3,
   font-family: var(--font-heading);
 }
 
+.map-tooltip--cta {
+  min-width: 0;
+  width: max-content;
+  max-width: 220px;
+}
+
 .ft-cta {
   font-size: 11px;
   color: var(--sidebar-text-muted);
-  margin-top: 4px;
   line-height: 1.4;
 }
 
