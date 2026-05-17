@@ -251,11 +251,14 @@ async function refreshVisualization() {
   state.loading = true;
 
   try {
-    const [flows, total, selfCount] = await Promise.all([
+    const [flows, totalOut, totalIn, selfCount] = await Promise.all([
       queryFlows(state.selectedArea, state.selectedAreaType, state.direction, state.aggregation),
-      queryTotal(state.selectedArea, state.selectedAreaType, state.direction),
+      queryTotal(state.selectedArea, state.selectedAreaType, 'outflow'),
+      queryTotal(state.selectedArea, state.selectedAreaType, 'inflow'),
       state.aggregation === 'city' ? querySelfFlow(state.selectedArea, state.selectedAreaType) : Promise.resolve(0),
     ]);
+
+    const total = state.direction === 'outflow' ? totalOut : totalIn;
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
     const dstMeta = state.aggregation       === 'city' ? cityMeta : countyMeta;
@@ -273,7 +276,7 @@ async function refreshVisualization() {
     _lastEnrichedFlows = enriched;
     _lastTotal         = total;
 
-    setSelfFlow(state.aggregation === 'city' ? selfCount : 0);
+    setSelfFlow(state.aggregation === 'city' ? selfCount : 0, totalOut, totalIn);
 
     // Fly only when the selected area or aggregation level changes
     const areaChanged = state.selectedArea !== _lastFlewArea

@@ -54,7 +54,9 @@ let _flowVisible     = true;
 let _polygonsVisible = true;
 // Cached for replay when toggling visibility
 let _lastFlowArgs = null;
-let _selfFlowCount = 0;
+let _selfFlowCount    = 0;
+let _selfOutTotal     = 0;   // total commuters who reside in selected area
+let _selfInTotal      = 0;   // total workers employed in selected area
 
 // ── Donut SVG helper ─────────────────────────────────────────────────────────
 
@@ -184,8 +186,10 @@ export function setPolygonsVisible(v) {
   }
 }
 
-export function setSelfFlow(count) {
-  _selfFlowCount = count ?? 0;
+export function setSelfFlow(count, outTotal = 0, inTotal = 0) {
+  _selfFlowCount = count    ?? 0;
+  _selfOutTotal  = outTotal ?? 0;
+  _selfInTotal   = inTotal  ?? 0;
 }
 
 export function updateLayers(flows, state, onArcClick, total = 0) {
@@ -245,12 +249,13 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         const selDonut = selPct != null ? _donutSvg(selPct, 'var(--accent-teal)') : '';
         const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--accent)')      : '';
 
+        // "commuters" = workers who reside in that city; "workforce" = workers employed in that city
         const selLabel = isOutflow
-          ? `of <strong>${originId}</strong><br>residents`
-          : `of workers in<br><strong>${destId}</strong>`;
+          ? `of <strong>${originId}</strong>'s<br>commuters`
+          : `of <strong>${destId}</strong>'s<br>workforce`;
         const dstLabel = isOutflow
-          ? `of workers in<br><strong>${destId}</strong>`
-          : `of <strong>${originId}</strong><br>residents`;
+          ? `of <strong>${destId}</strong>'s<br>workforce`
+          : `of <strong>${originId}</strong>'s<br>commuters`;
 
         const donuts = (selDonut || dstDonut) ? `
           <div class="ft-divider"></div>
@@ -267,9 +272,19 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
       } else if (obj.type === 'location') {
         const locId = obj.name ?? obj.location?.id ?? '';
         if (locId === state.selectedArea && _selfFlowCount > 0) {
+          const outPct = _selfOutTotal > 0 ? parseFloat((_selfFlowCount / _selfOutTotal * 100).toFixed(1)) : null;
+          const inPct  = _selfInTotal  > 0 ? parseFloat((_selfFlowCount / _selfInTotal  * 100).toFixed(1)) : null;
+          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--accent-teal)') : '';
+          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--accent)')      : '';
           _showTooltip(info, `
             <div class="ft-route">${locId}</div>
             <div class="ft-count">${Number(_selfFlowCount).toLocaleString()}<span class="ft-unit">live &amp; work here</span></div>
+            ${(outDonut || inDonut) ? `
+            <div class="ft-divider"></div>
+            <div class="ft-donuts">
+              ${outDonut ? `<div class="ft-donut-wrap">${outDonut}<div class="ft-donut-label">of <strong>${locId}</strong>'s<br>commuters</div></div>` : ''}
+              ${inDonut  ? `<div class="ft-donut-wrap">${inDonut}<div class="ft-donut-label">of <strong>${locId}</strong>'s<br>workforce</div></div>` : ''}
+            </div>` : ''}
           `);
         } else {
           const cta = state.direction === 'outflow'
