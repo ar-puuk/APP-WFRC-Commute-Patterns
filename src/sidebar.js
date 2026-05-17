@@ -1,11 +1,14 @@
 let _state = null;
 let _onSelectionChange = null;
 let _onAreaFly = null;
+let _onFilterChange = null;
+let _debounceTimer = null;
 
-export function initSidebar({ cityNames, countyNames, state, onSelectionChange, onAreaFly }) {
+export function initSidebar({ cityNames, countyNames, state, onSelectionChange, onAreaFly, onFilterChange }) {
   _state = state;
   _onSelectionChange = onSelectionChange;
   _onAreaFly = onAreaFly;
+  _onFilterChange = onFilterChange;
 
   const panel = document.getElementById('left-panel');
   panel.innerHTML = `
@@ -48,6 +51,23 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
       </div>
     </div>
 
+    <div class="sidebar-section" id="filter-section">
+      <label class="sidebar-label" for="min-flow-input">Min. commuters per corridor</label>
+      <div class="filter-input-row">
+        <input
+          id="min-flow-input"
+          class="sidebar-number-input"
+          type="number"
+          min="0"
+          max="10000"
+          step="10"
+          value="${state.minFlow}"
+          aria-label="Minimum commuters per corridor"
+        />
+        <span class="filter-input-hint">city view only</span>
+      </div>
+    </div>
+
     <hr class="sidebar-divider" />
 
     <div class="sidebar-section" id="stats-section">
@@ -77,6 +97,7 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
   _setAreaLabels(state.selectedArea);
   _initDropdown(cityNames, countyNames);
 
+
   document.getElementById('direction-toggle').addEventListener('click', e => {
     const btn = e.target.closest('[data-value]');
     if (!btn) return;
@@ -97,6 +118,17 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
   _setActiveToggle('aggregation-toggle', state.aggregation);
 
   document.getElementById('area-search').value = state.selectedArea;
+
+  const filterInput = document.getElementById('min-flow-input');
+  if (filterInput) {
+    filterInput.addEventListener('input', () => {
+      clearTimeout(_debounceTimer);
+      _debounceTimer = setTimeout(() => {
+        const val = parseInt(filterInput.value);
+        if (!isNaN(val) && val >= 0) _onFilterChange?.(val);
+      }, 300);
+    });
+  }
 }
 
 export function updateSidebarStats(flows, total, appState) {
@@ -230,6 +262,7 @@ function _initDropdown(cityNames, countyNames) {
       _setActiveToggle('aggregation-toggle', type);
     }
     hide();
+    _onAreaFly?.(label, type);
     _onSelectionChange();
   }
 

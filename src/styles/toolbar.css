@@ -44,7 +44,7 @@
   background: var(--toggle-active-bg);
 }
 
-/* ── Filter popover ──────────────────────────────────────────────────────────── */
+/* ── Layers popover ──────────────────────────────────────────────────────────── */
 .tb-popover {
   pointer-events: all;
   background: var(--sidebar-bg);
@@ -52,7 +52,7 @@
   border-radius: 8px;
   padding: 12px 14px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  min-width: 220px;
+  min-width: 180px;
 }
 
 .tb-popover[hidden] { display: none; }
@@ -66,43 +66,7 @@
   margin-bottom: 8px;
 }
 
-.tb-filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
 
-.tb-number-input {
-  width: 90px;
-  padding: 5px 8px;
-  font-size: 13px;
-  font-family: var(--font-main);
-  background: var(--input-bg);
-  color: var(--sidebar-text);
-  border: 1px solid var(--input-border);
-  border-radius: 5px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.tb-number-input:focus {
-  border-color: var(--input-focus-border);
-  box-shadow: 0 0 0 2px var(--accent-light);
-}
-
-.tb-filter-hint {
-  font-size: 11px;
-  color: var(--sidebar-text-muted);
-}
-
-.tb-filter-note {
-  font-size: 10px;
-  color: var(--sidebar-text-muted);
-  font-style: italic;
-}
-
-/* ── Layers popover ──────────────────────────────────────────────────────────── */
 .tb-layer-row {
   display: flex;
   align-items: center;

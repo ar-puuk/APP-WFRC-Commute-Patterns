@@ -3,7 +3,7 @@ import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, fitToFlows, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible } from './map.js';
+import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv } from './charts.js';
 
@@ -15,7 +15,7 @@ const state = {
   selectedArea:     'Salt Lake City',
   selectedAreaType: 'city',
   year:             null,
-  minFlow:          0,
+  minFlow:          50,
   loading:          false,
 };
 
@@ -74,7 +74,7 @@ async function main() {
   initSidebar({
     cityNames, countyNames, state,
     onSelectionChange: () => refreshVisualization(),
-    onAreaFly: (lat, lon) => flyToArea(lat, lon),
+    onAreaFly: (name, type) => { const m = (type === 'city' ? cityMeta : countyMeta)[name]; if (m?.lat) flyToArea(m.lat, m.lon, type === 'county' ? 8.5 : 9.5); },
   });
 
   // 8. Init charts (right panel)
@@ -83,7 +83,7 @@ async function main() {
     state.selectedAreaType = areaType;
     _updateSidebarAreaLabels(areaName);
     const m = (areaType === 'city' ? cityMeta : countyMeta)[areaName];
-    if (m?.lat) flyToArea(m.lat, m.lon);
+    if (m?.lat) flyToArea(m.lat, m.lon, areaType === 'county' ? 9 : 10);
     refreshVisualization();
   });
 
@@ -96,10 +96,7 @@ async function main() {
   // 10. Wire year selector
   _initYearSelect(availableYears, base);
 
-  // 11. Wire filter toolbar
-  _initFilterToolbar();
-
-  // 11b. Wire layer toggle toolbar
+  // 11. Wire layer toggle toolbar
   _initLayerToolbar();
 
   // 12. Wire theme toggle
@@ -117,38 +114,6 @@ async function main() {
 }
 
 // ── Filter toolbar ────────────────────────────────────────────────────────────
-function _initFilterToolbar() {
-  const filterBtn     = document.getElementById('tb-filter');
-  const filterPopover = document.getElementById('filter-popover');
-  const numInput      = document.getElementById('min-flow-input');
-
-  if (!filterBtn || !filterPopover || !numInput) return;
-
-  filterBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    const open = filterPopover.hidden;
-    filterPopover.hidden = !open;
-    filterBtn.classList.toggle('active', open);
-    filterBtn.setAttribute('aria-expanded', String(open));
-  });
-
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#map-toolbar')) {
-      filterPopover.hidden = true;
-      filterBtn.classList.remove('active');
-      filterBtn.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  let _debounce;
-  numInput.addEventListener('input', () => {
-    const val = Math.max(0, parseInt(numInput.value) || 0);
-    state.minFlow = val;
-    clearTimeout(_debounce);
-    _debounce = setTimeout(() => _applyFilter(), 250);
-  });
-}
-
 // ── Layer toggle toolbar ──────────────────────────────────────────────────────
 function _initLayerToolbar() {
   const layerBtn     = document.getElementById('tb-layers');
@@ -234,8 +199,8 @@ async function _changeYear(newYear, base) {
       countyNames: countyMetaArr.map(d => d.name).sort(),
       state,
       onSelectionChange: () => refreshVisualization(),
-      onAreaFly: (lat, lon) => flyToArea(lat, lon),
-    });
+      onAreaFly: (name, type) => { const m = (type === 'city' ? cityMeta : countyMeta)[name]; if (m?.lat) flyToArea(m.lat, m.lon, type === 'county' ? 8.5 : 9.5); },
+      });
 
     await refreshVisualization();
     setProgress(100);
@@ -278,21 +243,19 @@ async function refreshVisualization() {
 
     _applyFilter();
 
-    if (enriched.length) fitToFlows(enriched);
-
   } finally {
     state.loading = false;
   }
 }
 
 function _applyFilter() {
-  const filtered = state.minFlow > 0
-    ? _lastEnrichedFlows.filter(f => Number(f.S000) >= state.minFlow)
-    : _lastEnrichedFlows;
+  const filtered = state.aggregation === 'county'
+    ? _lastEnrichedFlows
+    : _lastEnrichedFlows.filter(f => Number(f.S000) >= state.minFlow);
 
   updateLayers(filtered, state, arcClickHandler);
   updateCharts(filtered, _lastTotal, state);
-  updateChoropleth(filtered, state.selectedArea, state.aggregation, state.theme);
+  updateChoropleth(_lastEnrichedFlows, state.selectedArea, state.aggregation, state.theme);
   updateSidebarStats(filtered, _lastTotal, state);
 }
 
@@ -305,7 +268,7 @@ function arcClickHandler(flow) {
   state.selectedAreaType = state.aggregation;
 
   const m = (state.aggregation === 'city' ? cityMeta : countyMeta)[newArea];
-  if (m?.lat) flyToArea(m.lat, m.lon);
+  if (m?.lat) flyToArea(m.lat, m.lon, state.aggregation === 'county' ? 9 : 10);
 
   _updateSidebarAreaLabels(newArea);
   refreshVisualization();
