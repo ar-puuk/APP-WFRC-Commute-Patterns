@@ -5,7 +5,7 @@ import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
 import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
-import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv } from './charts.js';
+import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, resizeCharts } from './charts.js';
 
 // ── Global app state ─────────────────────────────────────────────────────────
 const state = {
@@ -23,8 +23,10 @@ let cityMeta   = {};
 let countyMeta = {};
 
 // Cached results for re-rendering without re-querying
-let _lastEnrichedFlows = [];
-let _lastTotal         = 0;
+let _lastOutflows = [];
+let _lastInflows  = [];
+let _lastTotalOut = 0;
+let _lastTotalIn  = 0;
 
 // Track last flew state so we don't re-fly on direction/theme/filter changes
 let _lastFlewArea        = null;
@@ -112,12 +114,19 @@ async function main() {
   document.getElementById('export-bar-csv')?.addEventListener('click', () => exportBarCsv());
   document.getElementById('export-sankey-png')?.addEventListener('click', () => exportSankeyPng());
   document.getElementById('export-sankey-csv')?.addEventListener('click', () => exportSankeyCsv());
+  document.getElementById('export-demo-png')?.addEventListener('click', () => exportDemoPng());
+  document.getElementById('export-demo-csv')?.addEventListener('click', () => exportDemoCsv());
+  document.getElementById('export-reach-png')?.addEventListener('click', () => exportReachPng());
+  document.getElementById('export-reach-csv')?.addEventListener('click', () => exportReachCsv());
+  document.getElementById('export-industry-png')?.addEventListener('click', () => exportIndustryPng());
+  document.getElementById('export-industry-csv')?.addEventListener('click', () => exportIndustryCsv());
 
   // 10. Wire year selector
   _initYearSelect(availableYears, base);
 
   // 11. Wire layer toggle toolbar
   _initLayerToolbar();
+  _initRightPanelResize();
 
   // 12. Wire theme toggle
   document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -131,6 +140,40 @@ async function main() {
 
   document.querySelector('.sidebar-loading')?.remove();
   setProgress(100);
+}
+
+// ── Right panel resize handle ─────────────────────────────────────────────────
+function _initRightPanelResize() {
+  const handle = document.getElementById('right-resize-handle');
+  if (!handle) return;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const startX     = e.clientX;
+    const startWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--right-panel-width'), 10) || 500;
+
+    handle.classList.add('dragging');
+    document.body.style.cursor    = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = ev => {
+      const delta    = startX - ev.clientX;   // drag left = wider
+      const newWidth = Math.min(Math.max(startWidth + delta, 300), 900);
+      document.documentElement.style.setProperty('--right-panel-width', `${newWidth}px`);
+    };
+
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.body.style.cursor    = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+      resizeCharts();
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+  });
 }
 
 // ── Layer toggle toolbar ──────────────────────────────────────────────────────
@@ -251,34 +294,42 @@ async function refreshVisualization() {
   state.loading = true;
 
   try {
-    const [flows, totalOut, totalIn, selfCount] = await Promise.all([
-      queryFlows(state.selectedArea, state.selectedAreaType, state.direction, state.aggregation),
+    const [outflows, inflows, totalOut, totalIn, selfCount] = await Promise.all([
+      queryFlows(state.selectedArea, state.selectedAreaType, 'outflow', state.aggregation),
+      queryFlows(state.selectedArea, state.selectedAreaType, 'inflow',  state.aggregation),
       queryTotal(state.selectedArea, state.selectedAreaType, 'outflow'),
       queryTotal(state.selectedArea, state.selectedAreaType, 'inflow'),
       state.aggregation === 'city' ? querySelfFlow(state.selectedArea, state.selectedAreaType) : Promise.resolve(0),
     ]);
 
-    const total = state.direction === 'outflow' ? totalOut : totalIn;
-
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
     const dstMeta = state.aggregation       === 'city' ? cityMeta : countyMeta;
     const src = srcMeta[state.selectedArea];
 
-    const enriched = flows
+    const enrichedOut = outflows
       .map(f => {
         const dst = dstMeta[f.dest_name];
-        return state.direction === 'outflow'
-          ? { ...f, home_name: state.selectedArea, work_name: f.dest_name,  home_lat: src?.lat, home_lon: src?.lon, work_lat: dst?.lat, work_lon: dst?.lon }
-          : { ...f, home_name: f.dest_name,        work_name: state.selectedArea, home_lat: dst?.lat, home_lon: dst?.lon, work_lat: src?.lat, work_lon: src?.lon };
+        return { ...f, home_name: state.selectedArea, work_name: f.dest_name,
+                       home_lat: src?.lat, home_lon: src?.lon, work_lat: dst?.lat, work_lon: dst?.lon };
       })
       .filter(f => f.home_lat != null && f.work_lat != null);
 
-    _lastEnrichedFlows = enriched;
-    _lastTotal         = total;
+    const enrichedIn = inflows
+      .map(f => {
+        const dst = dstMeta[f.dest_name];
+        return { ...f, home_name: f.dest_name, work_name: state.selectedArea,
+                       home_lat: dst?.lat, home_lon: dst?.lon, work_lat: src?.lat, work_lon: src?.lon };
+      })
+      .filter(f => f.home_lat != null && f.work_lat != null);
+
+    _lastOutflows = enrichedOut;
+    _lastInflows  = enrichedIn;
+    _lastTotalOut = totalOut;
+    _lastTotalIn  = totalIn;
 
     setSelfFlow(state.aggregation === 'city' ? selfCount : 0, totalOut, totalIn);
 
-    // Fly only when the selected area or aggregation level changes
+    // Fly only when the selected area or aggregation level changes (use outflows for zoom)
     const areaChanged = state.selectedArea !== _lastFlewArea
                      || state.aggregation  !== _lastFlewAggregation;
     if (src?.lat && areaChanged) {
@@ -287,7 +338,7 @@ async function refreshVisualization() {
         zoom = 8;
       } else {
         let distNum = 0, distDen = 0;
-        enriched.forEach(f => {
+        enrichedOut.forEach(f => {
           const n = Number(f.S000);
           distNum += _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon) * n;
           distDen += n;
@@ -308,14 +359,18 @@ async function refreshVisualization() {
 }
 
 function _applyFilter() {
-  const filtered = state.aggregation === 'county'
-    ? _lastEnrichedFlows
-    : _lastEnrichedFlows.filter(f => Number(f.S000) >= state.minFlow);
+  const dirFlows = state.direction === 'outflow' ? _lastOutflows : _lastInflows;
+  const total    = state.direction === 'outflow' ? _lastTotalOut : _lastTotalIn;
 
-  updateLayers(filtered, state, arcClickHandler, _lastTotal);
-  updateCharts(filtered, _lastTotal, state);
-  updateChoropleth(_lastEnrichedFlows, state.selectedArea, state.aggregation, state.theme);
-  updateSidebarStats(filtered, _lastTotal, state);
+  const filtered = state.aggregation === 'county'
+    ? dirFlows
+    : dirFlows.filter(f => Number(f.S000) >= state.minFlow);
+
+  updateLayers(filtered, state, arcClickHandler, total);
+  // Charts always show both directions unfiltered — top N by volume handles their own slicing
+  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, state);
+  updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme);
+  updateSidebarStats(filtered, total, state);
 }
 
 // ── Arc click → select destination as new area ────────────────────────────────

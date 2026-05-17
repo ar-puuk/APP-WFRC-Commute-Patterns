@@ -2,7 +2,7 @@
 :root {
   --header-height: 48px;
   --left-panel-width: 280px;
-  --right-panel-width: 340px;
+  --right-panel-width: 500px;
 
   /* Header */
   --header-bg: #1a3a5c;
@@ -226,8 +226,26 @@ h1, h2, h3,
   border-left: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  position: relative;
   transition: background 0.2s, color 0.2s;
+}
+
+.right-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background 0.15s;
+}
+
+.right-resize-handle:hover,
+.right-resize-handle.dragging {
+  background: var(--accent);
+  opacity: 0.35;
 }
 
 /* ── Loading overlay ─────────────────────────────────────────────────────────── */
@@ -366,6 +384,35 @@ h1, h2, h3,
   color: var(--sidebar-text);
   font-weight: 600;
   font-family: var(--font-heading);
+}
+
+/* ── Custom scrollbars ───────────────────────────────────────────────────────── */
+.right-panel,
+.left-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-border) transparent;
+}
+
+.right-panel::-webkit-scrollbar,
+.left-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.right-panel::-webkit-scrollbar-track,
+.left-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.right-panel::-webkit-scrollbar-thumb,
+.left-panel::-webkit-scrollbar-thumb {
+  background: var(--sidebar-border);
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+
+.right-panel::-webkit-scrollbar-thumb:hover,
+.left-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 /* ── Error state ─────────────────────────────────────────────────────────────── */

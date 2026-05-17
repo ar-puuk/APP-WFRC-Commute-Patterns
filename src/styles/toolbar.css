@@ -134,3 +134,48 @@
   font-style: italic;
   padding-top: 2px;
 }
+
+/* ── MapLibre built-in controls — both themes ────────────────────────────────── */
+.maplibregl-ctrl-group {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button {
+  color: var(--sidebar-text);
+}
+
+.maplibregl-ctrl-group button:hover {
+  background-color: var(--accent-light) !important;
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--sidebar-border) !important;
+}
+
+/* Scale bar */
+.maplibregl-ctrl-scale {
+  border-color: var(--sidebar-text-muted) !important;
+  color: var(--sidebar-text) !important;
+  background: var(--sidebar-bg) !important;
+  border-radius: 0 0 3px 3px !important;
+  font-family: var(--font-main) !important;
+  font-size: 10px !important;
+  padding: 0 4px !important;
+}
+
+/* ── Dark mode overrides ─────────────────────────────────────────────────────── */
+[data-theme="dark"] .maplibregl-ctrl-group {
+  background: var(--sidebar-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--sidebar-border) !important;
+}
+
+/* Flip built-in SVG background-image icons (zoom +/-, geolocate dot, fullscreen) */
+[data-theme="dark"] .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon,
+[data-theme="dark"] .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon,
+[data-theme="dark"] .maplibregl-ctrl-fullscreen .maplibregl-ctrl-icon,
+[data-theme="dark"] .maplibregl-ctrl-shrink .maplibregl-ctrl-icon,
+[data-theme="dark"] .maplibregl-ctrl-geolocate .maplibregl-ctrl-icon {
+  filter: invert(1);
+}

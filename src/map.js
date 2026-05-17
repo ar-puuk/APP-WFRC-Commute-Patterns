@@ -42,6 +42,28 @@ function buildStyle(theme) {
 
 const INITIAL_VIEW = { center: [-111.89, 40.60], zoom: 8 };
 
+// ── Custom control helpers ────────────────────────────────────────────────────
+const _SVG_HOME  = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+const _SVG_NORTH = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>`;
+
+function _mapBtn(title, svgHtml, onClick) {
+  const btn = document.createElement('button');
+  btn.type  = 'button';
+  btn.title = title;
+  btn.setAttribute('aria-label', title);
+  btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:29px;height:29px;padding:0;cursor:pointer;';
+  btn.innerHTML = svgHtml;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function _makeCtrlGroup(...btns) {
+  const el = document.createElement('div');
+  el.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+  btns.forEach(b => el.appendChild(b));
+  return { onAdd: () => el, onRemove: () => el.remove() };
+}
+
 // ── Module state ─────────────────────────────────────────────────────────────
 let map         = null;
 let deckOverlay = null;
@@ -130,7 +152,28 @@ export function initMap(containerId, theme = 'light') {
   map.on('load', () => {
     _addBoundaryLayers();
     map.addControl(deckOverlay);
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+    // Zoom + compass (clicking compass resets bearing; visualizePitch tilts needle)
+    map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
+
+    // Reset tilt & north + reset to WFRC region
+    map.addControl(_makeCtrlGroup(
+      _mapBtn('Reset tilt & north', _SVG_NORTH, () => map.easeTo({ pitch: 0, bearing: 0, duration: 300 })),
+      _mapBtn('Reset view',         _SVG_HOME,  () => map.flyTo({ ...INITIAL_VIEW, pitch: 0, bearing: 0 })),
+    ), 'top-right');
+
+    // Geolocate
+    map.addControl(new maplibregl.GeolocateControl({
+      positionOptions:  { enableHighAccuracy: true },
+      trackUserLocation: false,
+    }), 'top-right');
+
+    // Fullscreen
+    map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+
+    // Scale bar
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 110, unit: 'imperial' }), 'bottom-left');
+
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
   });
 

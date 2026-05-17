@@ -1,14 +1,8 @@
-/* ── Right panel / chart sections ───────────────────────────────────────────── */
-.right-panel {
-  display: flex;
-  flex-direction: column;
-}
-
+/* ── Chart sections ──────────────────────────────────────────────────────────── */
 .chart-section {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
   padding: 0;
 }
 
@@ -21,14 +15,40 @@
 .chart-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px 6px;
+  gap: 4px;
+  padding: 7px 10px 6px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--sidebar-border);
   min-height: 34px;
+  cursor: pointer;
+  user-select: none;
 }
 
+/* ── Collapse toggle ─────────────────────────────────────────────────────────── */
+.chart-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sidebar-text-muted);
+  padding: 0;
+  border-radius: 3px;
+  transition: color 0.15s, transform 0.2s;
+}
+
+.chart-collapse-btn:hover { color: var(--sidebar-text); }
+
+.chart-section.collapsed .chart-collapse-btn { transform: rotate(-90deg); }
+.chart-section.collapsed .chart-canvas        { display: none; }
+
+/* ── Chart title ─────────────────────────────────────────────────────────────── */
 .chart-title {
+  flex: 1;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -37,16 +57,51 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-heading);
 }
 
-/* Export buttons — hidden by default, shown on hover */
+/* ── Mini toggle (dim / direction switcher) ──────────────────────────────────── */
+.chart-mini-toggle {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mini-toggle-btn {
+  padding: 1px 5px;
+  font-size: 9px;
+  font-family: var(--font-main);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--toggle-bg);
+  color: var(--toggle-text);
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.mini-toggle-btn.active {
+  background: var(--toggle-active-bg);
+  color: var(--toggle-active-text);
+  border-color: var(--toggle-active-bg);
+}
+
+.mini-toggle-btn:hover:not(.active) {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--sidebar-text);
+}
+
+/* ── Export buttons — visible on hover ───────────────────────────────────────── */
 .chart-export-group {
   display: flex;
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s;
   flex-shrink: 0;
-  margin-left: 6px;
 }
 
 .chart-section:hover .chart-export-group,
@@ -75,9 +130,15 @@
   color: var(--sidebar-text);
 }
 
-/* Canvas div that ECharts renders into */
+/* ── Chart canvas — fixed heights per chart ──────────────────────────────────── */
 .chart-canvas {
-  flex: 1;
-  min-height: 0;
   position: relative;
+  height: 220px;
+  padding: 6px 10px 8px;
 }
+
+#bar-chart      { height: 270px; }
+#sankey-chart   { height: 240px; }
+#demo-chart     { height: 185px; }
+#reach-chart    { height: 138px; }
+#industry-chart { height: 220px; }
