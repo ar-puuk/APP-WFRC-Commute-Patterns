@@ -43,8 +43,8 @@ function _haversineMiles(lat1, lon1, lat2, lon2) {
 
 function _distanceToZoom(avgMiles) {
   // At zoom 8, ~230 miles visible; each level halves that.
-  // Constant 20 ≈ 46/2.3, giving broad regional context around the avg commute distance.
-  const zoom = 8 + Math.log2(20 / Math.max(avgMiles, 1));
+  // Constant 46 ≈ 2× the avg WFRC commute, giving good regional context.
+  const zoom = 8 + Math.log2(46 / Math.max(avgMiles, 1));
   return Math.min(Math.max(zoom, 7.5), 11.5);
 }
 
