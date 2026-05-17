@@ -2,8 +2,8 @@ import './styles/main.css';
 import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
-import { initDB, reloadYear, queryFlows, queryTotal } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible } from './map.js';
+import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
+import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv } from './charts.js';
 
@@ -113,7 +113,6 @@ async function main() {
   setProgress(100);
 }
 
-// ── Filter toolbar ────────────────────────────────────────────────────────────
 // ── Layer toggle toolbar ──────────────────────────────────────────────────────
 function _initLayerToolbar() {
   const layerBtn     = document.getElementById('tb-layers');
@@ -141,6 +140,18 @@ function _initLayerToolbar() {
 
   flowChk.addEventListener('change', () => setFlowVisible(flowChk.checked));
   polygonsChk.addEventListener('change', () => setPolygonsVisible(polygonsChk.checked));
+
+  const minFlowInput = document.getElementById('min-flow-input');
+  if (minFlowInput) {
+    let _debounce = null;
+    minFlowInput.addEventListener('input', () => {
+      clearTimeout(_debounce);
+      _debounce = setTimeout(() => {
+        const val = parseInt(minFlowInput.value);
+        if (!isNaN(val) && val >= 0) { state.minFlow = val; _applyFilter(); }
+      }, 300);
+    });
+  }
 }
 
 // ── Year selector ─────────────────────────────────────────────────────────────
@@ -200,7 +211,7 @@ async function _changeYear(newYear, base) {
       state,
       onSelectionChange: () => refreshVisualization(),
       onAreaFly: (name, type) => { const m = (type === 'city' ? cityMeta : countyMeta)[name]; if (m?.lat) flyToArea(m.lat, m.lon, type === 'county' ? 8.5 : 9.5); },
-      });
+    });
 
     await refreshVisualization();
     setProgress(100);
@@ -220,9 +231,10 @@ async function refreshVisualization() {
   state.loading = true;
 
   try {
-    const [flows, total] = await Promise.all([
+    const [flows, total, selfCount] = await Promise.all([
       queryFlows(state.selectedArea, state.selectedAreaType, state.direction, state.aggregation),
       queryTotal(state.selectedArea, state.selectedAreaType, state.direction),
+      state.aggregation === 'city' ? querySelfFlow(state.selectedArea, state.selectedAreaType) : Promise.resolve(0),
     ]);
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
@@ -241,6 +253,8 @@ async function refreshVisualization() {
     _lastEnrichedFlows = enriched;
     _lastTotal         = total;
 
+    setSelfFlow(state.aggregation === 'city' ? selfCount : 0);
+
     _applyFilter();
 
   } finally {
@@ -253,7 +267,7 @@ function _applyFilter() {
     ? _lastEnrichedFlows
     : _lastEnrichedFlows.filter(f => Number(f.S000) >= state.minFlow);
 
-  updateLayers(filtered, state, arcClickHandler);
+  updateLayers(filtered, state, arcClickHandler, _lastTotal);
   updateCharts(filtered, _lastTotal, state);
   updateChoropleth(_lastEnrichedFlows, state.selectedArea, state.aggregation, state.theme);
   updateSidebarStats(filtered, _lastTotal, state);

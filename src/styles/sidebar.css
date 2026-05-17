@@ -221,44 +221,6 @@
 
 .no-data-msg[hidden] { display: none; }
 
-/* ── Legend ──────────────────────────────────────────────────────────────────── */
-.sidebar-legend {
-  padding: 10px 14px 0;
-  border-top: 1px solid var(--sidebar-border);
-}
-
-.legend-title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--sidebar-text-muted);
-  margin-bottom: 5px;
-}
-
-.legend-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend-label {
-  font-size: 10px;
-  color: var(--sidebar-text-muted);
-  flex-shrink: 0;
-}
-
-.legend-gradient {
-  flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(to right, rgba(255,140,0,0.1), rgba(255,140,0,0.4), rgba(255,140,0,0.7), rgba(255,140,0,1));
-}
-
-[data-theme="dark"] .legend-gradient {
-  background: linear-gradient(to right, rgba(255,180,60,0.1), rgba(255,180,60,0.4), rgba(255,180,60,0.7), rgba(255,180,60,1));
-}
-
 /* ── Attribution ─────────────────────────────────────────────────────────────── */
 .sidebar-attribution {
   margin-top: auto;

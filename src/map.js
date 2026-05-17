@@ -54,18 +54,14 @@ let _flowVisible     = true;
 let _polygonsVisible = true;
 // Cached for replay when toggling visibility
 let _lastFlowArgs = null;
+let _selfFlowCount = 0;
 
 // ── Custom tooltip (FlowmapLayer onHover is async — can't use MapboxOverlay.getTooltip) ──
 
 function _ensureTooltip() {
   if (!_tooltipEl) {
     _tooltipEl = document.createElement('div');
-    _tooltipEl.style.cssText = [
-      'position:fixed', 'pointer-events:none', 'z-index:1000',
-      'display:none', 'font-size:13px', 'border-radius:6px',
-      'padding:6px 10px', 'box-shadow:0 2px 8px rgba(0,0,0,0.25)',
-      'line-height:1.4', 'max-width:240px',
-    ].join(';');
+    _tooltipEl.className = 'map-tooltip';
     document.body.appendChild(_tooltipEl);
   }
   return _tooltipEl;
@@ -78,10 +74,8 @@ function _showTooltip(info, html) {
   const rect = container.getBoundingClientRect();
   el.innerHTML = html;
   el.style.display = 'block';
-  el.style.left   = `${rect.left + info.x + 14}px`;
-  el.style.top    = `${rect.top  + info.y - 36}px`;
-  el.style.background = _theme === 'dark' ? '#1a1a2e' : '#fff';
-  el.style.color      = _theme === 'dark' ? '#e8e8f0' : '#1a1a1a';
+  el.style.left = `${rect.left + info.x + 16}px`;
+  el.style.top  = `${rect.top  + info.y - 12}px`;
 }
 
 function _hideTooltip() {
@@ -167,9 +161,13 @@ export function setPolygonsVisible(v) {
   }
 }
 
-export function updateLayers(flows, state, onArcClick) {
+export function setSelfFlow(count) {
+  _selfFlowCount = count ?? 0;
+}
+
+export function updateLayers(flows, state, onArcClick, total = 0) {
   if (!deckOverlay) return;
-  _lastFlowArgs = [flows, state, onArcClick];
+  _lastFlowArgs = [flows, state, onArcClick, total];
 
   if (!flows.length || !_flowVisible) {
     deckOverlay.setProps({ layers: [] });
@@ -178,9 +176,11 @@ export function updateLayers(flows, state, onArcClick) {
   }
 
   const locMap = new Map();
+  const flowTotals = new Map();   // "home||work" → dest_total
   flows.forEach(f => {
     if (!locMap.has(f.home_name)) locMap.set(f.home_name, { id: f.home_name, lat: f.home_lat, lon: f.home_lon, name: f.home_name });
     if (!locMap.has(f.work_name)) locMap.set(f.work_name, { id: f.work_name, lat: f.work_lat, lon: f.work_lon, name: f.work_name });
+    flowTotals.set(`${f.home_name}||${f.work_name}`, Number(f.dest_total ?? 0));
   });
 
   const flowLayer = new FlowmapLayer({
@@ -209,10 +209,40 @@ export function updateLayers(flows, state, onArcClick) {
       const obj = info?.object;
       if (!obj || !info.picked) { _hideTooltip(); return; }
       if (obj.type === 'flow') {
-        const count = Number(obj.count).toLocaleString();
-        _showTooltip(info, `<strong>${obj.origin?.id ?? ''} &rarr; ${obj.dest?.id ?? ''}</strong><br>${count} commuters`);
+        const count     = Number(obj.count);
+        const originId  = obj.origin?.id ?? '';
+        const destId    = obj.dest?.id   ?? '';
+        const destTotal = flowTotals.get(`${originId}||${destId}`) ?? 0;
+        const isOutflow = state.direction === 'outflow';
+
+        const selPct = total     > 0 ? (count / total     * 100).toFixed(1) : null;
+        const dstPct = destTotal > 0 ? (count / destTotal * 100).toFixed(1) : null;
+
+        const row = (pct, label) =>
+          `<div class="ft-row"><span class="ft-pct">${pct}%</span><span class="ft-label">${label}</span></div>`;
+
+        const selRow = selPct ? row(selPct, isOutflow
+          ? `of <strong>${originId}</strong> residents`
+          : `of workers in <strong>${destId}</strong>`) : '';
+        const dstRow = dstPct ? row(dstPct, isOutflow
+          ? `of workers in <strong>${destId}</strong>`
+          : `of <strong>${originId}</strong> residents`) : '';
+
+        _showTooltip(info, `
+          <div class="ft-route">${originId} <span class="ft-arrow">→</span> ${destId}</div>
+          <div class="ft-count">${count.toLocaleString()}<span class="ft-unit">commuters</span></div>
+          ${selRow || dstRow ? `<div class="ft-divider"></div>${selRow}${dstRow}` : ''}
+        `);
       } else if (obj.type === 'location') {
-        _showTooltip(info, `<strong>${obj.name ?? obj.location?.id ?? ''}</strong>`);
+        const locId = obj.name ?? obj.location?.id ?? '';
+        if (locId === state.selectedArea && _selfFlowCount > 0) {
+          _showTooltip(info, `
+            <div class="ft-route">${locId}</div>
+            <div class="ft-count">${Number(_selfFlowCount).toLocaleString()}<span class="ft-unit">live &amp; work here</span></div>
+          `);
+        } else {
+          _showTooltip(info, `<div class="ft-route">${locId}</div>`);
+        }
       } else {
         _hideTooltip();
       }

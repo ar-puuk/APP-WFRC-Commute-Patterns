@@ -89,3 +89,48 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+
+.tb-popover-divider {
+  border: none;
+  border-top: 1px solid var(--sidebar-border);
+  margin: 8px 0;
+}
+
+.tb-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.tb-filter-label {
+  font-size: 13px;
+  color: var(--sidebar-text);
+}
+
+.tb-filter-input {
+  width: 68px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: var(--font-main);
+  background: var(--input-bg);
+  color: var(--sidebar-text);
+  border: 1px solid var(--input-border);
+  border-radius: 5px;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+
+.tb-filter-input:focus {
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.tb-filter-hint {
+  font-size: 10px;
+  color: var(--sidebar-text-muted);
+  font-style: italic;
+  padding-top: 2px;
+}

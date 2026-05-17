@@ -64,6 +64,13 @@
             <input type="checkbox" id="toggle-polygons" checked />
             <span>Polygons</span>
           </label>
+          <div class="tb-popover-divider"></div>
+          <div class="tb-popover-title">Flow Line Filter</div>
+          <div class="tb-filter-row">
+            <label for="min-flow-input" class="tb-filter-label">Min. commuters</label>
+            <input id="min-flow-input" class="tb-filter-input" type="number" min="0" max="10000" step="10" value="50" />
+          </div>
+          <div class="tb-filter-hint">Applies to city view only</div>
         </div>
       </div>
       <div id="map"></div>

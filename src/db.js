@@ -95,22 +95,45 @@ export async function queryFlows(area, areaType, direction, aggregation) {
     ? `AND ${destCol} != '${safe}'`
     : '';
 
+  // dest_total: total flow for each destination area across ALL origins,
+  // so the tooltip can show "X% of [dest] workers/residents".
   const sql = `
     SELECT
-      ${destCol}  AS dest_name,
-      SUM(S000)   AS S000,
-      SUM(SA01)   AS SA01, SUM(SA02) AS SA02, SUM(SA03) AS SA03,
-      SUM(SE01)   AS SE01, SUM(SE02) AS SE02, SUM(SE03) AS SE03,
-      SUM(SI01)   AS SI01, SUM(SI02) AS SI02, SUM(SI03) AS SI03
-    FROM city_flows
-    WHERE ${filterCol} = '${safe}'
-    ${selfClause}
-    GROUP BY ${destCol}
+      cf.${destCol} AS dest_name,
+      SUM(cf.S000)  AS S000,
+      SUM(cf.SA01)  AS SA01, SUM(cf.SA02) AS SA02, SUM(cf.SA03) AS SA03,
+      SUM(cf.SE01)  AS SE01, SUM(cf.SE02) AS SE02, SUM(cf.SE03) AS SE03,
+      SUM(cf.SI01)  AS SI01, SUM(cf.SI02) AS SI02, SUM(cf.SI03) AS SI03,
+      dt.dest_total
+    FROM city_flows cf
+    JOIN (
+      SELECT ${destCol} AS key, SUM(S000) AS dest_total
+      FROM city_flows
+      GROUP BY ${destCol}
+    ) dt ON dt.key = cf.${destCol}
+    WHERE cf.${filterCol} = '${safe}'
+    ${selfClause ? `AND cf.${destCol} != '${safe}'` : ''}
+    GROUP BY cf.${destCol}, dt.dest_total
     ORDER BY S000 DESC
   `;
 
   const result = await _conn.query(sql);
   return result.toArray().map(r => r.toJSON());
+}
+
+/**
+ * Count of workers who both live and work in the same area (self-flow).
+ * Only meaningful for city-level queries.
+ */
+export async function querySelfFlow(area, areaType) {
+  if (!_conn) return 0;
+  const safe = area.replace(/'/g, "''");
+  const col  = areaType === 'city' ? 'home_name' : 'home_county';
+  const col2 = areaType === 'city' ? 'work_name' : 'work_county';
+  const result = await _conn.query(
+    `SELECT COALESCE(SUM(S000), 0) AS self FROM city_flows WHERE ${col} = '${safe}' AND ${col2} = '${safe}'`
+  );
+  return Number(result.toArray()[0].toJSON().self);
 }
 
 /**
