@@ -1,13 +1,14 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
 
-let conn = null;
+let _db   = null;
+let _conn = null;
 
 /**
- * Initialize DuckDB-WASM using jsDelivr CDN bundles.
+ * Initialize DuckDB-WASM and load Parquet files for the given year.
  * selectBundle auto-picks the MVP (non-SAB) bundle on GitHub Pages
  * since SharedArrayBuffer requires COOP/COEP headers that GH Pages can't set.
  */
-export async function initDB(onProgress) {
+export async function initDB(year, onProgress) {
   const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
 
   const workerUrl = URL.createObjectURL(
@@ -16,40 +17,60 @@ export async function initDB(onProgress) {
 
   const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
   const worker = new Worker(workerUrl);
-  const db = new duckdb.AsyncDuckDB(logger, worker);
-  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+  _db = new duckdb.AsyncDuckDB(logger, worker);
+  await _db.instantiate(bundle.mainModule, bundle.pthreadWorker);
   URL.revokeObjectURL(workerUrl);
 
   onProgress?.(10);
 
-  // Fetch Parquet files as ArrayBuffers and register in-memory
+  _conn = await _db.connect();
+  await _loadYearFiles(year, onProgress);
+
+  return _db;
+}
+
+/**
+ * Swap out the loaded Parquet files for a different year without
+ * reinitializing the DuckDB engine or worker.
+ */
+export async function reloadYear(year, onProgress) {
+  if (!_db || !_conn) throw new Error('DB not initialized');
+  await _loadYearFiles(year, onProgress);
+}
+
+// ── Internal ─────────────────────────────────────────────────────────────────
+
+async function _loadYearFiles(year, onProgress) {
   const base = import.meta.env.BASE_URL ?? '/';
+
   const [cityBuf, countyBuf] = await Promise.all([
-    fetch(`${base}data/city_flows.parquet`).then(r => {
-      if (!r.ok) throw new Error(`city_flows.parquet: ${r.status}`);
+    fetch(`${base}data/${year}/city_flows.parquet`).then(r => {
+      if (!r.ok) throw new Error(`data/${year}/city_flows.parquet: ${r.status}`);
       return r.arrayBuffer();
     }),
-    fetch(`${base}data/county_flows.parquet`).then(r => {
-      if (!r.ok) throw new Error(`county_flows.parquet: ${r.status}`);
+    fetch(`${base}data/${year}/county_flows.parquet`).then(r => {
+      if (!r.ok) throw new Error(`data/${year}/county_flows.parquet: ${r.status}`);
       return r.arrayBuffer();
     }),
   ]);
 
   onProgress?.(70);
 
-  await db.registerFileBuffer('city_flows.parquet', new Uint8Array(cityBuf));
-  await db.registerFileBuffer('county_flows.parquet', new Uint8Array(countyBuf));
+  // Drop existing view and files before re-registering
+  try { await _conn.query('DROP VIEW IF EXISTS city_flows'); } catch {}
+  try { await _db.dropFile('city_flows.parquet'); }   catch {}
+  try { await _db.dropFile('county_flows.parquet'); } catch {}
 
-  conn = await db.connect();
+  await _db.registerFileBuffer('city_flows.parquet',   new Uint8Array(cityBuf));
+  await _db.registerFileBuffer('county_flows.parquet', new Uint8Array(countyBuf));
 
   // city_flows has: home_name, work_name, home_county, work_county, S000, …
   // All 4 combinations of areaType × aggregation are served from city_flows alone.
-  await conn.query(`
+  await _conn.query(`
     CREATE VIEW city_flows AS SELECT * FROM read_parquet('city_flows.parquet');
   `);
 
   onProgress?.(100);
-  return db;
 }
 
 /**
@@ -64,29 +85,20 @@ export async function initDB(onProgress) {
  *
  * Returns rows with a single `dest_name` field (the grouped destination)
  * plus S000 and the breakdown columns.
- *
- * @param {string} area       - selected area name
- * @param {'city'|'county'}   areaType    - type of the selected area
- * @param {'outflow'|'inflow'} direction
- * @param {'city'|'county'}   aggregation - destination granularity
  */
 export async function queryFlows(area, areaType, direction, aggregation) {
-  if (!conn) throw new Error('DB not initialized');
+  if (!_conn) throw new Error('DB not initialized');
 
   const safe = area.replace(/'/g, "''");
 
-  // Which column filters the selected area (the "from" side)
   const filterCol = direction === 'outflow'
     ? (areaType === 'city' ? 'home_name'   : 'home_county')
     : (areaType === 'city' ? 'work_name'   : 'work_county');
 
-  // Which column represents the destination (the "to" side, grouped)
   const destCol = direction === 'outflow'
     ? (aggregation === 'city' ? 'work_name'   : 'work_county')
     : (aggregation === 'city' ? 'home_name'   : 'home_county');
 
-  // Exclude self only when filter and dest are the same column type
-  // (city→city or county→county) to avoid zero-length arcs.
   const selfClause = (areaType === aggregation)
     ? `AND ${destCol} != '${safe}'`
     : '';
@@ -105,26 +117,22 @@ export async function queryFlows(area, areaType, direction, aggregation) {
     ORDER BY S000 DESC
   `;
 
-  const result = await conn.query(sql);
+  const result = await _conn.query(sql);
   return result.toArray().map(r => r.toJSON());
 }
 
 /**
  * Total commuter count for the selected area (all destinations, including self).
- *
- * @param {string} area
- * @param {'city'|'county'}   areaType
- * @param {'outflow'|'inflow'} direction
  */
 export async function queryTotal(area, areaType, direction) {
-  if (!conn) return 0;
+  if (!_conn) return 0;
 
   const filterCol = direction === 'outflow'
     ? (areaType === 'city' ? 'home_name'   : 'home_county')
     : (areaType === 'city' ? 'work_name'   : 'work_county');
   const safe = area.replace(/'/g, "''");
 
-  const result = await conn.query(
+  const result = await _conn.query(
     `SELECT COALESCE(SUM(S000), 0) AS total FROM city_flows WHERE ${filterCol} = '${safe}'`
   );
   return Number(result.toArray()[0].toJSON().total);

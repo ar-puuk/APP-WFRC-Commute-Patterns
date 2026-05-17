@@ -1,38 +1,53 @@
 import './styles/main.css';
 import './styles/sidebar.css';
-import { initDB, queryFlows, queryTotal } from './db.js';
+import { initDB, reloadYear, queryFlows, queryTotal } from './db.js';
 import { initMap, updateLayers, switchTheme, flyToArea, fitToFlows } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 
 // ── Global app state ─────────────────────────────────────────────────────────
 const state = {
-  theme:            'light',   // 'light' | 'dark'
-  aggregation:      'city',    // 'city' | 'county'  — destination granularity
-  direction:        'outflow', // 'outflow' | 'inflow'
+  theme:            'light',
+  aggregation:      'city',
+  direction:        'outflow',
   selectedArea:     'Salt Lake City',
-  selectedAreaType: 'city',    // 'city' | 'county'  — type of selected area
+  selectedAreaType: 'city',
+  year:             null,   // set during boot from manifest + URL param
   loading:          false,
 };
 
-let cityMeta   = {};  // name → {lat, lon, county, county_fips, place_fips}
-let countyMeta = {};  // name → {lat, lon, county_fips}
+let cityMeta   = {};
+let countyMeta = {};
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function main() {
   setProgress(5);
 
   const base = import.meta.env.BASE_URL ?? '/';
-  const [cityMetaArr, countyMetaArr] = await Promise.all([
-    fetch(`${base}data/city_meta.json`).then(r => r.json()),
-    fetch(`${base}data/county_meta.json`).then(r => r.json()),
-  ]);
 
+  // 1. Load manifest to discover available years
+  const manifest = await fetch(`${base}data/manifest.json`).then(r => r.json());
+  const availableYears = manifest.years.map(Number).sort((a, b) => b - a); // newest first
+
+  // 2. Resolve year from URL param or manifest default
+  const urlYear = _getUrlYear(availableYears, manifest.default);
+  state.year = urlYear;
+  _setUrlYear(urlYear);
+
+  // Show resolved year in header subtitle immediately
+  const yearEl = document.getElementById('data-year');
+  if (yearEl) yearEl.textContent = state.year;
+
+  // 3. Load year-specific metadata + init DuckDB in parallel
+  const [cityMetaArr, countyMetaArr] = await Promise.all([
+    fetch(`${base}data/${state.year}/city_meta.json`).then(r => r.json()),
+    fetch(`${base}data/${state.year}/county_meta.json`).then(r => r.json()),
+  ]);
   cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
   countyMeta = Object.fromEntries(countyMetaArr.map(d => [d.name, d]));
 
   setProgress(15);
 
-  await initDB(pct => setProgress(15 + pct * 0.7));
+  await initDB(state.year, pct => setProgress(15 + pct * 0.7));
 
   setProgress(88);
 
@@ -51,6 +66,10 @@ async function main() {
     onAreaFly: (lat, lon) => flyToArea(lat, lon),
   });
 
+  // 4. Wire year selector
+  _initYearSelect(availableYears, base);
+
+  // 5. Wire theme toggle
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', state.theme);
@@ -64,6 +83,81 @@ async function main() {
   setProgress(100);
 }
 
+// ── Year selector ─────────────────────────────────────────────────────────────
+let _changingYear = false;
+
+function _initYearSelect(availableYears, base) {
+  const sel = document.getElementById('year-select');
+  if (!sel) return;
+
+  sel.innerHTML = availableYears.map(y =>
+    `<option value="${y}"${y === state.year ? ' selected' : ''}>${y}</option>`
+  ).join('');
+
+  // Hide if only one year (nothing to switch)
+  if (availableYears.length <= 1) {
+    sel.closest('.year-select-wrap')?.classList.add('year-select-hidden');
+  }
+
+  sel.addEventListener('change', () => _changeYear(parseInt(sel.value), base));
+}
+
+async function _changeYear(newYear, base) {
+  if (_changingYear || state.loading || newYear === state.year) return;
+  _changingYear = true;
+
+  const sel = document.getElementById('year-select');
+  if (sel) sel.disabled = true;
+
+  try {
+    setProgress(5);
+
+    const [cityMetaArr, countyMetaArr] = await Promise.all([
+      fetch(`${base}data/${newYear}/city_meta.json`).then(r => r.json()),
+      fetch(`${base}data/${newYear}/county_meta.json`).then(r => r.json()),
+    ]);
+
+    cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
+    countyMeta = Object.fromEntries(countyMetaArr.map(d => [d.name, d]));
+
+    setProgress(20);
+
+    await reloadYear(newYear, pct => setProgress(20 + pct * 0.6));
+
+    setProgress(85);
+
+    state.year = newYear;
+    _setUrlYear(newYear);
+
+    // Update header subtitle year
+    const yearEl = document.getElementById('data-year');
+    if (yearEl) yearEl.textContent = newYear;
+
+    // Validate selected area still exists in new year; reset if not
+    const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
+    if (!srcMeta[state.selectedArea]) {
+      state.selectedArea     = 'Salt Lake City';
+      state.selectedAreaType = 'city';
+    }
+
+    // Re-init sidebar dropdown with new year's city/county names
+    initSidebar({
+      cityNames:   cityMetaArr.map(d => d.name).sort(),
+      countyNames: countyMetaArr.map(d => d.name).sort(),
+      state,
+      onSelectionChange: () => refreshVisualization(),
+      onAreaFly: (lat, lon) => flyToArea(lat, lon),
+    });
+
+    await refreshVisualization();
+    setProgress(100);
+
+  } finally {
+    _changingYear = false;
+    if (sel) sel.disabled = false;
+  }
+}
+
 // ── Refresh visualization ─────────────────────────────────────────────────────
 async function refreshVisualization() {
   if (state.loading) return;
@@ -75,10 +169,8 @@ async function refreshVisualization() {
       queryTotal(state.selectedArea, state.selectedAreaType, state.direction),
     ]);
 
-    // Origin metadata: based on what type of area is selected
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
-    // Destination metadata: based on the aggregation level chosen
-    const dstMeta = state.aggregation === 'city' ? cityMeta : countyMeta;
+    const dstMeta = state.aggregation       === 'city' ? cityMeta : countyMeta;
 
     const src = srcMeta[state.selectedArea];
 
@@ -119,7 +211,7 @@ function arcClickHandler(flow) {
   if (!newArea || newArea === state.selectedArea) return;
 
   state.selectedArea     = newArea;
-  state.selectedAreaType = state.aggregation; // clicked destination is of the current agg type
+  state.selectedAreaType = state.aggregation;
 
   const dstMeta = state.aggregation === 'city' ? cityMeta : countyMeta;
   const m = dstMeta[newArea];
@@ -128,13 +220,25 @@ function arcClickHandler(flow) {
   const input = document.getElementById('area-search');
   if (input) input.value = newArea;
 
-  // Sync the direction labels in the sidebar
   const outEl = document.getElementById('area-label-out');
   const inEl  = document.getElementById('area-label-in');
   if (outEl) outEl.textContent = newArea;
   if (inEl)  inEl.textContent  = newArea;
 
   refreshVisualization();
+}
+
+// ── URL year param ─────────────────────────────────────────────────────────────
+function _getUrlYear(availableYears, defaultYear) {
+  const params = new URLSearchParams(window.location.search);
+  const urlYear = parseInt(params.get('year'));
+  return (urlYear && availableYears.includes(urlYear)) ? urlYear : defaultYear;
+}
+
+function _setUrlYear(year) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('year', year);
+  history.replaceState(null, '', url);
 }
 
 // ── Progress bar ──────────────────────────────────────────────────────────────

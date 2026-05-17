@@ -14,23 +14,47 @@ WFRC Commute Patterns — Offline Data Pipeline
 Downloads LEHD LODES8 OD data for Utah, joins with the LEHD crosswalk to
 get city/county names, filters to the WFRC 9-county region, aggregates to
 city->city and county->county flow pairs, computes geographic centroids from
-Census TIGER shapefiles, and exports Parquet + JSON files to ../data/.
+Census TIGER shapefiles, and exports Parquet + JSON files to ../data/{year}/.
 
 Run once locally before committing data files:
-    uv run scripts/process_data.py
+    uv run scripts/process_data.py            # auto-detects latest available year
+    uv run scripts/process_data.py --year 2021  # specific year
 """
 
 import sys
 import json
+import argparse
 from pathlib import Path
+import requests
 import pandas as pd
 import geopandas as gpd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-# ── Output directory ─────────────────────────────────────────────────────────
-DATA_DIR = Path(__file__).parent.parent / "data"
+# ── Output directories ────────────────────────────────────────────────────────
+DATA_DIR  = Path(__file__).parent.parent / "data"
+CACHE_DIR = DATA_DIR / "cache"
 DATA_DIR.mkdir(exist_ok=True)
+CACHE_DIR.mkdir(exist_ok=True)
+
+
+def download_cached(url, filename):
+    """Download url to CACHE_DIR/filename if not already cached. Returns local path."""
+    cache_path = CACHE_DIR / filename
+    if cache_path.exists() and cache_path.stat().st_size > 0:
+        print(f"  Using cached {filename}")
+        return cache_path
+    print(f"  Downloading {url}")
+    r = requests.get(url, stream=True, timeout=300)
+    r.raise_for_status()
+    tmp = cache_path.with_suffix(cache_path.suffix + ".tmp")
+    with open(tmp, "wb") as f:
+        for chunk in r.iter_content(chunk_size=65536):
+            f.write(chunk)
+    tmp.rename(cache_path)
+    size_mb = cache_path.stat().st_size / 1024 / 1024
+    print(f"  Saved {filename} ({size_mb:.1f} MB)")
+    return cache_path
 
 # ── WFRC 9-county FIPS codes ──────────────────────────────────────────────────
 WFRC_COUNTIES = {
@@ -45,9 +69,10 @@ WFRC_COUNTIES = {
     "49043": "Summit County",
 }
 
-# ── LEHD LODES8 URLs (Utah, 2022; fall back to 2021 if unavailable) ──────────
+# ── LEHD LODES8 URLs ──────────────────────────────────────────────────────────
 LODES_BASE = "https://lehd.ces.census.gov/data/lodes/LODES8/ut"
-OD_YEARS = ["2022", "2021"]
+# LODES8 covers 2002-2023; try from newest downward when no --year given
+LODES_YEARS_DEFAULT = [str(y) for y in range(2023, 2001, -1)]
 OD_TEMPLATE = LODES_BASE + "/od/ut_od_main_JT00_{year}.csv.gz"
 XWALK_URL = LODES_BASE + "/ut_xwalk.csv.gz"
 
@@ -60,29 +85,35 @@ COUNTIES_URL = f"{TIGER_BASE}/COUNTY/tl_2020_us_county.zip"  # counties file is 
 AGG_COLS = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
 
 
-def load_od(years=OD_YEARS):
-    """Download OD CSV.GZ, trying each year until one succeeds."""
+def load_od(years=LODES_YEARS_DEFAULT):
+    """Download OD CSV.GZ (cached), trying each year until one succeeds."""
     for year in years:
         url = OD_TEMPLATE.format(year=year)
-        print(f"  Trying OD data for {year}: {url}")
+        filename = f"ut_od_main_JT00_{year}.csv.gz"
+        print(f"  Trying OD data for {year}...")
         try:
+            local = download_cached(url, filename)
             df = pd.read_csv(
-                url,
+                local,
                 dtype={"w_geocode": str, "h_geocode": str},
                 usecols=["w_geocode", "h_geocode"] + AGG_COLS,
             )
             print(f"  Loaded {len(df):,} OD records for {year}")
             return df, year
         except Exception as e:
+            # Remove a failed/partial cache entry so next run retries the download
+            bad = CACHE_DIR / filename
+            if bad.exists():
+                bad.unlink()
             print(f"  Failed ({e}), trying next year...")
     sys.exit("ERROR: Could not download OD data for any year.")
 
 
 def load_xwalk():
-    """Download and slim the LEHD geographic crosswalk."""
-    print(f"  Downloading crosswalk: {XWALK_URL}")
+    """Download (cached) and slim the LEHD geographic crosswalk."""
+    local = download_cached(XWALK_URL, "ut_xwalk.csv.gz")
     xw = pd.read_csv(
-        XWALK_URL,
+        local,
         dtype={"tabblk2020": str, "stplc": str, "cty": str},
         usecols=["tabblk2020", "stplc", "stplcname", "cty", "ctyname"],
     )
@@ -181,8 +212,8 @@ def aggregate_county_flows(od):
 
 
 def load_tiger_places():
-    print(f"  Downloading TIGER places: {PLACES_URL}")
-    places = gpd.read_file(PLACES_URL)
+    local = download_cached(PLACES_URL, "tl_2020_49_place.zip")
+    places = gpd.read_file(local)
     # Project to Utah State Plane (meters) for accurate centroid, then back to WGS84
     centroids = places.to_crs(epsg=26912).geometry.centroid
     centroids_wgs = centroids.to_crs(epsg=4326)
@@ -195,8 +226,8 @@ def load_tiger_places():
 
 
 def load_tiger_counties():
-    print(f"  Downloading TIGER counties: {COUNTIES_URL}")
-    counties = gpd.read_file(COUNTIES_URL)
+    local = download_cached(COUNTIES_URL, "tl_2020_us_county.zip")
+    counties = gpd.read_file(local)
     # Filter to Utah (STATEFP = 49) before computing centroids
     counties = counties[counties["STATEFP"] == "49"].copy()
     centroids = counties.to_crs(epsg=26912).geometry.centroid
@@ -307,66 +338,100 @@ def export_parquet(df, path, int_cols):
     print(f"  Wrote {path.name} ({len(df):,} rows, {size_kb:.1f} KB)")
 
 
+def update_manifest(year_int):
+    """Add year to data/manifest.json; create the file if it doesn't exist."""
+    manifest_path = DATA_DIR / "manifest.json"
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+    else:
+        manifest = {"years": [], "default": None}
+
+    if year_int not in manifest["years"]:
+        manifest["years"].append(year_int)
+        manifest["years"].sort()
+    manifest["default"] = max(manifest["years"])
+
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"  Updated manifest.json: years={manifest['years']}, default={manifest['default']}")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="WFRC Commute Patterns Data Pipeline")
+    parser.add_argument(
+        "--year", type=int, metavar="YYYY",
+        help="LODES year to process (default: auto-detect latest available, 2002-2023)"
+    )
+    args = parser.parse_args()
+
     print("=== WFRC Commute Patterns Data Pipeline ===\n")
 
     # 1. Load OD data
     print("1. Loading LEHD OD data...")
-    od, year = load_od()
+    od_years = [str(args.year)] if args.year else LODES_YEARS_DEFAULT
+    od, year = load_od(od_years)
 
-    # 2. Load crosswalk
+    # 2. Set up year-specific output directory
+    year_dir = DATA_DIR / str(year)
+    year_dir.mkdir(exist_ok=True)
+    print(f"  Output directory: {year_dir}")
+
+    # 3. Load crosswalk
     print("\n2. Loading LEHD crosswalk...")
     xw = load_xwalk()
 
-    # 3. Build block-level lookup
+    # 4. Build block-level lookup
     print("\n3. Building block -> city/county lookup...")
     lookup = build_lookup(xw)
     print(f"  Lookup entries: {len(lookup):,}")
 
-    # 4. Join OD with lookup
+    # 5. Join OD with lookup
     print("\n4. Joining OD with crosswalk...")
     od = join_od_with_lookup(od, lookup)
 
-    # 5. Filter to WFRC region
+    # 6. Filter to WFRC region
     print("\n5. Filtering to WFRC 9-county region...")
     od_wfrc = filter_wfrc(od)
 
-    # 6. Fill unincorporated areas
+    # 7. Fill unincorporated areas
     print("\n6. Filling unincorporated area names...")
     od_wfrc = fill_unincorporated(od_wfrc)
 
-    # 7. Aggregate
+    # 8. Aggregate
     print("\n7. Aggregating flows...")
     city_flows = aggregate_city_flows(od_wfrc)
     county_flows = aggregate_county_flows(od_wfrc)
 
-    # 8. Load TIGER shapefiles
+    # 9. Load TIGER shapefiles
     print("\n8. Loading TIGER shapefiles for centroids...")
     places = load_tiger_places()
     counties = load_tiger_counties()
 
-    # 9. Build metadata
+    # 10. Build metadata
     print("\n9. Building city and county metadata...")
     city_meta = build_city_meta(city_flows, xw, places)
     county_meta = build_county_meta(counties)
     print(f"  City metadata entries: {len(city_meta)}")
     print(f"  County metadata entries: {len(county_meta)}")
 
-    # 10. Export Parquet files
+    # 11. Export Parquet files
     print("\n10. Exporting data files...")
-    export_parquet(city_flows, DATA_DIR / "city_flows.parquet", AGG_COLS)
-    export_parquet(county_flows, DATA_DIR / "county_flows.parquet", AGG_COLS)
+    export_parquet(city_flows, year_dir / "city_flows.parquet", AGG_COLS)
+    export_parquet(county_flows, year_dir / "county_flows.parquet", AGG_COLS)
 
-    # 11. Export JSON metadata
-    with open(DATA_DIR / "city_meta.json", "w") as f:
+    # 12. Export JSON metadata
+    with open(year_dir / "city_meta.json", "w") as f:
         json.dump(city_meta, f, indent=2)
     print(f"  Wrote city_meta.json ({len(city_meta)} entries)")
 
-    with open(DATA_DIR / "county_meta.json", "w") as f:
+    with open(year_dir / "county_meta.json", "w") as f:
         json.dump(county_meta, f, indent=2)
     print(f"  Wrote county_meta.json ({len(county_meta)} entries)")
 
-    print(f"\n=== Done! Data year: {year}. Files in {DATA_DIR} ===")
+    # 13. Update manifest
+    print("\n11. Updating manifest...")
+    update_manifest(int(year))
+
+    print(f"\n=== Done! Data year: {year}. Files in {year_dir} ===")
 
 
 if __name__ == "__main__":

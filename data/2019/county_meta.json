@@ -1,0 +1,56 @@
+[
+  {
+    "name": "Box Elder County",
+    "county_fips": "49003",
+    "lat": 41.521228939984894,
+    "lon": -113.08286236344776
+  },
+  {
+    "name": "Davis County",
+    "county_fips": "49011",
+    "lat": 40.99009061107343,
+    "lon": -112.11133930124865
+  },
+  {
+    "name": "Weber County",
+    "county_fips": "49057",
+    "lat": 41.27005263158548,
+    "lon": -111.9137506497804
+  },
+  {
+    "name": "Morgan County",
+    "county_fips": "49029",
+    "lat": 41.08915275409673,
+    "lon": -111.5734566996186
+  },
+  {
+    "name": "Salt Lake County",
+    "county_fips": "49035",
+    "lat": 40.667246454049874,
+    "lon": -111.92361652864467
+  },
+  {
+    "name": "Utah County",
+    "county_fips": "49049",
+    "lat": 40.11983861210566,
+    "lon": -111.66970318477209
+  },
+  {
+    "name": "Tooele County",
+    "county_fips": "49045",
+    "lat": 40.44851448908496,
+    "lon": -113.13120182810658
+  },
+  {
+    "name": "Wasatch County",
+    "county_fips": "49051",
+    "lat": 40.33038914487206,
+    "lon": -111.1677025746522
+  },
+  {
+    "name": "Summit County",
+    "county_fips": "49043",
+    "lat": 40.86866683754639,
+    "lon": -110.95608375912673
+  }
+]

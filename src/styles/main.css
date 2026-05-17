@@ -124,6 +124,45 @@ html, body {
   color: var(--header-subtitle);
 }
 
+/* ── Year selector ───────────────────────────────────────────────────────────── */
+.year-select-wrap {
+  flex-shrink: 0;
+}
+
+.year-select-hidden {
+  display: none;
+}
+
+.year-select {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: var(--header-text);
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  height: 30px;
+  padding: 0 6px;
+  appearance: auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.year-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.year-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.year-select option {
+  background: var(--header-bg);
+  color: var(--header-text);
+}
+
 /* ── Theme toggle button ─────────────────────────────────────────────────────── */
 .theme-toggle {
   flex-shrink: 0;
