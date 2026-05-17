@@ -1,0 +1,15 @@
+[project]
+name = "wfrc-commute-data"
+version = "0.1.0"
+description = "Data pipeline for WFRC commute patterns — processes LEHD LODES data into Parquet files for the web app."
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "geopandas>=0.14",
+    "requests>=2.31",
+    "shapely>=2.0",
+]
+
+[tool.uv]
+package = false

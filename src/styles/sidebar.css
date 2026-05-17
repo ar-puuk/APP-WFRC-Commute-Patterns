@@ -1,0 +1,301 @@
+/* ── Sidebar sections ────────────────────────────────────────────────────────── */
+.sidebar-section {
+  padding: 12px 16px 0;
+}
+
+.sidebar-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sidebar-text-muted);
+  margin-bottom: 6px;
+}
+
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid var(--sidebar-border);
+  margin: 14px 0 0;
+}
+
+/* ── Area search input ───────────────────────────────────────────────────────── */
+.search-wrapper {
+  position: relative;
+}
+
+.area-input {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: var(--font-size-base);
+  font-family: var(--font-main);
+  background: var(--input-bg);
+  color: var(--sidebar-text);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.area-input:focus {
+  border-color: var(--input-focus-border);
+  background: var(--sidebar-bg);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+/* ── Dropdown ────────────────────────────────────────────────────────────────── */
+.area-dropdown {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 500;
+  list-style: none;
+  padding: 4px 0;
+}
+
+.area-dropdown[hidden] {
+  display: none;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  cursor: pointer;
+  gap: 8px;
+  transition: background 0.1s;
+}
+
+.dropdown-item:hover,
+.dropdown-item.highlighted {
+  background: var(--accent-light);
+}
+
+.item-label {
+  flex: 1;
+  font-size: var(--font-size-base);
+  color: var(--sidebar-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-type {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.item-type.county {
+  background: rgba(26, 58, 92, 0.12);
+  color: #1a3a5c;
+}
+
+.item-type.city {
+  background: rgba(100, 100, 100, 0.1);
+  color: var(--sidebar-text-muted);
+}
+
+[data-theme="dark"] .item-type.county {
+  background: rgba(106, 159, 216, 0.2);
+  color: #6a9fd8;
+}
+
+[data-theme="dark"] .item-type.city {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sidebar-text-muted);
+}
+
+/* ── Direction / aggregation toggles ─────────────────────────────────────────── */
+.toggle-group {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.toggle-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: var(--font-size-base);
+  font-family: var(--font-main);
+  background: var(--toggle-bg);
+  color: var(--toggle-text);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.4;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.toggle-btn:hover:not(.active) {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.toggle-btn.active {
+  background: var(--toggle-active-bg);
+  color: var(--toggle-active-text);
+  border-color: var(--toggle-active-bg);
+  font-weight: 600;
+}
+
+/* Area name inline label inside direction buttons */
+.area-label-inline {
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* ── Stats section ───────────────────────────────────────────────────────────── */
+#stats-section {
+  padding-bottom: 6px;
+}
+
+.stats-total {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--sidebar-text);
+  line-height: 1.5;
+}
+
+/* ── Top 10 list ─────────────────────────────────────────────────────────────── */
+.top-ten-title {
+  padding: 4px 16px 6px;
+  font-size: 12px;
+  color: var(--sidebar-text);
+}
+
+.top-ten-list {
+  list-style: none;
+  padding: 0 0 12px;
+}
+
+.top-ten-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+  outline: none;
+}
+
+.top-ten-item:hover,
+.top-ten-item:focus {
+  background: var(--accent-light);
+}
+
+.top-ten-item .rank {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sidebar-text-muted);
+  min-width: 18px;
+  text-align: right;
+}
+
+.top-ten-item .area-name {
+  flex: 1;
+  font-size: var(--font-size-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-ten-item .count-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.top-ten-item .count {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.top-ten-item .pct {
+  font-size: 10px;
+  color: var(--sidebar-text-muted);
+}
+
+/* ── No data message ─────────────────────────────────────────────────────────── */
+.no-data-msg {
+  padding: 12px 16px;
+  color: var(--sidebar-text-muted);
+  font-style: italic;
+  font-size: var(--font-size-base);
+}
+
+.no-data-msg[hidden] { display: none; }
+#top-ten-wrap[hidden] { display: none; }
+
+/* ── Legend ──────────────────────────────────────────────────────────────────── */
+.sidebar-legend {
+  margin-top: auto;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.legend-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sidebar-text-muted);
+  margin-bottom: 6px;
+}
+
+.legend-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-label {
+  font-size: 10px;
+  color: var(--sidebar-text-muted);
+  flex-shrink: 0;
+}
+
+.legend-gradient {
+  flex: 1;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 140, 0, 0.1),
+    rgba(255, 140, 0, 0.4),
+    rgba(255, 140, 0, 0.7),
+    rgba(255, 140, 0, 1)
+  );
+}
+
+[data-theme="dark"] .legend-gradient {
+  background: linear-gradient(
+    to right,
+    rgba(255, 180, 60, 0.1),
+    rgba(255, 180, 60, 0.4),
+    rgba(255, 180, 60, 0.7),
+    rgba(255, 180, 60, 1)
+  );
+}
+
+/* ── MapLibre attribution tweak ──────────────────────────────────────────────── */
+.maplibregl-ctrl-attrib {
+  font-size: 10px !important;
+}

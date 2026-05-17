@@ -1,0 +1,8 @@
+# Dependencies for the data pipeline script.
+# Preferred: uv run scripts/process_data.py  (uv reads inline metadata automatically)
+# Alternative: uv pip install -r scripts/requirements.txt && python scripts/process_data.py
+pandas>=2.0
+pyarrow>=14.0
+geopandas>=0.14
+requests>=2.31
+shapely>=2.0
