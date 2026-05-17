@@ -39,6 +39,40 @@ let _theme      = 'light';
 let _boundaries = { county: null, city: null };
 // Stored so it can be replayed after boundary layers are added asynchronously
 let _pendingChoropleth = null;
+let _tooltipEl  = null;
+
+// ── Custom tooltip (FlowmapLayer onHover is async — can't use MapboxOverlay.getTooltip) ──
+
+function _ensureTooltip() {
+  if (!_tooltipEl) {
+    _tooltipEl = document.createElement('div');
+    _tooltipEl.style.cssText = [
+      'position:fixed', 'pointer-events:none', 'z-index:1000',
+      'display:none', 'font-size:13px', 'border-radius:6px',
+      'padding:6px 10px', 'box-shadow:0 2px 8px rgba(0,0,0,0.25)',
+      'line-height:1.4', 'max-width:240px',
+    ].join(';');
+    document.body.appendChild(_tooltipEl);
+  }
+  return _tooltipEl;
+}
+
+function _showTooltip(info, html) {
+  const el = _ensureTooltip();
+  const container = map?.getContainer();
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  el.innerHTML = html;
+  el.style.display = 'block';
+  el.style.left   = `${rect.left + info.x + 14}px`;
+  el.style.top    = `${rect.top  + info.y - 36}px`;
+  el.style.background = _theme === 'dark' ? '#1a1a2e' : '#fff';
+  el.style.color      = _theme === 'dark' ? '#e8e8f0' : '#1a1a1a';
+}
+
+function _hideTooltip() {
+  if (_tooltipEl) _tooltipEl.style.display = 'none';
+}
 
 // ── Initialization ───────────────────────────────────────────────────────────
 
@@ -57,29 +91,6 @@ export function initMap(containerId, theme = 'light') {
   deckOverlay = new MapboxOverlay({
     interleaved: false,
     layers: [],
-    getTooltip: ({ object }) => {
-      if (!object) return null;
-      const style = {
-        backgroundColor: _theme === 'dark' ? '#1a1a2e' : '#fff',
-        color: _theme === 'dark' ? '#e8e8f0' : '#1a1a1a',
-        fontSize: '13px',
-        borderRadius: '6px',
-        padding: '6px 10px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-        pointerEvents: 'none',
-      };
-      if (object.type === 'flow') {
-        const count = Number(object.count).toLocaleString();
-        return {
-          html: `<strong>${object.origin?.id ?? ''} &rarr; ${object.dest?.id ?? ''}</strong><br>${count} commuters`,
-          style,
-        };
-      }
-      if (object.type === 'location') {
-        return { html: `<strong>${object.name ?? object.location?.id ?? ''}</strong>`, style };
-      }
-      return null;
-    },
   });
 
   map.on('load', () => {
@@ -112,6 +123,7 @@ export function updateLayers(flows, state, onArcClick) {
 
   if (!flows.length) {
     deckOverlay.setProps({ layers: [] });
+    _hideTooltip();
     return;
   }
 
@@ -141,7 +153,7 @@ export function updateLayers(flows, state, onArcClick) {
     getFlowMagnitude: flow => flow.count,
     darkMode: state.theme === 'dark',
     colorScheme: 'Oranges',
-    flowLinesRenderingMode: 'curved',
+    flowLinesRenderingMode: 'animated-straight',
     clusteringEnabled: false,
     locationTotalsEnabled: true,
     locationLabelsEnabled: false,
@@ -149,7 +161,20 @@ export function updateLayers(flows, state, onArcClick) {
     adaptiveScalesEnabled: true,
     flowLineThicknessScale: 1.5,
     pickable: true,
+    onHover: (info) => {
+      const obj = info?.object;
+      if (!obj || !info.picked) { _hideTooltip(); return; }
+      if (obj.type === 'flow') {
+        const count = Number(obj.count).toLocaleString();
+        _showTooltip(info, `<strong>${obj.origin?.id ?? ''} &rarr; ${obj.dest?.id ?? ''}</strong><br>${count} commuters`);
+      } else if (obj.type === 'location') {
+        _showTooltip(info, `<strong>${obj.name ?? obj.location?.id ?? ''}</strong>`);
+      } else {
+        _hideTooltip();
+      }
+    },
     onClick: (info) => {
+      _hideTooltip();
       if (!onArcClick) return;
       const obj = info?.object;
       if (!obj) return;
