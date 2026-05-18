@@ -419,7 +419,7 @@ function _applyFilter() {
   updateLayers(filtered, state, arcClickHandler, total);
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
   updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, state);
-  updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme);
+  updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(filtered, total, state);
   _updateDataline(total, state);
 }
@@ -439,6 +439,9 @@ function _updateDataline(total, appState) {
   dlFrom.textContent  = `From ${appState.selectedArea} · ${appState.year}`;
   dlArrow.textContent = isOut ? '↗' : '↘';
   if (dl) dl.classList.toggle('inflow', !isOut);
+
+  // Sync legend swatches to current direction (outflow = orange, inflow = teal)
+  document.querySelectorAll('.lg-swatch').forEach(s => s.classList.toggle('inflow', !isOut));
 }
 
 // ── Arc click → select destination as new area ────────────────────────────────
