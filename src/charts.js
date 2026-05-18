@@ -41,7 +41,8 @@ export function initCharts(onAreaSelect) {
   });
   all.forEach(el => { if (el) ro.observe(el); });
 
-  // ── Collapse on header click (skip inner buttons/inputs) ─────────────────
+  // ── Collapse on header click — no .chart-section-header in new HTML;
+  //    querySelectorAll returns empty NodeList so this is a safe no-op ──────
   document.querySelectorAll('.chart-section-header').forEach(header => {
     header.addEventListener('click', e => {
       if (e.target.closest('button:not(.chart-collapse-btn), input')) return;
@@ -59,7 +60,7 @@ export function initCharts(onAreaSelect) {
     });
   });
 
-  // ── Worker Demographics dimension toggle ──────────────────────────────────
+  // ── Worker Demographics dimension toggle (hidden demo chart) ──────────────
   document.querySelectorAll('#dim-toggle .mini-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#dim-toggle .mini-toggle-btn').forEach(b => b.classList.remove('active'));
@@ -246,10 +247,10 @@ function _bucketFlows(flows) {
 }
 
 function _haversineMiles(lat1, lon1, lat2, lon2) {
-  const R = 3958.8;
+  const R    = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2
+  const a    = Math.sin(dLat / 2) ** 2
     + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
@@ -259,17 +260,17 @@ function _haversineMiles(lat1, lon1, lat2, lon2) {
 function _tc(theme) {
   const dk = theme === 'dark';
   return {
-    text:         dk ? '#dce8f4' : '#333',
-    muted:        dk ? 'rgba(180,210,235,0.55)' : '#999',
-    axis:         dk ? 'rgba(255,255,255,0.09)' : '#e8e8e8',
-    orange:       '#ff8c00',
-    orangeMuted:  'rgba(255,140,0,0.32)',
-    teal:         dk ? '#50d2e6' : '#007888',
-    tealMuted:    dk ? 'rgba(80,210,230,0.32)' : 'rgba(0,120,136,0.32)',
-    mid:          dk ? '#5dbecc' : '#3a9aaa',   // between teal and orange (Trade segment)
-    selectedNode: dk ? 'rgba(220,232,244,0.22)' : '#4a6484',
-    ttBg:         dk ? '#0e2035' : '#fff',
-    ttBorder:     dk ? 'rgba(255,255,255,0.09)' : '#e0e0e0',
+    text:         dk ? '#c4c1b8' : '#2a2f40',
+    muted:        dk ? '#696a73' : '#898d9c',
+    axis:         dk ? 'rgba(232,229,220,0.09)' : 'rgba(18,23,38,0.10)',
+    outflow:      dk ? '#e4895a' : '#cc683a',
+    outflowMuted: dk ? 'rgba(228,137,90,0.32)'  : 'rgba(204,104,58,0.32)',
+    inflow:       dk ? '#5aa6a7' : '#1e6f6f',
+    inflowMuted:  dk ? 'rgba(90,166,167,0.32)'  : 'rgba(30,111,111,0.32)',
+    mid:          dk ? '#7fa8a9' : '#4a8080',
+    selectedNode: dk ? '#1b2031' : '#efebde',
+    ttBg:         dk ? '#0a0e17' : '#f6f3eb',
+    ttBorder:     dk ? 'rgba(232,229,220,0.20)' : 'rgba(18,23,38,0.22)',
   };
 }
 
@@ -294,8 +295,8 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
       top: 2, left: 'center', itemWidth: 10, itemHeight: 8,
       textStyle: { color: tc.muted, fontSize: 9 },
       data: [
-        { name: '← Inflow',  icon: 'rect', itemStyle: { color: tc.teal } },
-        { name: 'Outflow →', icon: 'rect', itemStyle: { color: tc.orange } },
+        { name: 'Inflow',  icon: 'rect', itemStyle: { color: tc.inflow  } },
+        { name: 'Outflow', icon: 'rect', itemStyle: { color: tc.outflow } },
       ],
     },
     tooltip: {
@@ -309,8 +310,8 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
         const outPct = totalOut > 0 ? ((row.out / totalOut) * 100).toFixed(1) : '0.0';
         return [
           `<strong>${row.name}</strong>`,
-          `<span style="color:${tc.teal}">← ${row.in.toLocaleString()}</span>&nbsp; ${inPct}% of workforce`,
-          `<span style="color:${tc.orange}">→ ${row.out.toLocaleString()}</span>&nbsp; ${outPct}% of commuters`,
+          `<span style="color:${tc.inflow}">← ${row.in.toLocaleString()}</span>&nbsp; ${inPct}% of workforce`,
+          `<span style="color:${tc.outflow}">→ ${row.out.toLocaleString()}</span>&nbsp; ${outPct}% of commuters`,
         ].join('<br/>');
       },
     },
@@ -328,14 +329,14 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
     },
     series: [
       {
-        name: '← Inflow', type: 'bar', barMaxWidth: 16,
-        data: inData.map((v, i) => ({ value: v, itemStyle: { color: reversed[i].isOthers ? tc.tealMuted : tc.teal, borderRadius: [3,0,0,3] } })),
+        name: 'Inflow', type: 'bar', barMaxWidth: 16,
+        data: inData.map((v, i) => ({ value: v, itemStyle: { color: reversed[i].isOthers ? tc.inflowMuted : tc.inflow, borderRadius: [1,0,0,1] } })),
         label: { show: true, position: 'left', color: tc.muted, fontSize: 8, hideOverlap: true, formatter: p => p.value < -99 ? Number(-p.value).toLocaleString() : '' },
         emphasis: { itemStyle: { opacity: 0.8 } },
       },
       {
-        name: 'Outflow →', type: 'bar', barMaxWidth: 16,
-        data: outData.map((v, i) => ({ value: v, itemStyle: { color: reversed[i].isOthers ? tc.orangeMuted : tc.orange, borderRadius: [0,3,3,0] } })),
+        name: 'Outflow', type: 'bar', barMaxWidth: 16,
+        data: outData.map((v, i) => ({ value: v, itemStyle: { color: reversed[i].isOthers ? tc.outflowMuted : tc.outflow, borderRadius: [0,1,1,0] } })),
         label: { show: true, position: 'right', color: tc.muted, fontSize: 8, hideOverlap: true, formatter: p => p.value > 99 ? Number(p.value).toLocaleString() : '' },
         emphasis: { itemStyle: { opacity: 0.8 } },
       },
@@ -351,7 +352,7 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
   });
 }
 
-// ── 2. Flow Diagram — bilateral Sankey ───────────────────────────────────────
+// ── 2. Flow Diagram — bilateral Sankey ────────────────────────────────────────
 
 function _renderSankey(outflows, inflows, state) {
   if (!_sankeyChart) return;
@@ -365,18 +366,18 @@ function _renderSankey(outflows, inflows, state) {
   const restOut = outflows.slice(4).reduce((s, f) => s + Number(f.S000), 0);
 
   const nodes = [
-    ...topIn.map(f => ({ name: `←${f.dest_name}`, depth: 0, itemStyle: { color: tc.teal } })),
-    ...(restIn  > 0 ? [{ name: '←Others', depth: 0, itemStyle: { color: tc.tealMuted } }] : []),
+    ...topIn.map(f => ({ name: `←${f.dest_name}`, depth: 0, itemStyle: { color: tc.inflow } })),
+    ...(restIn  > 0 ? [{ name: '←Others', depth: 0, itemStyle: { color: tc.inflowMuted } }] : []),
     { name: sel, depth: 1, itemStyle: { color: tc.selectedNode }, label: { fontWeight: 700 } },
-    ...topOut.map(f => ({ name: `→${f.dest_name}`, depth: 2, itemStyle: { color: tc.orange } })),
-    ...(restOut > 0 ? [{ name: '→Others', depth: 2, itemStyle: { color: tc.orangeMuted } }] : []),
+    ...topOut.map(f => ({ name: `→${f.dest_name}`, depth: 2, itemStyle: { color: tc.outflow } })),
+    ...(restOut > 0 ? [{ name: '→Others', depth: 2, itemStyle: { color: tc.outflowMuted } }] : []),
   ];
 
   const links = [
-    ...topIn.map(f => ({ source: `←${f.dest_name}`, target: sel, value: Number(f.S000), lineStyle: { color: tc.teal, opacity: 0.35 } })),
-    ...(restIn  > 0 ? [{ source: '←Others', target: sel, value: restIn, lineStyle: { color: tc.tealMuted, opacity: 0.45 } }] : []),
-    ...topOut.map(f => ({ source: sel, target: `→${f.dest_name}`, value: Number(f.S000), lineStyle: { color: tc.orange, opacity: 0.35 } })),
-    ...(restOut > 0 ? [{ source: sel, target: '→Others', value: restOut, lineStyle: { color: tc.orangeMuted, opacity: 0.45 } }] : []),
+    ...topIn.map(f => ({ source: `←${f.dest_name}`, target: sel, value: Number(f.S000), lineStyle: { color: tc.inflow, opacity: 0.35 } })),
+    ...(restIn  > 0 ? [{ source: '←Others', target: sel, value: restIn,  lineStyle: { color: tc.inflowMuted,  opacity: 0.45 } }] : []),
+    ...topOut.map(f => ({ source: sel, target: `→${f.dest_name}`, value: Number(f.S000), lineStyle: { color: tc.outflow, opacity: 0.35 } })),
+    ...(restOut > 0 ? [{ source: sel, target: '→Others', value: restOut, lineStyle: { color: tc.outflowMuted, opacity: 0.45 } }] : []),
   ];
 
   _sankeyChart.setOption({
@@ -389,7 +390,14 @@ function _renderSankey(outflows, inflows, state) {
         return `<strong>${_sd(p.name)}</strong>`;
       },
     },
-    series: [{ type: 'sankey', data: nodes, links, emphasis: { focus: 'adjacency' }, lineStyle: { curveness: 0.5 }, label: { color: tc.text, fontSize: 10, overflow: 'truncate', width: 88, formatter: p => _sd(p.name) }, nodeWidth: 8, nodeGap: 8, layoutIterations: 32, left: '18%', right: '22%', top: '4%', bottom: '4%' }],
+    series: [{
+      type: 'sankey', data: nodes, links,
+      emphasis: { focus: 'adjacency' },
+      lineStyle: { curveness: 0.5 },
+      label: { color: tc.text, fontSize: 10, overflow: 'truncate', width: 88, formatter: p => _sd(p.name) },
+      nodeWidth: 8, nodeGap: 8, layoutIterations: 32,
+      left: '18%', right: '22%', top: '4%', bottom: '4%',
+    }],
   }, true);
 
   _sankeyChart.resize();
@@ -437,8 +445,8 @@ function _renderDemographics(outflows, inflows, state) {
       top: 2, left: 'center', itemWidth: 10, itemHeight: 8,
       textStyle: { color: tc.muted, fontSize: 9 },
       data: [
-        { name: '← Inflow',  icon: 'rect', itemStyle: { color: tc.teal } },
-        { name: 'Outflow →', icon: 'rect', itemStyle: { color: tc.orange } },
+        { name: 'Inflow',  icon: 'rect', itemStyle: { color: tc.inflow  } },
+        { name: 'Outflow', icon: 'rect', itemStyle: { color: tc.outflow } },
       ],
     },
     tooltip: {
@@ -452,8 +460,8 @@ function _renderDemographics(outflows, inflows, state) {
         const ov  = idx >= 0 ? outVals[idx] : 0;
         return [
           `<strong>${cat}</strong>`,
-          `<span style="color:${tc.teal}">← ${iv.toLocaleString()}</span> inflow`,
-          `<span style="color:${tc.orange}">→ ${ov.toLocaleString()}</span> outflow`,
+          `<span style="color:${tc.inflow}">← ${iv.toLocaleString()}</span> inflow`,
+          `<span style="color:${tc.outflow}">→ ${ov.toLocaleString()}</span> outflow`,
         ].join('<br/>');
       },
     },
@@ -471,14 +479,14 @@ function _renderDemographics(outflows, inflows, state) {
     },
     series: [
       {
-        name: '← Inflow', type: 'bar', barMaxWidth: 18,
-        data: inVals.map(v => ({ value: -v, itemStyle: { color: tc.teal, borderRadius: [3,0,0,3] } })),
+        name: 'Inflow', type: 'bar', barMaxWidth: 18,
+        data: inVals.map(v => ({ value: -v, itemStyle: { color: tc.inflow, borderRadius: [1,0,0,1] } })),
         label: { show: true, position: 'left', color: tc.muted, fontSize: 8, hideOverlap: true, formatter: p => p.value < -99 ? Number(-p.value).toLocaleString() : '' },
         emphasis: { itemStyle: { opacity: 0.8 } },
       },
       {
-        name: 'Outflow →', type: 'bar', barMaxWidth: 18,
-        data: outVals.map(v => ({ value: v, itemStyle: { color: tc.orange, borderRadius: [0,3,3,0] } })),
+        name: 'Outflow', type: 'bar', barMaxWidth: 18,
+        data: outVals.map(v => ({ value: v, itemStyle: { color: tc.outflow, borderRadius: [0,1,1,0] } })),
         label: { show: true, position: 'right', color: tc.muted, fontSize: 8, hideOverlap: true, formatter: p => p.value > 99 ? Number(p.value).toLocaleString() : '' },
         emphasis: { itemStyle: { opacity: 0.8 } },
       },
@@ -500,29 +508,27 @@ function _renderReach(outflows, inflows, state) {
 
   if (outT === 1 && inT === 1) { _reachChart.clear(); return; }
 
-  // Opacity from darkest (nearest) to lightest (farthest)
   const dk = state.theme === 'dark';
-  const tealRgb   = dk ? '80,210,230'  : '0,120,136';
-  const orangeRgb = '255,140,0';
-  const opacities = [1.0, 0.70, 0.42, 0.22];
+  const outflowRgb = dk ? '228,137,90'  : '204,104,58';
+  const inflowRgb  = dk ? '90,166,167'  : '30,111,111';
+  const opacities  = [1.0, 0.70, 0.42, 0.22];
 
-  // Y-axis: ['Outflow →', '← Inflow'] — reversed so Inflow is on top
-  const yCategories = ['Outflow →', '← Inflow'];
+  const yCategories = ['Outflow', 'Inflow'];
 
   _reachChart.setOption({
     backgroundColor: 'transparent', animation: true, animationDuration: 400,
     legend: {
       top: 2, left: 'center', itemWidth: 8, itemHeight: 8,
       textStyle: { color: tc.muted, fontSize: 9 },
-      data: REACH_LABELS.map((l, i) => ({ name: l, icon: 'rect', itemStyle: { color: `rgba(${orangeRgb},${opacities[i]})` } })),
+      data: REACH_LABELS.map((l, i) => ({ name: l, icon: 'rect', itemStyle: { color: `rgba(${outflowRgb},${opacities[i]})` } })),
     },
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' },
       backgroundColor: tc.ttBg, borderColor: tc.ttBorder,
       textStyle: { color: tc.text, fontSize: 11 },
       formatter: params => {
-        const cat = params[0]?.name;
-        const isOut = cat === 'Outflow →';
+        const cat   = params[0]?.name;
+        const isOut = cat === 'Outflow';
         const buckets = isOut ? outB : inB;
         const total   = isOut ? outT : inT;
         return [
@@ -544,10 +550,10 @@ function _renderReach(outflows, inflows, state) {
     series: REACH_LABELS.map((label, i) => ({
       name: label, type: 'bar', stack: 'total', barMaxWidth: 28,
       data: [
-        // Outflow row: orange shades
-        { value: Math.round(outB[i] / outT * 100), itemStyle: { color: `rgba(${orangeRgb},${opacities[i]})` } },
-        // Inflow row: teal shades
-        { value: Math.round(inB[i]  / inT  * 100), itemStyle: { color: `rgba(${tealRgb},${opacities[i]})` } },
+        // Outflow row: outflow palette
+        { value: Math.round(outB[i] / outT * 100), itemStyle: { color: `rgba(${outflowRgb},${opacities[i]})` } },
+        // Inflow row: inflow palette
+        { value: Math.round(inB[i]  / inT  * 100), itemStyle: { color: `rgba(${inflowRgb},${opacities[i]})` } },
       ],
       label: {
         show: true, color: i < 2 ? '#fff' : tc.text, fontSize: 8, fontWeight: 600,
@@ -569,9 +575,12 @@ function _renderIndustry(outflows, inflows, state) {
   const top5  = flows.slice(0, 5);
   if (!top5.length) { _industryChart.clear(); return; }
 
-  const names  = top5.map(f => f.dest_name);
-  const goods  = top5.map(f => Number(f.SI01 || 0));
-  const trade  = top5.map(f => Number(f.SI02 || 0));
+  const dk       = state.theme === 'dark';
+  const goodsCol = dk ? '#b58e54' : '#8b6b3a';
+
+  const names    = top5.map(f => f.dest_name);
+  const goods    = top5.map(f => Number(f.SI01 || 0));
+  const trade    = top5.map(f => Number(f.SI02 || 0));
   const services = top5.map(f => Number(f.SI03 || 0));
 
   _industryChart.setOption({
@@ -580,9 +589,9 @@ function _renderIndustry(outflows, inflows, state) {
       top: 2, left: 'center', itemWidth: 10, itemHeight: 8,
       textStyle: { color: tc.muted, fontSize: 9 },
       data: [
-        { name: 'Goods',          icon: 'rect', itemStyle: { color: tc.teal } },
-        { name: 'Trade/Transport',icon: 'rect', itemStyle: { color: tc.mid } },
-        { name: 'Services',       icon: 'rect', itemStyle: { color: tc.orange } },
+        { name: 'Goods',           icon: 'rect', itemStyle: { color: goodsCol   } },
+        { name: 'Trade/Transport', icon: 'rect', itemStyle: { color: tc.outflow } },
+        { name: 'Services',        icon: 'rect', itemStyle: { color: tc.inflow  } },
       ],
     },
     tooltip: {
@@ -613,9 +622,9 @@ function _renderIndustry(outflows, inflows, state) {
       axisLine: { show: false }, axisTick: { show: false },
     },
     series: [
-      { name: 'Goods',          type: 'bar', stack: 'total', data: goods,   itemStyle: { color: tc.teal   }, emphasis: { itemStyle: { opacity: 0.85 } } },
-      { name: 'Trade/Transport',type: 'bar', stack: 'total', data: trade,   itemStyle: { color: tc.mid    }, emphasis: { itemStyle: { opacity: 0.85 } } },
-      { name: 'Services',       type: 'bar', stack: 'total', data: services,itemStyle: { color: tc.orange }, emphasis: { itemStyle: { opacity: 0.85 } } },
+      { name: 'Goods',           type: 'bar', stack: 'total', data: goods,    itemStyle: { color: goodsCol   }, emphasis: { itemStyle: { opacity: 0.85 } } },
+      { name: 'Trade/Transport', type: 'bar', stack: 'total', data: trade,    itemStyle: { color: tc.outflow }, emphasis: { itemStyle: { opacity: 0.85 } } },
+      { name: 'Services',        type: 'bar', stack: 'total', data: services, itemStyle: { color: tc.inflow  }, emphasis: { itemStyle: { opacity: 0.85 } } },
     ],
   }, true);
 
@@ -630,7 +639,7 @@ function _renderIndustry(outflows, inflows, state) {
 
 function _pngDownload(chart, filename) {
   if (!chart || !_lastState) return;
-  const bg = _lastState.theme === 'dark' ? '#0e2035' : '#ffffff';
+  const bg = _lastState.theme === 'dark' ? '#0a0e17' : '#f6f3eb';
   _dlUrl(chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: bg }), `${filename}.png`);
 }
 
