@@ -64,6 +64,27 @@ function _makeCtrlGroup(...btns) {
   return { onAdd: () => el, onRemove: () => el.remove() };
 }
 
+// ── Color schemes ────────────────────────────────────────────────────────────
+// Teal: mirrors flowmap.gl's built-in default (schemeTeal), used for inflow.
+// Orange: analogous 7-step ramp from pale to deep burnt-sienna, used for outflow.
+// FlowmapLayer reverses the array automatically when darkMode=true, so we always
+// supply light→dark order. For the MapLibre choropleth we reverse manually.
+const SCHEME_TEAL   = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
+const SCHEME_ORANGE = ['#fde8d8','#fac9a8','#f5a372','#e8834a','#cc683a','#a84d27','#7a3015'];
+
+// Linear interpolation through an RGB hex color array (mirrors D3 interpolateRgbBasis
+// but without the dependency; sufficient for the 7-stop choropleth ramp).
+function _lerpScheme(scheme, t) {
+  t = Math.max(0, Math.min(1, t));
+  const n = scheme.length - 1;
+  const i = Math.min(Math.floor(t * n), n - 1);
+  const f = t * n - i;
+  const hex = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  const [r1,g1,b1] = hex(scheme[i]);
+  const [r2,g2,b2] = hex(scheme[i+1]);
+  return [Math.round(r1+f*(r2-r1)), Math.round(g1+f*(g2-g1)), Math.round(b1+f*(b2-b1))];
+}
+
 // ── Module state ─────────────────────────────────────────────────────────────
 let map         = null;
 let deckOverlay = null;
@@ -253,13 +274,8 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     flowTotals.set(`${f.home_name}||${f.work_name}`, Number(f.dest_total ?? 0));
   });
 
-  // Flow line color scheme: outflow = orange ramp, inflow = teal ramp
-  const dk = state.theme === 'dark';
-  const colorScheme = state.direction === 'outflow'
-    ? (dk ? ['#f4c8a4', '#e4895a', '#c5703f', '#8c3e18']
-          : ['#f0c4a0', '#cc683a', '#a84d27', '#7a3015'])
-    : (dk ? ['#9dd5d5', '#5aa6a7', '#408687', '#1e4f4f']
-          : ['#aad8d8', '#1e6f6f', '#155656', '#0d3535']);
+  // Flow line color scheme: light→dark order; FlowmapLayer reverses for darkMode automatically
+  const colorScheme = state.direction === 'outflow' ? SCHEME_ORANGE : SCHEME_TEAL;
 
   const flowLayer = new FlowmapLayer({
     id: 'commute-flows',
@@ -433,7 +449,7 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme, direct
   if (map.getLayer(layers.offOut))  map.setLayoutProperty(layers.offOut,  'visibility', 'none');
   if (map.getLayer(layers.offSel))  map.setLayoutProperty(layers.offSel,  'visibility', 'none');
 
-  // Highlight selected area with a direction-coloured outline
+  // Direction-aware selected-area outline
   const isOutflow    = direction === 'outflow';
   const selLineColor = isOutflow
     ? (theme === 'dark' ? '#e4895a' : '#cc683a')
@@ -448,30 +464,30 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme, direct
 
   const maxFlow = Math.max(...flows.map(d => Number(d.S000)), 1);
 
+  // Pick scheme and reverse for dark mode (mirrors flowmap.gl's internal reversal).
+  // Light: lightest color = lowest flow (barely visible on white bg).
+  // Dark:  lightest color = highest flow (glows bright on dark bg).
+  const baseScheme = isOutflow ? SCHEME_ORANGE : SCHEME_TEAL;
+  const scheme     = theme === 'dark' ? [...baseScheme].reverse() : baseScheme;
+
   const matchPairs = [];
 
-  // Selected area: subtle direction-coloured fill (origin for outflow, destination for inflow)
+  // Selected area: pin to the lightest stop (step 0) so the origin reads as background.
   if (selectedArea) {
-    const selFill = isOutflow
-      ? (theme === 'dark' ? ['rgba', 100,  50, 20, 0.25] : ['rgba', 204, 104,  58, 0.12])
-      : (theme === 'dark' ? ['rgba',  40, 130,155, 0.28] : ['rgba',   0, 111, 111, 0.12]);
-    matchPairs.push(selectedArea, selFill);
+    const [r,g,b] = _lerpScheme(scheme, 0);
+    matchPairs.push(selectedArea, ['rgba', r, g, b, theme === 'dark' ? 0.22 : 0.45]);
   }
 
-  // Zone fills: opacity+luminosity ramp proportional to flow volume.
-  // Outflow → orange; inflow → teal. Both themes scale from barely-visible to solid.
+  // Zone fills: cube-root power scale (exponent 1/3) matching flowmap.gl's createFlowColorScale.
+  // Gives more visual separation at the low end than sqrt (1/2) or linear.
   flows.forEach(f => {
-    const t = Math.sqrt(Number(f.S000) / maxFlow);
-    const rgba = isOutflow
-      ? (theme === 'dark'
-          ? ['rgba', Math.round(80 + t*148), Math.round(30 + t*107), Math.round(10 + t*80),
-              parseFloat((0.25 + 0.60*t).toFixed(3))]
-          : ['rgba', 204, 104, 58, parseFloat((0.08 + 0.72*t).toFixed(3))])
-      : (theme === 'dark'
-          ? ['rgba', Math.round(20 + t*80), Math.round(70 + t*150), Math.round(90 + t*150),
-              parseFloat((0.30 + 0.58*t).toFixed(3))]
-          : ['rgba', 0, 120, 140, parseFloat((0.08 + 0.72*t).toFixed(3))]);
-    matchPairs.push(f.dest_name, rgba);
+    const t     = Math.cbrt(Number(f.S000) / maxFlow);
+    const [r,g,b] = _lerpScheme(scheme, t);
+    // Alpha: dark mode ramps from near-invisible to fully opaque; light mode similar but shallower.
+    const alpha = theme === 'dark'
+      ? parseFloat((0.15 + 0.75 * t).toFixed(3))
+      : parseFloat((0.12 + 0.72 * t).toFixed(3));
+    matchPairs.push(f.dest_name, ['rgba', r, g, b, alpha]);
   });
 
   // match expression: ['match', input, label, output, ..., fallback]
