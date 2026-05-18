@@ -246,8 +246,8 @@ export function setPolygonsVisible(v) {
       if (map?.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
   } else if (_pendingChoropleth) {
-    const { flows, selectedArea, aggregation, theme } = _pendingChoropleth;
-    updateChoropleth(flows, selectedArea, aggregation, theme);
+    const { flows, selectedArea, aggregation, theme, direction } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, theme, direction);
   }
 }
 
