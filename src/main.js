@@ -3,7 +3,7 @@ import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow } from './map.js';
+import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, zoomIn, zoomOut, resetView } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, resizeCharts } from './charts.js';
 
@@ -32,7 +32,10 @@ let _lastTotalIn  = 0;
 let _lastFlewArea        = null;
 let _lastFlewAggregation = null;
 
-// ── Zoom helpers ──────────────────────────────────────────────────────────────
+// Available years — stored at module level so scrubber can update on year change
+let _availableYears = [];
+
+// ── Haversine helper ──────────────────────────────────────────────────────────
 function _haversineMiles(lat1, lon1, lat2, lon2) {
   const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -59,14 +62,12 @@ async function main() {
   // 1. Load manifest
   const manifest = await fetch(`${base}data/manifest.json`).then(r => r.json());
   const availableYears = manifest.years.map(Number).sort((a, b) => b - a);
+  _availableYears = availableYears;
 
   // 2. Resolve year from URL or default
   const urlYear = _getUrlYear(availableYears, manifest.default);
   state.year = urlYear;
   _setUrlYear(urlYear);
-
-  const yearEl = document.getElementById('data-year');
-  if (yearEl) yearEl.textContent = state.year;
 
   // 3. Load year-specific metadata
   const [cityMetaArr, countyMetaArr] = await Promise.all([
@@ -121,14 +122,19 @@ async function main() {
   document.getElementById('export-industry-png')?.addEventListener('click', () => exportIndustryPng());
   document.getElementById('export-industry-csv')?.addEventListener('click', () => exportIndustryCsv());
 
-  // 10. Wire year selector
+  // 10. Wire year scrubber
   _initYearSelect(availableYears, base);
 
-  // 11. Wire layer toggle toolbar
+  // 11. Wire layer toggle toolbar + resize
   _initLayerToolbar();
   _initRightPanelResize();
 
-  // 12. Wire theme toggle
+  // 12. Wire zoom buttons
+  document.getElementById('zoom-in')?.addEventListener('click', () => zoomIn());
+  document.getElementById('zoom-out')?.addEventListener('click', () => zoomOut());
+  document.getElementById('zoom-reset')?.addEventListener('click', () => resetView());
+
+  // 13. Wire theme toggle
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', state.theme);
@@ -150,7 +156,9 @@ function _initRightPanelResize() {
   handle.addEventListener('mousedown', e => {
     e.preventDefault();
     const startX     = e.clientX;
-    const startWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--right-panel-width'), 10) || 500;
+    const startWidth = parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue('--right-rail-width'), 10
+    ) || 432;
 
     handle.classList.add('dragging');
     document.body.style.cursor    = 'col-resize';
@@ -159,7 +167,7 @@ function _initRightPanelResize() {
     const onMove = ev => {
       const delta    = startX - ev.clientX;   // drag left = wider
       const newWidth = Math.min(Math.max(startWidth + delta, 300), 900);
-      document.documentElement.style.setProperty('--right-panel-width', `${newWidth}px`);
+      document.documentElement.style.setProperty('--right-rail-width', `${newWidth}px`);
     };
 
     const onUp = () => {
@@ -178,61 +186,110 @@ function _initRightPanelResize() {
 
 // ── Layer toggle toolbar ──────────────────────────────────────────────────────
 function _initLayerToolbar() {
-  const layerBtn     = document.getElementById('tb-layers');
-  const layerPopover = document.getElementById('layers-popover');
-  const flowChk      = document.getElementById('toggle-flow');
-  const polygonsChk  = document.getElementById('toggle-polygons');
-
-  if (!layerBtn || !layerPopover || !flowChk || !polygonsChk) return;
-
-  layerBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    const open = layerPopover.hidden;
-    layerPopover.hidden = !open;
-    layerBtn.classList.toggle('active', open);
-    layerBtn.setAttribute('aria-expanded', String(open));
-  });
-
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#map-toolbar')) {
-      layerPopover.hidden = true;
-      layerBtn.classList.remove('active');
-      layerBtn.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  flowChk.addEventListener('change', () => setFlowVisible(flowChk.checked));
-  polygonsChk.addEventListener('change', () => setPolygonsVisible(polygonsChk.checked));
-
+  const flowsBtn     = document.getElementById('tb-flows');
+  const zonesBtn     = document.getElementById('tb-zones');
   const minFlowInput = document.getElementById('min-flow-input');
+  const mfVal        = document.getElementById('mf-val');
+
+  if (!flowsBtn || !zonesBtn) return;
+
+  let flowVisible  = true;
+  let zonesVisible = true;
+
+  flowsBtn.addEventListener('click', () => {
+    flowVisible = !flowVisible;
+    flowsBtn.classList.toggle('active', flowVisible);
+    flowsBtn.setAttribute('aria-pressed', String(flowVisible));
+    setFlowVisible(flowVisible);
+  });
+
+  zonesBtn.addEventListener('click', () => {
+    zonesVisible = !zonesVisible;
+    zonesBtn.classList.toggle('active', zonesVisible);
+    zonesBtn.setAttribute('aria-pressed', String(zonesVisible));
+    setPolygonsVisible(zonesVisible);
+  });
+
   if (minFlowInput) {
-    let _debounce = null;
     minFlowInput.addEventListener('input', () => {
-      clearTimeout(_debounce);
-      _debounce = setTimeout(() => {
-        const val = parseInt(minFlowInput.value);
-        if (!isNaN(val) && val >= 0) { state.minFlow = val; _applyFilter(); }
-      }, 300);
+      const val = parseInt(minFlowInput.value);
+      if (!isNaN(val) && val >= 0) {
+        state.minFlow = val;
+        if (mfVal) mfVal.textContent = val;
+        _applyFilter();
+      }
     });
   }
 }
 
-// ── Year selector ─────────────────────────────────────────────────────────────
+// ── Year scrubber ─────────────────────────────────────────────────────────────
 let _changingYear = false;
 
 function _initYearSelect(availableYears, base) {
+  // Populate hidden select for screen reader fallback
   const sel = document.getElementById('year-select');
-  if (!sel) return;
-
-  sel.innerHTML = availableYears.map(y =>
-    `<option value="${y}"${y === state.year ? ' selected' : ''}>${y}</option>`
-  ).join('');
-
-  if (availableYears.length <= 1) {
-    sel.closest('.year-select-wrap')?.classList.add('year-select-hidden');
+  if (sel) {
+    sel.innerHTML = availableYears.map(y =>
+      `<option value="${y}"${y === state.year ? ' selected' : ''}>${y}</option>`
+    ).join('');
+    sel.addEventListener('change', () => _changeYear(parseInt(sel.value), base));
   }
 
-  sel.addEventListener('change', () => _changeYear(parseInt(sel.value), base));
+  // Build tick scrubber
+  _buildScrubberTicks(availableYears, base);
+  _updateScrubber(state.year, availableYears);
+}
+
+function _buildScrubberTicks(availableYears, base) {
+  const track = document.getElementById('ys-track');
+  if (!track) return;
+  // Remove existing ticks (but keep .ys-axis and .ys-fill)
+  track.querySelectorAll('.ys-tick').forEach(t => t.remove());
+
+  const sorted     = [...availableYears].sort((a, b) => a - b);
+  const minYear    = sorted[0];
+  const maxYear    = sorted[sorted.length - 1];
+  const majorYears = new Set([2005, 2010, 2015, 2020]);
+
+  sorted.forEach(year => {
+    const tick = document.createElement('button');
+    tick.type  = 'button';
+    tick.className = 'ys-tick';
+    tick.dataset.year = year;
+    tick.setAttribute('aria-label', `Select year ${year}`);
+
+    if (majorYears.has(year)) tick.classList.add('major');
+
+    if (year === minYear || year === maxYear) {
+      tick.classList.add('endcap');
+      const cap = document.createElement('span');
+      cap.className   = 'ys-tick-cap';
+      cap.textContent = year;
+      tick.appendChild(cap);
+    }
+
+    tick.addEventListener('click', () => _changeYear(year, base));
+    track.appendChild(tick);
+  });
+}
+
+function _updateScrubber(year, availableYears) {
+  const sorted = [...availableYears].sort((a, b) => a - b);
+  const idx    = sorted.indexOf(year);
+  const pct    = sorted.length > 1 ? (idx / (sorted.length - 1)) * 100 : 0;
+
+  const fill = document.getElementById('ys-fill');
+  if (fill) fill.style.width = `${pct}%`;
+
+  const display = document.getElementById('ys-year-display');
+  if (display) display.textContent = year;
+
+  const sel = document.getElementById('year-select');
+  if (sel) sel.value = year;
+
+  document.querySelectorAll('.ys-tick').forEach(t => {
+    t.classList.toggle('active', parseInt(t.dataset.year) === year);
+  });
 }
 
 async function _changeYear(newYear, base) {
@@ -258,9 +315,7 @@ async function _changeYear(newYear, base) {
 
     state.year = newYear;
     _setUrlYear(newYear);
-
-    const yearEl = document.getElementById('data-year');
-    if (yearEl) yearEl.textContent = newYear;
+    _updateScrubber(newYear, _availableYears);
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
     if (!srcMeta[state.selectedArea]) {
@@ -329,7 +384,7 @@ async function refreshVisualization() {
 
     setSelfFlow(state.aggregation === 'city' ? selfCount : 0, totalOut, totalIn);
 
-    // Fly only when the selected area or aggregation level changes (use outflows for zoom)
+    // Fly only when the selected area or aggregation level changes
     const areaChanged = state.selectedArea !== _lastFlewArea
                      || state.aggregation  !== _lastFlewAggregation;
     if (src?.lat && areaChanged) {
@@ -371,6 +426,24 @@ function _applyFilter() {
   updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, state);
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme);
   updateSidebarStats(filtered, total, state);
+  _updateDataline(total, state);
+}
+
+// ── Dataline map overlay update ───────────────────────────────────────────────
+function _updateDataline(total, appState) {
+  const dl      = document.getElementById('map-dataline');
+  const dlLabel = document.getElementById('dl-label');
+  const dlValue = document.getElementById('dl-value');
+  const dlFrom  = document.getElementById('dl-from');
+  const dlArrow = document.getElementById('dl-arrow');
+  if (!dlLabel || !dlValue || !dlFrom) return;
+
+  const isOut = appState.direction === 'outflow';
+  dlLabel.textContent = isOut ? 'RESIDENTS COMMUTING OUT' : 'WORKERS COMMUTING IN';
+  dlValue.textContent = total > 0 ? total.toLocaleString() : '—';
+  dlFrom.textContent  = `From ${appState.selectedArea} · ${appState.year}`;
+  dlArrow.textContent = isOut ? '↗' : '↘';
+  if (dl) dl.classList.toggle('inflow', !isOut);
 }
 
 // ── Arc click → select destination as new area ────────────────────────────────
@@ -389,15 +462,16 @@ function arcClickHandler(flow) {
 function _updateSidebarAreaLabels(areaName) {
   const input = document.getElementById('area-search');
   if (input) input.value = areaName;
-  const short = areaName.length > 18 ? areaName.slice(0, 16) + '…' : areaName;
+  // area-label-out and area-label-in no longer exist in new HTML; safe no-ops
   const outEl = document.getElementById('area-label-out');
   const inEl  = document.getElementById('area-label-in');
+  const short = areaName.length > 18 ? areaName.slice(0, 16) + '…' : areaName;
   if (outEl) outEl.textContent = short;
   if (inEl)  inEl.textContent  = short;
 }
 
 function _getUrlYear(availableYears, defaultYear) {
-  const params = new URLSearchParams(window.location.search);
+  const params  = new URLSearchParams(window.location.search);
   const urlYear = parseInt(params.get('year'));
   return (urlYear && availableYears.includes(urlYear)) ? urlYear : defaultYear;
 }

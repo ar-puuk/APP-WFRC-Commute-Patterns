@@ -490,6 +490,12 @@ export function fitToFlows(flows) {
 
 // ── Internal: add boundary layers after style load ────────────────────────────
 
+// ── Zoom / reset helpers (wired from main.js) ─────────────────────────────────
+
+export function zoomIn()    { map?.zoomIn(); }
+export function zoomOut()   { map?.zoomOut(); }
+export function resetView() { map?.flyTo({ ...INITIAL_VIEW, duration: 800 }); }
+
 function _addBoundaryLayers() {
   if (!map || !_boundaries.county || !_boundaries.city) return;
 
