@@ -3,7 +3,7 @@ import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, zoomIn, zoomOut, resetView } from './map.js';
+import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, resizeCharts } from './charts.js';
 
@@ -129,12 +129,7 @@ async function main() {
   _initLayerToolbar();
   _initRightPanelResize();
 
-  // 12. Wire zoom buttons
-  document.getElementById('zoom-in')?.addEventListener('click', () => zoomIn());
-  document.getElementById('zoom-out')?.addEventListener('click', () => zoomOut());
-  document.getElementById('zoom-reset')?.addEventListener('click', () => resetView());
-
-  // 13. Wire theme toggle
+  // 12. Wire theme toggle
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', state.theme);

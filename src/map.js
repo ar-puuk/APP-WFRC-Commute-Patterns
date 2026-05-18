@@ -91,7 +91,7 @@ function _donutSvg(pct, strokeColor, size = 66) {
   const fs  = Math.round(size * 0.195);
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke-width="5.5"
-      style="stroke:var(--sidebar-border)"/>
+      style="stroke:var(--rule-strong)"/>
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke-width="5.5"
       stroke-linecap="round"
       stroke-dasharray="${arc} ${C.toFixed(2)}"
@@ -99,7 +99,7 @@ function _donutSvg(pct, strokeColor, size = 66) {
       style="stroke:${strokeColor}"/>
     <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
       font-size="${fs}" font-weight="700"
-      style="fill:var(--sidebar-text);font-family:var(--font-heading)">${pct}%</text>
+      style="fill:var(--ink);font-family:'Inter',sans-serif">${pct}%</text>
   </svg>`;
 }
 
@@ -289,9 +289,8 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         const selPct = total     > 0 ? parseFloat((count / total     * 100).toFixed(1)) : null;
         const dstPct = destTotal > 0 ? parseFloat((count / destTotal * 100).toFixed(1)) : null;
 
-        // teal = selected-area context, orange (accent) = other-area context
-        const selDonut = selPct != null ? _donutSvg(selPct, 'var(--accent-teal)') : '';
-        const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--accent)')      : '';
+        const selDonut = selPct != null ? _donutSvg(selPct, 'var(--inflow)')   : '';
+        const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--outflow)') : '';
 
         // "commuters" = workers who reside in that city; "workforce" = workers employed in that city
         const selLabel = isOutflow
@@ -318,8 +317,8 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         if (locId === state.selectedArea && _selfFlowCount > 0) {
           const outPct = _selfOutTotal > 0 ? parseFloat((_selfFlowCount / _selfOutTotal * 100).toFixed(1)) : null;
           const inPct  = _selfInTotal  > 0 ? parseFloat((_selfFlowCount / _selfInTotal  * 100).toFixed(1)) : null;
-          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--accent-teal)') : '';
-          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--accent)')      : '';
+          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--inflow)')   : '';
+          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--outflow)') : '';
           _showTooltip(info, `
             <div class="ft-route">${locId}</div>
             <div class="ft-count">${Number(_selfFlowCount).toLocaleString()}<span class="ft-unit">live &amp; work here</span></div>

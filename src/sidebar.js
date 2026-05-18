@@ -75,22 +75,6 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
       </div>
       <div class="kpi-value" id="kpi-value">&mdash;</div>
       <div class="kpi-caption" id="kpi-caption">Select an area to view commute data.</div>
-      <div class="kpi-meta">
-        <div>
-          <div class="cell-label">Share of Region</div>
-          <div class="cell-value" id="kpi-share">&mdash;</div>
-        </div>
-        <div>
-          <div class="cell-label">Year-over-Year</div>
-          <div class="cell-value" id="kpi-yoy">&mdash;</div>
-        </div>
-      </div>
-      <div class="spark-row">
-        <div class="spark-cap">
-          <span class="eyebrow-faint">Trend</span>
-        </div>
-        <svg class="spark" id="kpi-spark" aria-hidden="true"></svg>
-      </div>
     </div>
 
     <div class="rail-rule"></div>

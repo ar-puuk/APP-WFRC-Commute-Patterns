@@ -410,8 +410,8 @@ a { color: inherit; }
 }
 .map-overlay.tl { top: 18px;    left: 22px;  }
 .map-overlay.tr { top: 18px;    right: 22px; }
-.map-overlay.bl { bottom: 22px; left: 22px;  }
-.map-overlay.br { bottom: 22px; right: 22px; }
+.map-overlay.bl { bottom: 54px; left: 22px;  }
+.map-overlay.br { bottom: 34px; right: 22px; }
 
 /* ── Dataline card ─────────────────────────────────────────── */
 .map-dataline {

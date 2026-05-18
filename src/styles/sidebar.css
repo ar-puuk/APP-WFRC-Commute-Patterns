@@ -198,65 +198,6 @@
   font-weight: 600;
 }
 
-.kpi-meta {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
-  border-top: 1px solid var(--rule);
-  padding-top: 12px;
-}
-
-.cell-label {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-4);
-  margin-bottom: 3px;
-}
-
-.cell-value {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.cell-value .delta {
-  font-size: 11px;
-  font-weight: 500;
-  margin-left: 6px;
-  color: var(--inflow);
-}
-
-.delta.neg { color: var(--outflow); }
-
-/* ============================================================
-   SPARKLINE
-   ============================================================ */
-.spark-row {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--rule);
-}
-
-.spark-cap {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.spark {
-  display: block;
-  width: 100%;
-  height: 38px;
-}
-
-.spark .spark-area { fill: var(--navy-tint); }
-.spark .spark-line { stroke: var(--navy); stroke-width: 1.5; fill: none; }
-.spark .spark-dot  { fill: var(--navy); stroke: var(--paper); stroke-width: 1.5; }
 
 /* ============================================================
    DEMOGRAPHIC TABS
