@@ -13,8 +13,6 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
   const panel = document.getElementById('left-panel');
   if (!panel) return;
 
-  const isOutflow = state.direction === 'outflow';
-
   panel.innerHTML = `
     <!-- SUBJECT -->
     <div class="rail-section tight">
@@ -67,18 +65,6 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
 
     <div class="rail-rule"></div>
 
-    <!-- KPI BLOCK -->
-    <div class="rail-section">
-      <div class="kpi-eyebrow">
-        <span class="eyebrow-faint" id="kpi-direction-label">${isOutflow ? 'OUTBOUND COMMUTERS' : 'INBOUND COMMUTERS'}</span>
-        <span class="eyebrow-faint" id="kpi-year">${state.year}</span>
-      </div>
-      <div class="kpi-value" id="kpi-value">&mdash;</div>
-      <div class="kpi-caption" id="kpi-caption">Select an area to view commute data.</div>
-    </div>
-
-    <div class="rail-rule"></div>
-
     <!-- DEMOGRAPHIC PROFILE -->
     <div class="rail-section">
       <div class="eyebrow">Demographic Profile</div>
@@ -121,7 +107,6 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
     if (!btn) return;
     _state.direction = btn.dataset.value;
     _setActiveToggle('direction-toggle', btn.dataset.value);
-    _updateKpiDirectionLabel(btn.dataset.value);
     _onSelectionChange();
   });
 
@@ -154,32 +139,9 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
   _initDropdown(cityNames, countyNames);
 }
 
-export function updateSidebarStats(flows, total, appState) {
+export function updateSidebarStats(flows, appState) {
   const state = appState;
 
-  // ── KPI value ──────────────────────────────────────────────────────────────
-  const kpiValue = document.getElementById('kpi-value');
-  if (kpiValue) kpiValue.textContent = total > 0 ? total.toLocaleString() : '—';
-
-  const kpiCaption = document.getElementById('kpi-caption');
-  if (kpiCaption) {
-    const verb = state.direction === 'outflow'
-      ? `Commuters leaving from ${state.selectedArea}.`
-      : `Workers commuting into ${state.selectedArea}.`;
-    kpiCaption.textContent = verb;
-  }
-
-  const kpiDirLabel = document.getElementById('kpi-direction-label');
-  if (kpiDirLabel) {
-    kpiDirLabel.textContent = state.direction === 'outflow'
-      ? 'OUTBOUND COMMUTERS'
-      : 'INBOUND COMMUTERS';
-  }
-
-  const kpiYear = document.getElementById('kpi-year');
-  if (kpiYear) kpiYear.textContent = state.year;
-
-  // Update search context year
   _updateSearchContext();
 
   if (!flows.length) {
@@ -304,13 +266,6 @@ function _updateSearchContext() {
   const el = document.getElementById('search-context-text');
   if (el && _state) {
     el.textContent = `${_aggregationLabel(_state.aggregation)} view · ${_state.year}`;
-  }
-}
-
-function _updateKpiDirectionLabel(direction) {
-  const el = document.getElementById('kpi-direction-label');
-  if (el) {
-    el.textContent = direction === 'outflow' ? 'OUTBOUND COMMUTERS' : 'INBOUND COMMUTERS';
   }
 }
 
