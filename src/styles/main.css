@@ -768,6 +768,10 @@ input[type="range"] {
   transition: background 0.15s ease;
 }
 
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--rule) !important;
+}
+
 .maplibregl-ctrl-group button:hover {
   background: var(--highlight) !important;
 }
