@@ -64,13 +64,15 @@ function _makeCtrlGroup(...btns) {
   return { onAdd: () => el, onRemove: () => el.remove() };
 }
 
-// ── Color schemes ────────────────────────────────────────────────────────────
-// Teal: mirrors flowmap.gl's built-in default (schemeTeal), used for inflow.
-// Orange: analogous 7-step ramp from pale to deep burnt-sienna, used for outflow.
-// FlowmapLayer reverses the array automatically when darkMode=true, so we always
-// supply light→dark order. For the MapLibre choropleth we reverse manually.
+// ── Color schemes (choropleth) ────────────────────────────────────────────────
+// SCHEME_TEAL mirrors flowmap.gl's built-in schemeTeal exactly.
+// SCHEME_ORANGE uses ColorBrewer Oranges (7-class) — same source as
+// flowmap.gl's COLOR_SCHEMES['Oranges'] = asScheme(schemeOranges).
+// For the MapLibre choropleth we reverse manually for dark mode.
+// FlowmapLayer uses the named strings 'Teal' / 'Oranges' directly so it
+// handles the dark-mode reversal itself (array path skips that step).
 const SCHEME_TEAL   = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
-const SCHEME_ORANGE = ['#fde8d8','#fac9a8','#f5a372','#e8834a','#cc683a','#a84d27','#7a3015'];
+const SCHEME_ORANGE = ['#feedde','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#8c2d04'];
 
 // Linear interpolation through an RGB hex color array (mirrors D3 interpolateRgbBasis
 // but without the dependency; sufficient for the 7-stop choropleth ramp).
@@ -274,8 +276,9 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     flowTotals.set(`${f.home_name}||${f.work_name}`, Number(f.dest_total ?? 0));
   });
 
-  // Flow line color scheme: light→dark order; FlowmapLayer reverses for darkMode automatically
-  const colorScheme = state.direction === 'outflow' ? SCHEME_ORANGE : SCHEME_TEAL;
+  // Named schemes: flowmap.gl looks these up in its own COLOR_SCHEMES map and
+  // reverses them automatically when darkMode=true — arrays skip that step.
+  const colorScheme = state.direction === 'outflow' ? 'Oranges' : 'Teal';
 
   const flowLayer = new FlowmapLayer({
     id: 'commute-flows',
