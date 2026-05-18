@@ -1,144 +1,106 @@
-/* ── Chart sections ──────────────────────────────────────────────────────────── */
-.chart-section {
+/* ============================================================
+   Right rail — editorial chart block styles
+   "Planning agency editorial" aesthetic
+   ============================================================ */
+
+/* ── Chart blocks ──────────────────────────────────────────── */
+.chart-block {
+  padding: 20px 24px 22px 24px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.chart-block:last-child { border-bottom: 0; }
+
+/* ── Chart head ────────────────────────────────────────────── */
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.chart-title-group {
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  padding: 0;
-}
-
-.chart-divider {
-  height: 1px;
-  background: var(--sidebar-border);
-  flex-shrink: 0;
-}
-
-.chart-section-header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 7px 10px 6px;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--sidebar-border);
-  min-height: 34px;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* ── Collapse toggle ─────────────────────────────────────────────────────────── */
-.chart-collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--sidebar-text-muted);
-  padding: 0;
-  border-radius: 3px;
-  transition: color 0.15s, transform 0.2s;
-}
-
-.chart-collapse-btn:hover { color: var(--sidebar-text); }
-
-.chart-section.collapsed .chart-collapse-btn { transform: rotate(-90deg); }
-.chart-section.collapsed .chart-canvas        { display: none; }
-
-/* ── Chart title ─────────────────────────────────────────────────────────────── */
-.chart-title {
-  flex: 1;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--sidebar-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: var(--font-heading);
-}
-
-/* ── Mini toggle (dim / direction switcher) ──────────────────────────────────── */
-.chart-mini-toggle {
-  display: flex;
   gap: 2px;
-  flex-shrink: 0;
 }
 
-.mini-toggle-btn {
-  padding: 1px 5px;
-  font-size: 9px;
-  font-family: var(--font-main);
+.chart-title {
+  font-size: 13.5px;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.chart-sub {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: var(--toggle-bg);
-  color: var(--toggle-text);
-  border: 1px solid var(--input-border);
-  border-radius: 3px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  color: var(--ink-4);
 }
 
-.mini-toggle-btn.active {
-  background: var(--toggle-active-bg);
-  color: var(--toggle-active-text);
-  border-color: var(--toggle-active-bg);
-}
-
-.mini-toggle-btn:hover:not(.active) {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--sidebar-text);
-}
-
-/* ── Export buttons — visible on hover ───────────────────────────────────────── */
-.chart-export-group {
+.chart-tools {
   display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
+  gap: 6px;
 }
 
-.chart-section:hover .chart-export-group,
-.chart-section-header:focus-within .chart-export-group {
-  opacity: 1;
-}
-
-.export-btn {
-  padding: 2px 7px;
-  font-size: 10px;
-  font-weight: 600;
-  font-family: var(--font-main);
-  background: var(--toggle-bg);
-  color: var(--toggle-text);
-  border: 1px solid var(--input-border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+.chart-tool {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--ink-4);
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 1px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.export-btn:hover {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--sidebar-text);
+.chart-tool:hover {
+  color: var(--ink-2);
+  border-color: var(--rule-strong);
+  background: var(--highlight);
 }
 
-/* ── Chart canvas — fixed heights per chart ──────────────────────────────────── */
+/* ── Mini toggle (industry direction) ──────────────────────── */
+.mini-toggle {
+  display: flex;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+.mini-toggle .mini-toggle-btn {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 3px 0;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.mini-toggle .mini-toggle-btn:hover { color: var(--ink-2); }
+.mini-toggle .mini-toggle-btn.active { color: var(--ink); }
+
+.mini-toggle .mini-toggle-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1.5px;
+  background: var(--ink);
+}
+
+/* ── Chart canvas areas ────────────────────────────────────── */
 .chart-canvas {
   position: relative;
   height: 220px;
-  padding: 6px 10px 8px;
 }
 
 #bar-chart      { height: 270px; }
 #sankey-chart   { height: 240px; }
-#demo-chart     { height: 185px; }
-#reach-chart    { height: 138px; }
+#reach-chart    { height: 160px; }
 #industry-chart { height: 220px; }
