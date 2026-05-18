@@ -5,172 +5,215 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wasatch Front Commuter Patterns</title>
   <meta name="description" content="Explore commute flow patterns across the Wasatch Front region using LEHD Census data." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺</text></svg>" />
+  <link rel="icon" href="/assets/wfrc-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" />
 </head>
 <body>
-  <header class="app-header">
-    <a href="https://wfrc.org/" target="_blank" rel="noopener" class="header-logo-link">
-      <img src="/assets/wfrc-logo.png" alt="WFRC" class="header-logo" onerror="this.style.display='none'" />
-    </a>
-    <div class="header-titles">
-      <h1>Wasatch Front Commuter Patterns</h1>
-      <span class="header-subtitle">Census LEHD &middot; <span id="data-year"></span></span>
-    </div>
-    <div class="year-select-wrap" title="Data year">
-      <select id="year-select" class="year-select" aria-label="Data year"></select>
-    </div>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle light/dark mode">
-      <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-      </svg>
-      <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
-  </header>
-
-  <div class="app-body">
-    <!-- Left panel: inputs + stats -->
-    <aside class="left-panel" id="left-panel">
-      <div class="sidebar-loading">
-        <div class="spinner"></div>
-        <p>Loading data&hellip;</p>
-        <div class="progress-bar-wrap">
-          <div class="progress-bar" id="load-progress"></div>
+  <div class="app">
+    <!-- Masthead: brand | spacer | year-scrub | theme-toggle -->
+    <header class="masthead">
+      <div class="mast-brand">
+        <span class="mast-mono">WFRC</span>
+        <div class="mast-titles">
+          <div class="mast-title">Wasatch Front Commuter Patterns</div>
+          <div class="mast-sub">Regional OD Flows &middot; LEHD LODES 8</div>
         </div>
       </div>
-    </aside>
-
-    <!-- Center: map with floating toolbar -->
-    <main class="map-container">
-      <div class="map-toolbar" id="map-toolbar">
-        <button class="tb-btn" id="tb-layers" title="Toggle map layers" aria-expanded="false">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-          </svg>
-          <span>Layers</span>
-        </button>
-        <div class="tb-popover" id="layers-popover" hidden>
-          <div class="tb-popover-title">Map Layers</div>
-          <label class="tb-layer-row">
-            <input type="checkbox" id="toggle-flow" checked />
-            <span>Flow lines</span>
-          </label>
-          <label class="tb-layer-row">
-            <input type="checkbox" id="toggle-polygons" checked />
-            <span>Polygons</span>
-          </label>
-          <div class="tb-popover-divider"></div>
-          <div class="tb-popover-title">Flow Line Filter</div>
-          <div class="tb-filter-row">
-            <label for="min-flow-input" class="tb-filter-label">Min. commuters</label>
-            <input id="min-flow-input" class="tb-filter-input" type="number" min="0" max="10000" step="10" value="50" />
-          </div>
-          <div class="tb-filter-hint">Applies to city view only</div>
+      <div></div><!-- spacer -->
+      <div class="year-scrub" id="year-scrub">
+        <div class="ys-meta">
+          <div class="ys-label">Data Year</div>
+          <div class="ys-year" id="ys-year-display">&mdash;</div>
+        </div>
+        <div class="ys-track" id="ys-track">
+          <div class="ys-axis"></div>
+          <div class="ys-fill" id="ys-fill"></div>
+          <!-- Ticks injected by JS -->
         </div>
       </div>
-      <div id="map"></div>
-    </main>
+      <!-- hidden select for accessibility/year tracking -->
+      <select id="year-select" class="year-select-hidden" aria-label="Data year"></select>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle light/dark mode">
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </header>
 
-    <!-- Right panel: charts -->
-    <aside class="right-panel" id="right-panel">
-      <div class="right-resize-handle" id="right-resize-handle" title="Drag to resize"></div>
-
-      <div class="chart-section" id="bar-section">
-        <div class="chart-section-header">
-          <button class="chart-collapse-btn" data-target="bar-section" aria-expanded="true" title="Collapse">
-            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <span class="chart-title" id="bar-title">Commute Balance</span>
-          <div class="chart-export-group">
-            <button class="export-btn" id="export-bar-png" title="Download chart as PNG">PNG</button>
-            <button class="export-btn" id="export-bar-csv" title="Download data as CSV">CSV</button>
+    <div class="body-grid">
+      <!-- Left rail: dossier sidebar (HTML injected by sidebar.js after load) -->
+      <aside class="left-rail" id="left-panel">
+        <div class="sidebar-loading">
+          <div class="spinner"></div>
+          <p style="color:var(--ink-3);font-size:12px;">Loading data&hellip;</p>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="load-progress"></div>
           </div>
         </div>
-        <div id="bar-chart" class="chart-canvas"></div>
-      </div>
+      </aside>
 
-      <div class="chart-divider"></div>
-
-      <div class="chart-section" id="sankey-section">
-        <div class="chart-section-header">
-          <button class="chart-collapse-btn" data-target="sankey-section" aria-expanded="true" title="Collapse">
-            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <span class="chart-title">Flow Diagram</span>
-          <div class="chart-export-group">
-            <button class="export-btn" id="export-sankey-png" title="Download chart as PNG">PNG</button>
-            <button class="export-btn" id="export-sankey-csv" title="Download data as CSV">CSV</button>
+      <!-- Map stage with four overlay positions -->
+      <main class="map-stage">
+        <!-- TL: Dataline -->
+        <div class="map-overlay tl">
+          <div class="map-dataline" id="map-dataline">
+            <div class="dl-label" id="dl-label">RESIDENTS COMMUTING OUT</div>
+            <div class="dl-value" id="dl-value">&mdash;</div>
+            <div class="dl-direction">
+              <span class="arrow" id="dl-arrow">&#8599;</span>
+              <span id="dl-from">Select an area</span>
+            </div>
           </div>
         </div>
-        <div id="sankey-chart" class="chart-canvas"></div>
-      </div>
 
-      <div class="chart-divider"></div>
+        <!-- TR: Zoomer -->
+        <div class="map-overlay tr">
+          <div class="map-zoomer">
+            <button id="zoom-in" aria-label="Zoom in" title="Zoom in">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <button id="zoom-out" aria-label="Zoom out" title="Zoom out">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <button id="zoom-reset" aria-label="Reset view" title="Reset view">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+              </svg>
+            </button>
+          </div>
+        </div>
 
-      <div class="chart-section" id="demo-section">
-        <div class="chart-section-header">
-          <button class="chart-collapse-btn" data-target="demo-section" aria-expanded="true" title="Collapse">
-            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <span class="chart-title">Worker Demographics</span>
-          <div class="chart-mini-toggle" id="dim-toggle">
+        <!-- BL: Layer toolbar + min-flow slider -->
+        <div class="map-overlay bl" style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;">
+          <div class="map-layer-toolbar" id="map-toolbar">
+            <button id="tb-flows" class="active" aria-pressed="true" title="Toggle flow lines">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M3 6c0 0 4-3 9 0s9 0 9 0"/><path d="M3 12c0 0 4-3 9 0s9 0 9 0"/><path d="M3 18c0 0 4-3 9 0s9 0 9 0"/>
+              </svg>
+              <span>Flows</span>
+            </button>
+            <button id="tb-zones" class="active" aria-pressed="true" title="Toggle zone polygons">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 19 22 19"/><polygon points="12 8 6 19 18 19"/>
+              </svg>
+              <span>Zones</span>
+            </button>
+          </div>
+          <div class="map-flow-filter">
+            <span class="mf-label">Min flow</span>
+            <input type="range" id="min-flow-input" min="0" max="1000" step="10" value="50" aria-label="Minimum commuters to display" />
+            <span class="mf-val" id="mf-val">50</span>
+          </div>
+        </div>
+
+        <!-- BR: Flow width legend -->
+        <div class="map-overlay br">
+          <div class="map-legend">
+            <div class="lg-row"><span class="lg-swatch thin"></span><span>100</span></div>
+            <div class="lg-row"><span class="lg-swatch"></span><span>5,000</span></div>
+            <div class="lg-row"><span class="lg-swatch thick"></span><span>20,000+</span></div>
+          </div>
+        </div>
+
+        <div id="map"></div>
+      </main>
+
+      <!-- Right rail: 4 editorial chart blocks -->
+      <aside class="right-rail" id="right-panel">
+        <div class="right-resize-handle" id="right-resize-handle" title="Drag to resize panel"></div>
+
+        <!-- 01 · Commute Balance -->
+        <div class="chart-block">
+          <div class="chart-head">
+            <div class="chart-title-group">
+              <span class="chart-sub">01 &middot; Bidirectional</span>
+              <span class="chart-title">Commute Balance</span>
+            </div>
+            <div class="chart-tools">
+              <button class="chart-tool" id="export-bar-png">PNG</button>
+              <button class="chart-tool" id="export-bar-csv">CSV</button>
+            </div>
+          </div>
+          <div id="bar-chart" class="chart-canvas"></div>
+        </div>
+
+        <!-- 02 · Flow Diagram -->
+        <div class="chart-block">
+          <div class="chart-head">
+            <div class="chart-title-group">
+              <span class="chart-sub">02 &middot; Sankey</span>
+              <span class="chart-title">Flow Diagram</span>
+            </div>
+            <div class="chart-tools">
+              <button class="chart-tool" id="export-sankey-png">PNG</button>
+              <button class="chart-tool" id="export-sankey-csv">CSV</button>
+            </div>
+          </div>
+          <div id="sankey-chart" class="chart-canvas"></div>
+        </div>
+
+        <!-- 03 · Commute Reach -->
+        <div class="chart-block">
+          <div class="chart-head">
+            <div class="chart-title-group">
+              <span class="chart-sub">03 &middot; Distance Bands</span>
+              <span class="chart-title">Commute Reach</span>
+            </div>
+            <div class="chart-tools">
+              <button class="chart-tool" id="export-reach-png">PNG</button>
+              <button class="chart-tool" id="export-reach-csv">CSV</button>
+            </div>
+          </div>
+          <div id="reach-chart" class="chart-canvas"></div>
+        </div>
+
+        <!-- 04 · Industry Mix -->
+        <div class="chart-block" style="border-bottom:0;">
+          <div class="chart-head">
+            <div class="chart-title-group">
+              <span class="chart-sub">04 &middot; Sector Breakdown</span>
+              <span class="chart-title">Industry Mix</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:12px;">
+              <div class="mini-toggle" id="industry-dir-toggle">
+                <button class="mini-toggle-btn active" data-dir="outflow">Destinations</button>
+                <button class="mini-toggle-btn" data-dir="inflow">Origins</button>
+              </div>
+              <div class="chart-tools">
+                <button class="chart-tool" id="export-industry-png">PNG</button>
+                <button class="chart-tool" id="export-industry-csv">CSV</button>
+              </div>
+            </div>
+          </div>
+          <div id="industry-chart" class="chart-canvas"></div>
+        </div>
+
+        <!-- Worker Demographics: hidden; demographic profile shown in left rail -->
+        <div style="display:none;" aria-hidden="true">
+          <div id="dim-toggle">
             <button class="mini-toggle-btn active" data-dim="age">Age</button>
             <button class="mini-toggle-btn" data-dim="earnings">Earnings</button>
             <button class="mini-toggle-btn" data-dim="industry">Industry</button>
           </div>
-          <div class="chart-export-group">
-            <button class="export-btn" id="export-demo-png" title="Download chart as PNG">PNG</button>
-            <button class="export-btn" id="export-demo-csv" title="Download data as CSV">CSV</button>
-          </div>
+          <div id="demo-chart" style="height:1px;width:1px;overflow:hidden;position:absolute;opacity:0;pointer-events:none;"></div>
         </div>
-        <div id="demo-chart" class="chart-canvas"></div>
-      </div>
 
-      <div class="chart-divider"></div>
-
-      <div class="chart-section" id="reach-section">
-        <div class="chart-section-header">
-          <button class="chart-collapse-btn" data-target="reach-section" aria-expanded="true" title="Collapse">
-            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <span class="chart-title">Commute Reach</span>
-          <div class="chart-export-group">
-            <button class="export-btn" id="export-reach-png" title="Download chart as PNG">PNG</button>
-            <button class="export-btn" id="export-reach-csv" title="Download data as CSV">CSV</button>
-          </div>
-        </div>
-        <div id="reach-chart" class="chart-canvas"></div>
-      </div>
-
-      <div class="chart-divider"></div>
-
-      <div class="chart-section" id="industry-section">
-        <div class="chart-section-header">
-          <button class="chart-collapse-btn" data-target="industry-section" aria-expanded="true" title="Collapse">
-            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <span class="chart-title">Industry Mix</span>
-          <div class="chart-mini-toggle" id="industry-dir-toggle">
-            <button class="mini-toggle-btn active" data-dir="outflow">Destinations</button>
-            <button class="mini-toggle-btn" data-dir="inflow">Origins</button>
-          </div>
-          <div class="chart-export-group">
-            <button class="export-btn" id="export-industry-png" title="Download chart as PNG">PNG</button>
-            <button class="export-btn" id="export-industry-csv" title="Download data as CSV">CSV</button>
-          </div>
-        </div>
-        <div id="industry-chart" class="chart-canvas"></div>
-      </div>
-
-    </aside>
+      </aside>
+    </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>
