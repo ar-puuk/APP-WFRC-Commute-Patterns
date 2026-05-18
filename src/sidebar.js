@@ -83,11 +83,15 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
     <!-- REACH -->
     <div class="rail-section">
       <div class="eyebrow">Commute Reach</div>
-      <div class="reach-block">
-        <div class="reach-value">
-          <span id="reach-avg-val">&mdash;</span><span class="unit">mi avg</span>
+      <div class="reach-stat-row">
+        <div class="stat-pair">
+          <div class="lbl">Average</div>
+          <div class="val" id="reach-avg">&mdash;<span class="unit">mi</span></div>
         </div>
-        <div class="reach-meta" id="reach-meta">Straight-line centroid distance.</div>
+        <div class="stat-pair" style="align-items:flex-end;text-align:right;">
+          <div class="lbl">Median</div>
+          <div class="val" id="reach-median">&mdash;<span class="unit">mi</span></div>
+        </div>
       </div>
     </div>
 
@@ -196,25 +200,24 @@ export function updateSidebarStats(flows, appState) {
   }
 
   // ── Reach ──────────────────────────────────────────────────────────────────
-  let distNumerator = 0, distDenominator = 0;
-  flows.forEach(f => {
-    if (f.home_lat == null || f.work_lat == null) return;
-    const miles = _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon);
-    const n = Number(f.S000);
-    distNumerator   += miles * n;
-    distDenominator += n;
-  });
-  const avgMiles = distDenominator > 0 ? distNumerator / distDenominator : null;
+  const reachPairs = flows
+    .filter(f => f.home_lat != null && f.work_lat != null)
+    .map(f => ({ mi: _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon), n: Number(f.S000) }));
 
-  const reachValEl = document.getElementById('reach-avg-val');
-  if (reachValEl) reachValEl.textContent = avgMiles != null ? avgMiles.toFixed(1) : '—';
-
-  const reachMetaEl = document.getElementById('reach-meta');
-  if (reachMetaEl) {
-    reachMetaEl.textContent = avgMiles != null
-      ? `Weighted straight-line distance across ${flows.length.toLocaleString()} flow${flows.length !== 1 ? 's' : ''}.`
-      : 'Straight-line centroid distance.';
+  let avgMiles = null, medianMiles = null;
+  if (reachPairs.length) {
+    const sumN = reachPairs.reduce((s, p) => s + p.n, 0);
+    avgMiles = reachPairs.reduce((s, p) => s + p.mi * p.n, 0) / sumN;
+    const sorted = [...reachPairs].sort((a, b) => a.mi - b.mi);
+    const half = sumN / 2;
+    let cum = 0;
+    for (const p of sorted) { cum += p.n; if (cum >= half) { medianMiles = p.mi; break; } }
   }
+
+  const avgEl    = document.getElementById('reach-avg');
+  const medianEl = document.getElementById('reach-median');
+  if (avgEl)    avgEl.innerHTML    = avgMiles    != null ? `${avgMiles.toFixed(1)}<span class="unit">mi</span>`    : '&mdash;<span class="unit">mi</span>';
+  if (medianEl) medianEl.innerHTML = medianMiles != null ? `${medianMiles.toFixed(1)}<span class="unit">mi</span>` : '&mdash;<span class="unit">mi</span>';
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────

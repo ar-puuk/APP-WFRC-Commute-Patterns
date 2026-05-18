@@ -420,7 +420,7 @@ function _applyFilter() {
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
   updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, state);
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
-  updateSidebarStats(filtered, state);
+  updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
 }
 

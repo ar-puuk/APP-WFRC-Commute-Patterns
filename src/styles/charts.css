@@ -100,7 +100,303 @@
   height: 220px;
 }
 
-#bar-chart      { height: 270px; }
-#sankey-chart   { height: 240px; }
-#reach-chart    { height: 160px; }
-#industry-chart { height: 220px; }
+/* ── 03 Commute Reach — horizontal stacked band bars ────────── */
+.reach-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reach-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reach-row-lbl {
+  width: 52px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.reach-bar {
+  flex: 1;
+  display: flex;
+  height: 36px;
+  border-radius: 1px;
+  overflow: hidden;
+  background: var(--rule);
+}
+
+.reach-bar > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--paper);
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.4s ease;
+}
+
+/* Outflow row (default) — orange tints */
+.rb-0 { background: color-mix(in oklab, var(--outflow), var(--paper) 8%); }
+.rb-1 { background: color-mix(in oklab, var(--outflow), var(--paper) 26%); }
+.rb-2 { background: color-mix(in oklab, var(--outflow), var(--paper) 44%); }
+.rb-3 { background: color-mix(in oklab, var(--outflow), var(--paper) 62%); }
+
+/* Inflow row — teal tints */
+.reach-row.inflow .rb-0 { background: color-mix(in oklab, var(--inflow), var(--paper) 8%); }
+.reach-row.inflow .rb-1 { background: color-mix(in oklab, var(--inflow), var(--paper) 26%); }
+.reach-row.inflow .rb-2 { background: color-mix(in oklab, var(--inflow), var(--paper) 44%); }
+.reach-row.inflow .rb-3 { background: color-mix(in oklab, var(--inflow), var(--paper) 62%); }
+
+.reach-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.reach-legend .rk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Diagonal split swatch: top-left = inflow, bottom-right = outflow */
+.rk-sw {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.rk-diag-0 { background: linear-gradient(135deg, color-mix(in oklab, var(--inflow), var(--paper) 8%) 50%, color-mix(in oklab, var(--outflow), var(--paper) 8%) 50%); }
+.rk-diag-1 { background: linear-gradient(135deg, color-mix(in oklab, var(--inflow), var(--paper) 26%) 50%, color-mix(in oklab, var(--outflow), var(--paper) 26%) 50%); }
+.rk-diag-2 { background: linear-gradient(135deg, color-mix(in oklab, var(--inflow), var(--paper) 44%) 50%, color-mix(in oklab, var(--outflow), var(--paper) 44%) 50%); }
+.rk-diag-3 { background: linear-gradient(135deg, color-mix(in oklab, var(--inflow), var(--paper) 62%) 50%, color-mix(in oklab, var(--outflow), var(--paper) 62%) 50%); }
+
+/* ── 02 Flow Diagram — SVG Sankey ──────────────────────────── */
+.sankey-wrap { position: relative; }
+.sankey-wrap svg { display: block; width: 100%; height: auto; }
+
+.sankey-ribbon { transition: opacity 0.2s ease; }
+
+.sankey-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--ink-2);
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.005em;
+}
+.sankey-label.in     { fill: var(--inflow-2); }
+.sankey-label.out    { fill: var(--outflow-2); }
+.sankey-label.center { fill: var(--ink); font-weight: 700; font-size: 12px; }
+
+.sankey-num {
+  font-size: 9.5px;
+  font-weight: 500;
+  fill: var(--ink-4);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* ── 04 Industry Mix — horizontal stacked bars ─────────────── */
+.industry-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.industry-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.industry-row .ir-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11.5px;
+}
+
+.industry-row .ir-name {
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+
+.industry-row .ir-total {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.industry-row .ir-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 1px;
+  overflow: hidden;
+  background: var(--rule);
+}
+
+.industry-row .ir-bar > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+  letter-spacing: 0.04em;
+  transition: width 0.4s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.industry-row .ir-bar .seg-goods    { background: #8b6b3a; }
+.industry-row .ir-bar .seg-trade    { background: var(--outflow); }
+.industry-row .ir-bar .seg-services { background: var(--inflow); }
+[data-theme="dark"] .industry-row .ir-bar .seg-goods { background: #b58e54; }
+
+.industry-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.industry-legend .lg { display: flex; align-items: center; gap: 6px; }
+.industry-legend .lg .sw { width: 10px; height: 10px; flex-shrink: 0; }
+.industry-legend .lg .sw.goods    { background: #8b6b3a; }
+.industry-legend .lg .sw.trade    { background: var(--outflow); }
+.industry-legend .lg .sw.services { background: var(--inflow); }
+[data-theme="dark"] .industry-legend .lg .sw.goods { background: #b58e54; }
+
+/* ── 01 Commute Balance — diverging bars ───────────────────── */
+.balance-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 2px 0 12px 0;
+}
+
+.balance-legend .pip {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.balance-legend .pip.in  { background: var(--inflow); }
+.balance-legend .pip.out { background: var(--outflow); }
+
+.balance-axis {
+  display: grid;
+  grid-template-columns: 50px 1fr 110px 1fr 50px;
+  align-items: end;
+  height: 18px;
+  margin: 0 0 8px 0;
+  position: relative;
+  font-size: 9.5px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.balance-axis .axis-line {
+  grid-column: 2 / 5;
+  grid-row: 1;
+  height: 1px;
+  background: var(--rule-strong);
+  align-self: end;
+}
+
+.balance-axis .axis-num { grid-row: 1; }
+.balance-axis .axis-num.left.far  { grid-column: 1 / 3; text-align: left;   padding-left: 4px; }
+.balance-axis .axis-num.center    { grid-column: 3;      text-align: center; color: var(--ink-3); font-weight: 600; }
+.balance-axis .axis-num.right.far { grid-column: 4 / 6; text-align: right;  padding-right: 4px; }
+
+.balance {
+  display: flex;
+  flex-direction: column;
+}
+
+.balance-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 110px 1fr 50px;
+  align-items: center;
+  height: 22px;
+  font-size: 11.5px;
+  transition: background 0.15s ease;
+  cursor: default;
+}
+
+.balance-row:hover { background: var(--highlight); }
+
+.balance-row .b-name {
+  text-align: center;
+  font-weight: 500;
+  color: var(--ink-2);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  font-size: 11.5px;
+}
+
+.balance-row .b-side {
+  position: relative;
+  height: 14px;
+}
+
+.balance-row .b-bar {
+  position: absolute;
+  height: 100%;
+  background: var(--outflow);
+  transition: width 0.4s ease;
+}
+
+.balance-row .b-bar.in          { background: var(--inflow); }
+.balance-row .b-side.left  .b-bar { right: 0; }
+.balance-row .b-side.right .b-bar { left: 0; }
+.balance-row .b-num {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.balance-row .b-num.left  { text-align: right; padding-right: 6px; }
+.balance-row .b-num.right { text-align: left;  padding-left: 6px; }

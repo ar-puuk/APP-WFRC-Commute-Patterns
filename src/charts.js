@@ -1,10 +1,6 @@
 import * as echarts from 'echarts';
 
-let _barChart      = null;
-let _sankeyChart   = null;
-let _demoChart     = null;
-let _reachChart    = null;
-let _industryChart = null;
+let _demoChart = null;
 let _onAreaSelect  = null;
 
 let _lastOutflows = [];
@@ -22,24 +18,11 @@ let _industryDir   = 'outflow';  // 'outflow' | 'inflow'
 export function initCharts(onAreaSelect) {
   _onAreaSelect = onAreaSelect;
 
-  const barEl      = document.getElementById('bar-chart');
-  const sankeyEl   = document.getElementById('sankey-chart');
-  const demoEl     = document.getElementById('demo-chart');
-  const reachEl    = document.getElementById('reach-chart');
-  const industryEl = document.getElementById('industry-chart');
+  const demoEl = document.getElementById('demo-chart');
+  if (demoEl) _demoChart = echarts.init(demoEl, null, { renderer: 'canvas' });
 
-  if (barEl)      _barChart      = echarts.init(barEl,      null, { renderer: 'canvas' });
-  if (sankeyEl)   _sankeyChart   = echarts.init(sankeyEl,   null, { renderer: 'canvas' });
-  if (demoEl)     _demoChart     = echarts.init(demoEl,     null, { renderer: 'canvas' });
-  if (reachEl)    _reachChart    = echarts.init(reachEl,    null, { renderer: 'canvas' });
-  if (industryEl) _industryChart = echarts.init(industryEl, null, { renderer: 'canvas' });
-
-  const all = [barEl, sankeyEl, demoEl, reachEl, industryEl];
-  const ro = new ResizeObserver(() => {
-    _barChart?.resize(); _sankeyChart?.resize(); _demoChart?.resize();
-    _reachChart?.resize(); _industryChart?.resize();
-  });
-  all.forEach(el => { if (el) ro.observe(el); });
+  const ro = new ResizeObserver(() => { _demoChart?.resize(); });
+  if (demoEl) ro.observe(demoEl);
 
   // ── Collapse on header click — no .chart-section-header in new HTML;
   //    querySelectorAll returns empty NodeList so this is a safe no-op ──────
@@ -52,10 +35,7 @@ export function initCharts(onAreaSelect) {
       const nowCollapsed = section.classList.toggle('collapsed');
       if (btn) btn.setAttribute('aria-expanded', String(!nowCollapsed));
       if (!nowCollapsed) {
-        requestAnimationFrame(() => {
-          _barChart?.resize(); _sankeyChart?.resize(); _demoChart?.resize();
-          _reachChart?.resize(); _industryChart?.resize();
-        });
+        requestAnimationFrame(() => { _demoChart?.resize(); });
       }
     });
   });
@@ -98,19 +78,283 @@ export function updateCharts(outflows, inflows, totalOut, totalIn, appState) {
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 export function exportBarPng() {
-  _pngDownload(_barChart, `commute-balance-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
+  if (!_lastState) return;
+  const { rows: allRows } = _mergeFlows(_lastOutflows, _lastInflows, 10);
+  const rows = allRows.filter(r => !r.isOthers);
+  if (!rows.length) return;
+
+  const dk      = _lastState.theme === 'dark';
+  const W       = 560, PAD = 24;
+  const NUM_W   = 50, NAME_W = 110;
+  const SIDE_W  = (W - PAD * 2 - NUM_W * 2 - NAME_W) / 2;
+  const ROW_H   = 22, BAR_H = 14;
+  const LEGEND_H = 28, AXIS_H = 22;
+  const H = PAD + LEGEND_H + AXIS_H + rows.length * ROW_H + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * 2;
+  canvas.height = H * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  const bg       = dk ? '#0a0e17' : '#f6f3eb';
+  const ink      = dk ? '#e8e5dc' : '#121726';
+  const ink3     = dk ? '#92929a' : '#5b6071';
+  const ink4     = dk ? '#696a73' : '#898d9c';
+  const ruleStr  = dk ? 'rgba(232,229,220,0.20)' : 'rgba(18,23,38,0.22)';
+  const highlight = dk ? '#1a1f30' : '#f4ecd9';
+  const inflow   = dk ? '#5aa6a7' : '#1e6f6f';
+  const outflow  = dk ? '#e4895a' : '#cc683a';
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const max     = Math.max(...rows.flatMap(r => [r.out, r.in]));
+  const step    = max <= 6000 ? 2000 : max <= 12000 ? 4000 : 8000;
+  const axisMax = Math.ceil(max / step) * step || 1;
+  const bw      = n => (n / axisMax) * SIDE_W;
+
+  // x anchors
+  const xInNum   = PAD;
+  const xInSide  = PAD + NUM_W;
+  const xName    = PAD + NUM_W + SIDE_W;
+  const xOutSide = PAD + NUM_W + SIDE_W + NAME_W;
+  const xOutNum  = PAD + NUM_W + SIDE_W + NAME_W + SIDE_W;
+
+  let y = PAD;
+
+  // Legend
+  const pipS = 8;
+  ctx.fillStyle = inflow;
+  ctx.fillRect(W / 2 - 60, y + (LEGEND_H - pipS) / 2, pipS, pipS);
+  ctx.fillStyle = ink3;
+  ctx.font = '600 10.5px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('INFLOW', W / 2 - 60 + pipS + 6, y + LEGEND_H / 2);
+  ctx.fillStyle = outflow;
+  ctx.fillRect(W / 2 + 10, y + (LEGEND_H - pipS) / 2, pipS, pipS);
+  ctx.fillStyle = ink3;
+  ctx.fillText('OUTFLOW', W / 2 + 10 + pipS + 6, y + LEGEND_H / 2);
+  y += LEGEND_H;
+
+  // Axis line
+  ctx.fillStyle = ruleStr;
+  ctx.fillRect(xInSide, y + AXIS_H - 1, SIDE_W * 2 + NAME_W, 1);
+
+  ctx.font = '400 9.5px Inter, system-ui, sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = ink4;
+  ctx.textAlign = 'left';
+  ctx.fillText(axisMax.toLocaleString(), xInNum + 2, y + AXIS_H - 4);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ink3;
+  ctx.fillText('0', xName + NAME_W / 2, y + AXIS_H - 4);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = ink4;
+  ctx.fillText(axisMax.toLocaleString(), xOutNum + NUM_W - 2, y + AXIS_H - 4);
+  y += AXIS_H;
+
+  // Rows
+  rows.forEach((r, i) => {
+    if (i % 2 === 0) {
+      ctx.fillStyle = highlight;
+      ctx.fillRect(PAD, y, W - PAD * 2, ROW_H);
+    }
+
+    const barY = y + (ROW_H - BAR_H) / 2;
+
+    // Inflow bar (right-aligned inside left side)
+    ctx.fillStyle = inflow;
+    const inW = bw(r.in);
+    ctx.fillRect(xInSide + SIDE_W - inW, barY, inW, BAR_H);
+
+    // Outflow bar (left-aligned inside right side)
+    ctx.fillStyle = outflow;
+    ctx.fillRect(xOutSide, barY, bw(r.out), BAR_H);
+
+    // Numbers
+    ctx.fillStyle = ink;
+    ctx.font = '600 11px Inter, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    ctx.fillText(r.in.toLocaleString(),  xInSide - 4,       y + ROW_H / 2);
+    ctx.textAlign = 'left';
+    ctx.fillText(r.out.toLocaleString(), xOutNum + 4,       y + ROW_H / 2);
+
+    // City name
+    ctx.fillStyle = ink3;
+    ctx.font = '500 11.5px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(r.name, xName + NAME_W / 2, y + ROW_H / 2, NAME_W - 8);
+
+    y += ROW_H;
+  });
+
+  const area = _lastState.selectedArea ?? 'chart';
+  _dlUrl(canvas.toDataURL('image/png'), `commute-balance-${area}-${_lastState.year ?? ''}.png`);
 }
 export function exportSankeyPng() {
-  _pngDownload(_sankeyChart, `commute-flow-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
+  const svgEl = document.getElementById('sankey-svg');
+  if (!svgEl || !_lastState) return;
+  const dk = _lastState.theme === 'dark';
+
+  const vars = {
+    '--inflow':    dk ? '#5aa6a7' : '#1e6f6f',
+    '--inflow-2':  dk ? '#408687' : '#155656',
+    '--outflow':   dk ? '#e4895a' : '#cc683a',
+    '--outflow-2': dk ? '#c5703f' : '#b35828',
+    '--ink':       dk ? '#e8e5dc' : '#121726',
+    '--ink-2':     dk ? '#c4c1b8' : '#2a2f40',
+    '--ink-4':     dk ? '#696a73' : '#898d9c',
+  };
+
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('width', '460'); bg.setAttribute('height', '250');
+  bg.setAttribute('fill', dk ? '#0a0e17' : '#f6f3eb');
+  clone.insertBefore(bg, clone.firstChild);
+
+  clone.querySelectorAll('[fill]').forEach(el => {
+    const m = el.getAttribute('fill').match(/var\((--[^)]+)\)/);
+    if (m && vars[m[1]]) el.setAttribute('fill', vars[m[1]]);
+  });
+
+  const font = 'Inter, system-ui, sans-serif';
+  clone.querySelectorAll('.sankey-label').forEach(el => {
+    el.setAttribute('font-size', '10.5');
+    el.setAttribute('font-weight', '600');
+    el.setAttribute('font-family', font);
+    el.setAttribute('fill', vars['--ink-2']);
+    if (el.classList.contains('in'))     el.setAttribute('fill', vars['--inflow-2']);
+    if (el.classList.contains('out'))    el.setAttribute('fill', vars['--outflow-2']);
+    if (el.classList.contains('center')) { el.setAttribute('fill', vars['--ink']); el.setAttribute('font-weight', '700'); el.setAttribute('font-size', '12'); }
+  });
+  clone.querySelectorAll('.sankey-num').forEach(el => {
+    el.setAttribute('font-size', '9.5');
+    el.setAttribute('font-weight', '500');
+    el.setAttribute('font-family', font);
+    el.setAttribute('fill', vars['--ink-4']);
+  });
+
+  const xml  = new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const img  = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 920; canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.drawImage(img, 0, 0, 460, 250);
+    URL.revokeObjectURL(url);
+    _dlUrl(canvas.toDataURL('image/png'), `commute-flow-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}.png`);
+  };
+  img.src = url;
 }
 export function exportDemoPng() {
   _pngDownload(_demoChart, `worker-demographics-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
 }
 export function exportReachPng() {
-  _pngDownload(_reachChart, `commute-reach-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
-}
-export function exportIndustryPng() {
-  _pngDownload(_industryChart, `industry-mix-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
+  if (!_lastState) return;
+  const outB = _bucketFlows(_lastOutflows);
+  const inB  = _bucketFlows(_lastInflows);
+  const outT = outB.reduce((s, v) => s + v, 0) || 1;
+  const inT  = inB.reduce((s, v) => s + v, 0) || 1;
+  const dk   = _lastState.theme === 'dark';
+
+  // Band colors per direction — approximating color-mix(in oklab, base, paper X%)
+  // Outflow (orange): #cc683a light / #e4895a dark; Inflow (teal): #1e6f6f light / #5aa6a7 dark
+  const outflowBands = dk
+    ? ['#e4895a', '#d07344', '#bc5d2e', '#a84a1e']   // dark outflow tints (8/26/44/62% paper)
+    : ['#cc683a', '#b85528', '#a44216', '#904000'];   // light outflow tints
+  const inflowBands = dk
+    ? ['#5aa6a7', '#478e8f', '#347677', '#215e5f']    // dark inflow tints
+    : ['#1e6f6f', '#185a5a', '#124545', '#0c3030'];   // light inflow tints
+
+  const W = 560, PAD = 24, LBL_W = 84, BAR_H = 36, ROW_GAP = 10;
+  const LGD_ROW_H = 16;
+  const H = PAD + BAR_H + ROW_GAP + BAR_H + 14 + 1 + 10 + LGD_ROW_H + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * 2; canvas.height = H * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  const bg    = dk ? '#0a0e17' : '#f6f3eb';
+  const ink4  = dk ? '#696a73' : '#898d9c';
+  const rule  = dk ? 'rgba(232,229,220,0.20)' : 'rgba(18,23,38,0.22)';
+  const paper = dk ? '#0a0e17' : '#f6f3eb';
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const barW = W - PAD - LBL_W - PAD;
+  const barX = PAD + LBL_W;
+
+  function drawRow(buckets, total, y, label, bandColors) {
+    ctx.fillStyle = ink4;
+    ctx.font = '600 10px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, PAD, y + BAR_H / 2);
+
+    let x = barX;
+    buckets.forEach((n, i) => {
+      const pct = n / total;
+      const sw  = pct * barW;
+      if (sw < 0.5) { x += sw; return; }
+      ctx.fillStyle = bandColors[i];
+      ctx.fillRect(x, y, sw, BAR_H);
+      if (pct >= 0.10) {
+        ctx.fillStyle = paper;
+        ctx.font = '700 11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(`${Math.round(pct * 100)}%`, x + sw / 2, y + BAR_H / 2);
+      }
+      x += sw;
+    });
+  }
+
+  let y = PAD;
+  drawRow(outB, outT, y, 'Outflow', outflowBands);
+  y += BAR_H + ROW_GAP;
+  drawRow(inB,  inT,  y, 'Inflow',  inflowBands);
+  y += BAR_H + 14;
+
+  ctx.fillStyle = rule;
+  ctx.fillRect(PAD, y, W - PAD * 2, 1);
+  y += 10;
+
+  const SW = 13;
+  let lx = PAD;
+  ctx.font = '600 10px Inter, system-ui, sans-serif';
+  REACH_LABELS.forEach((lbl, i) => {
+    // Top-left triangle — inflow
+    ctx.fillStyle = inflowBands[i];
+    ctx.beginPath();
+    ctx.moveTo(lx,      y);
+    ctx.lineTo(lx + SW, y);
+    ctx.lineTo(lx,      y + SW);
+    ctx.closePath();
+    ctx.fill();
+    // Bottom-right triangle — outflow
+    ctx.fillStyle = outflowBands[i];
+    ctx.beginPath();
+    ctx.moveTo(lx + SW, y);
+    ctx.lineTo(lx + SW, y + SW);
+    ctx.lineTo(lx,      y + SW);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = ink4;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(lbl, lx + SW + 5, y + SW / 2);
+    lx += SW + 5 + ctx.measureText(lbl).width + 14;
+  });
+
+  _dlUrl(canvas.toDataURL('image/png'), `commute-reach-${_lastState.selectedArea ?? 'chart'}-${_lastState.year ?? ''}.png`);
 }
 
 export function exportBarCsv() {
@@ -170,6 +414,108 @@ export function exportReachCsv() {
   _csvDownload([header, ...rows], `commute-reach-${_lastState.selectedArea}-${_lastState.year}`);
 }
 
+export function exportIndustryPng() {
+  if (!_lastState) return;
+  const flows = _industryDir === 'outflow' ? _lastOutflows : _lastInflows;
+  const top5  = flows.slice(0, 5);
+  if (!top5.length) return;
+
+  const totals   = top5.map(f => Number(f.SI01||0) + Number(f.SI02||0) + Number(f.SI03||0));
+  const maxTotal = Math.max(...totals) || 1;
+  const dk       = _lastState.theme === 'dark';
+
+  const W = 560, PAD = 24, BAR_H = 12, ROW_GAP = 14, HEAD_H = 18;
+  const ROW_H = HEAD_H + BAR_H + ROW_GAP;
+  const H = PAD + top5.length * ROW_H + 20 + 22 + PAD; // rows + legend rule + legend + padding
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * 2;
+  canvas.height = H * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  const bg      = dk ? '#0a0e17' : '#f6f3eb';
+  const ink     = dk ? '#e8e5dc' : '#121726';
+  const ink3    = dk ? '#92929a' : '#5b6071';
+  const ruleBg  = dk ? 'rgba(232,229,220,0.09)' : 'rgba(18,23,38,0.10)';
+  const ruleStr = dk ? 'rgba(232,229,220,0.20)' : 'rgba(18,23,38,0.22)';
+  const goodsC  = dk ? '#b58e54' : '#8b6b3a';
+  const tradeC  = dk ? '#e4895a' : '#cc683a';
+  const servC   = dk ? '#5aa6a7' : '#1e6f6f';
+  const paper   = dk ? '#0a0e17' : '#f6f3eb';
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const maxBarW = W - PAD * 2;
+  let y = PAD;
+
+  top5.forEach((f, i) => {
+    const total = totals[i];
+    const gN = Number(f.SI01 || 0);
+    const tN = Number(f.SI02 || 0);
+    const sN = Number(f.SI03 || 0);
+    const barW = (total / maxTotal) * maxBarW;
+
+    // ir-head
+    ctx.fillStyle = ink;
+    ctx.font = '600 11.5px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.dest_name, PAD, y + HEAD_H / 2);
+    ctx.fillStyle = ink3;
+    ctx.font = '500 11px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(total.toLocaleString(), W - PAD, y + HEAD_H / 2);
+
+    y += HEAD_H;
+
+    // Bar background
+    ctx.fillStyle = ruleBg;
+    ctx.fillRect(PAD, y, maxBarW, BAR_H);
+
+    // Segments
+    let x = PAD;
+    [{ n: gN, c: goodsC }, { n: tN, c: tradeC }, { n: sN, c: servC }].forEach(seg => {
+      const sw = total > 0 ? (seg.n / total) * barW : 0;
+      if (sw < 0.5) { x += sw; return; }
+      ctx.fillStyle = seg.c;
+      ctx.fillRect(x, y, sw, BAR_H);
+      const pct = total > 0 ? seg.n / total : 0;
+      if (pct >= 0.18) {
+        ctx.fillStyle = paper;
+        ctx.font = '700 9px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${Math.round(pct * 100)}%`, x + sw / 2, y + BAR_H / 2);
+      }
+      x += sw;
+    });
+
+    y += BAR_H + ROW_GAP;
+  });
+
+  // Legend
+  ctx.fillStyle = ruleStr;
+  ctx.fillRect(PAD, y, maxBarW, 1);
+  y += 11;
+
+  let lx = PAD;
+  [{ label: 'GOODS', c: goodsC }, { label: 'TRADE', c: tradeC }, { label: 'SERVICES', c: servC }].forEach(item => {
+    ctx.fillStyle = item.c;
+    ctx.fillRect(lx, y, 10, 10);
+    ctx.fillStyle = ink3;
+    ctx.font = '600 10.5px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.label, lx + 14, y + 5);
+    lx += 14 + ctx.measureText(item.label).width + 16;
+  });
+
+  const area = _lastState.selectedArea ?? 'chart';
+  _dlUrl(canvas.toDataURL('image/png'), `industry-mix-${area}-${_lastState.year ?? ''}.png`);
+}
+
 export function exportIndustryCsv() {
   if (!_lastState) return;
   const flows = _industryDir === 'outflow' ? _lastOutflows : _lastInflows;
@@ -186,8 +532,7 @@ export function exportIndustryCsv() {
 }
 
 export function resizeCharts() {
-  _barChart?.resize(); _sankeyChart?.resize(); _demoChart?.resize();
-  _reachChart?.resize(); _industryChart?.resize();
+  _demoChart?.resize();
 }
 
 // ── Shared data helpers ───────────────────────────────────────────────────────
@@ -274,144 +619,184 @@ function _tc(theme) {
   };
 }
 
-// ── 1. Commute Balance — diverging bar ────────────────────────────────────────
+// ── 1. Commute Balance — hand-built diverging bar (design-spec HTML) ──────────
 
 function _renderBar(outflows, inflows, totalOut, totalIn, state) {
-  if (!_barChart) return;
-  const tc = _tc(state.theme);
-  const { rows } = _mergeFlows(outflows, inflows, 9);
-  if (!rows.length) { _barChart.clear(); return; }
+  const rowsEl = document.getElementById('balance-rows');
+  const axisL  = document.getElementById('balance-axis-l');
+  const axisR  = document.getElementById('balance-axis-r');
+  if (!rowsEl) return;
 
-  const reversed = [...rows].reverse(); // ECharts: index 0 = bottom
-  const names   = reversed.map(r => r.name);
-  const inData  = reversed.map(r => -r.in);   // negative → renders left
-  const outData = reversed.map(r => r.out);   // positive → renders right
-  const lookup  = Object.fromEntries(rows.map(r => [r.name, r]));
+  const { rows: allRows } = _mergeFlows(outflows, inflows, 10);
+  const rows = allRows.filter(r => !r.isOthers);
+  if (!rows.length) { rowsEl.innerHTML = ''; return; }
 
-  _barChart.setOption({
-    backgroundColor: 'transparent',
-    animation: true, animationDuration: 400,
-    legend: {
-      top: 2, left: 'center', itemWidth: 10, itemHeight: 8,
-      textStyle: { color: tc.muted, fontSize: 9 },
-      data: [
-        { name: 'Inflow',  icon: 'rect', itemStyle: { color: tc.inflow  } },
-        { name: 'Outflow', icon: 'rect', itemStyle: { color: tc.outflow } },
-      ],
-    },
-    tooltip: {
-      trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: tc.ttBg, borderColor: tc.ttBorder,
-      textStyle: { color: tc.text, fontSize: 11 },
-      formatter: params => {
-        const row = lookup[params[0]?.name];
-        if (!row) return params[0]?.name;
-        const inPct  = totalIn  > 0 ? ((row.in  / totalIn)  * 100).toFixed(1) : '0.0';
-        const outPct = totalOut > 0 ? ((row.out / totalOut) * 100).toFixed(1) : '0.0';
-        return [
-          `<strong>${row.name}</strong>`,
-          `<span style="color:${tc.inflow}">← ${row.in.toLocaleString()}</span>&nbsp; ${inPct}% of workforce`,
-          `<span style="color:${tc.outflow}">→ ${row.out.toLocaleString()}</span>&nbsp; ${outPct}% of commuters`,
-        ].join('<br/>');
-      },
-    },
-    grid: { top: 22, right: 44, bottom: 4, left: 4, containLabel: true },
-    xAxis: {
-      type: 'value',
-      axisLabel: { color: tc.muted, fontSize: 9, formatter: v => { const a = Math.abs(v); return a >= 1000 ? `${(a/1000).toFixed(0)}k` : String(a); } },
-      splitLine: { lineStyle: { color: tc.axis } },
-      axisLine: { show: false }, axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'category', data: names,
-      axisLabel: { color: tc.text, fontSize: 10, overflow: 'truncate', width: 82 },
-      axisLine: { lineStyle: { color: tc.axis } }, axisTick: { show: false },
-    },
-    series: [
-      {
-        name: 'Inflow', type: 'bar', barMaxWidth: 16,
-        data: inData.map((v, i) => ({ value: v, itemStyle: { color: reversed[i].isOthers ? tc.inflowMuted : tc.inflow, borderRadius: [1,0,0,1] } })),
-        label: { show: true, position: 'left', color: tc.muted, fontSize: 8, hideOverlap: true, formatter: p => p.value < -99 ? Number(-p.value).toLocaleString() : '' },
-        emphasis: { itemStyle: { opacity: 0.8 } },
-      },
-      {
-        name: 'Outflow', type: 'bar', barMaxWidth: 16,
-        data: outData.map((v, i) => ({ value: v, itemStyle: { color: reversed[i].isOthers ? tc.outflowMuted : tc.outflow, borderRadius: [0,1,1,0] } })),
-        label: { show: true, position: 'right', color: tc.muted, fontSize: 8, hideOverlap: true, formatter: p => p.value > 99 ? Number(p.value).toLocaleString() : '' },
-        emphasis: { itemStyle: { opacity: 0.8 } },
-      },
-    ],
-  }, true);
+  const max     = Math.max(...rows.flatMap(r => [r.out, r.in]));
+  const step    = max <= 6000 ? 2000 : max <= 12000 ? 4000 : 8000;
+  const axisMax = Math.ceil(max / step) * step || 1;
+  const bw      = n => ((n / axisMax) * 100).toFixed(2);
 
-  _barChart.resize();
-  _barChart.off('click');
-  _barChart.on('click', params => {
-    const name = params.componentType === 'series' ? params.name
-               : params.componentType === 'yAxis'  ? params.value : null;
-    if (name && name !== 'Others') _onAreaSelect?.(name, state.aggregation);
+  if (axisL) axisL.textContent = axisMax.toLocaleString();
+  if (axisR) axisR.textContent = axisMax.toLocaleString();
+
+  rowsEl.innerHTML = rows.map(r => `
+    <div class="balance-row" data-peer="${r.name}">
+      <div class="b-num left">${r.in.toLocaleString()}</div>
+      <div class="b-side left"><div class="b-bar in" style="width:${bw(r.in)}%"></div></div>
+      <div class="b-name">${r.name}</div>
+      <div class="b-side right"><div class="b-bar" style="width:${bw(r.out)}%"></div></div>
+      <div class="b-num right">${r.out.toLocaleString()}</div>
+    </div>
+  `).join('');
+
+  rowsEl.querySelectorAll('.balance-row').forEach(el => {
+    el.addEventListener('click', () => {
+      _onAreaSelect?.(el.dataset.peer, state.aggregation);
+    });
   });
 }
 
-// ── 2. Flow Diagram — bilateral Sankey ────────────────────────────────────────
+// ── 2. Flow Diagram — hand-built bilateral SVG Sankey (design-spec) ──────────
 
 function _renderSankey(outflows, inflows, state) {
-  if (!_sankeyChart) return;
-  const tc  = _tc(state.theme);
-  const sel = state.selectedArea;
-  const topIn  = inflows.slice(0, 4);
-  const topOut = outflows.slice(0, 4);
-  if (!topIn.length && !topOut.length) { _sankeyChart.clear(); return; }
+  const svgEl = document.getElementById('sankey-svg');
+  if (!svgEl) return;
 
-  const restIn  = inflows.slice(4).reduce((s, f) => s + Number(f.S000), 0);
-  const restOut = outflows.slice(4).reduce((s, f) => s + Number(f.S000), 0);
+  const sel    = state.selectedArea;
+  if (!inflows.length && !outflows.length) { svgEl.innerHTML = ''; return; }
 
-  const nodes = [
-    ...topIn.map(f => ({ name: `←${f.dest_name}`, depth: 0, itemStyle: { color: tc.inflow } })),
-    ...(restIn  > 0 ? [{ name: '←Others', depth: 0, itemStyle: { color: tc.inflowMuted } }] : []),
-    { name: sel, depth: 1, itemStyle: { color: tc.selectedNode }, label: { fontWeight: 700 } },
-    ...topOut.map(f => ({ name: `→${f.dest_name}`, depth: 2, itemStyle: { color: tc.outflow } })),
-    ...(restOut > 0 ? [{ name: '→Others', depth: 2, itemStyle: { color: tc.outflowMuted } }] : []),
-  ];
+  // Include cities that individually represent ≥5% of their side's total, up to 6.
+  // Fall back to top 3 when nothing clears the threshold.
+  function buildSide(flows) {
+    const sideTotal = flows.reduce((s, f) => s + Number(f.S000), 0) || 1;
+    const included  = [];
+    for (const f of flows) {
+      const n = Number(f.S000);
+      if (n / sideTotal >= 0.05 && included.length < 6) included.push({ name: f.dest_name, n });
+      else break;
+    }
+    if (included.length < 3) {
+      included.length = 0;
+      flows.slice(0, 3).forEach(f => included.push({ name: f.dest_name, n: Number(f.S000) }));
+    }
+    const othersN = flows.slice(included.length).reduce((s, f) => s + Number(f.S000), 0);
+    return othersN > 0 ? [...included, { name: 'Others', n: othersN, isOthers: true }] : included;
+  }
 
-  const links = [
-    ...topIn.map(f => ({ source: `←${f.dest_name}`, target: sel, value: Number(f.S000), lineStyle: { color: tc.inflow, opacity: 0.35 } })),
-    ...(restIn  > 0 ? [{ source: '←Others', target: sel, value: restIn,  lineStyle: { color: tc.inflowMuted,  opacity: 0.45 } }] : []),
-    ...topOut.map(f => ({ source: sel, target: `→${f.dest_name}`, value: Number(f.S000), lineStyle: { color: tc.outflow, opacity: 0.35 } })),
-    ...(restOut > 0 ? [{ source: sel, target: '→Others', value: restOut, lineStyle: { color: tc.outflowMuted, opacity: 0.45 } }] : []),
-  ];
+  const inSide   = buildSide(inflows);
+  const outSide  = buildSide(outflows);
+  const inTotal  = inSide.reduce((s, d) => s + d.n, 0);
+  const outTotal = outSide.reduce((s, d) => s + d.n, 0);
 
-  _sankeyChart.setOption({
-    backgroundColor: 'transparent', animation: true, animationDuration: 400,
-    tooltip: {
-      trigger: 'item', backgroundColor: tc.ttBg, borderColor: tc.ttBorder,
-      textStyle: { color: tc.text, fontSize: 11 },
-      formatter: p => {
-        if (p.dataType === 'edge') return `${_sd(p.data.source)} → ${_sd(p.data.target)}<br/><strong>${Number(p.data.value).toLocaleString()}</strong> commuters`;
-        return `<strong>${_sd(p.name)}</strong>`;
-      },
-    },
-    series: [{
-      type: 'sankey', data: nodes, links,
-      emphasis: { focus: 'adjacency' },
-      lineStyle: { curveness: 0.5 },
-      label: { color: tc.text, fontSize: 10, overflow: 'truncate', width: 88, formatter: p => _sd(p.name) },
-      nodeWidth: 8, nodeGap: 8, layoutIterations: 32,
-      left: '18%', right: '22%', top: '4%', bottom: '4%',
-    }],
-  }, true);
+  const nShown = Math.max(
+    inSide.filter(d => !d.isOthers).length,
+    outSide.filter(d => !d.isOthers).length
+  );
+  const subEl = document.getElementById('sankey-sub');
+  if (subEl) subEl.textContent = `02 · Top ${nShown} by volume`;
 
-  _sankeyChart.resize();
-  _sankeyChart.off('click');
-  _sankeyChart.on('click', params => {
-    if (params.dataType !== 'node') return;
-    const raw = params.name;
-    if (raw === sel || raw === '←Others' || raw === '→Others') return;
-    _onAreaSelect?.(_sd(raw), state.aggregation);
+  const W = 460, H = 250, PAD = 8;
+  const LABEL_PAD = 92, CENTER_W = 110, SIDE_W = 12;
+  const totalH  = H - PAD * 2;
+  const maxTotal = Math.max(inTotal, outTotal, 1);
+  const scale    = totalH / maxTotal;
+
+  function makeBlocks(side, total, x) {
+    let y = PAD + (totalH - total * scale) / 2;
+    return side.map(s => {
+      const h = Math.max(s.n * scale, 1);
+      const b = { ...s, x, y, w: SIDE_W, h };
+      y += h;
+      return b;
+    });
+  }
+
+  const leftBlocks  = makeBlocks(inSide,  inTotal,  LABEL_PAD);
+  const rightBlocks = makeBlocks(outSide, outTotal, W - LABEL_PAD - SIDE_W);
+
+  const centerX    = (W - CENTER_W) / 2;
+  const centerInH  = inTotal  * scale;
+  const centerOutH = outTotal * scale;
+  const centerInY  = PAD + (totalH - centerInH)  / 2;
+  const centerOutY = PAD + (totalH - centerOutH) / 2;
+
+  function ribbonPath(x1, y1, h1, x2, y2, h2) {
+    const cx = (x1 + x2) / 2;
+    return `M ${x1} ${y1} C ${cx} ${y1},${cx} ${y2},${x2} ${y2} L ${x2} ${y2+h2} C ${cx} ${y2+h2},${cx} ${y1+h1},${x1} ${y1+h1} Z`;
+  }
+
+  // Build ribbon descriptors (needed for hover reset)
+  const ribbonData = [];
+  let leftY = centerInY;
+  leftBlocks.forEach(b => {
+    ribbonData.push({ d: ribbonPath(b.x + b.w, b.y, b.h, centerX, leftY, b.h), color: 'var(--inflow)', name: b.name, isOthers: b.isOthers });
+    leftY += b.h;
   });
-}
+  let rightY = centerOutY;
+  rightBlocks.forEach(b => {
+    ribbonData.push({ d: ribbonPath(centerX + CENTER_W, rightY, b.h, b.x, b.y, b.h), color: 'var(--outflow)', name: b.name, isOthers: b.isOthers });
+    rightY += b.h;
+  });
 
-function _sd(name) { // strip direction prefix
-  return (name.startsWith('←') || name.startsWith('→')) ? name.slice(1) : name;
+  const BASE_OPACITY = 0.55;
+
+  const ribbonMarkup = ribbonData.map((r, i) => `
+    <path class="sankey-ribbon" data-idx="${i}" data-name="${r.name}"
+      d="${r.d}" fill="${r.color}"
+      opacity="${r.isOthers ? BASE_OPACITY * 0.6 : BASE_OPACITY}">
+      <title>${r.name}</title>
+    </path>`).join('');
+
+  const leftMarkup = leftBlocks.map(b => {
+    const my = b.y + b.h / 2;
+    const op = b.isOthers ? '0.45' : '0.85';
+    return `<g class="sankey-block">
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="var(--inflow)" opacity="${op}"/>
+      <text x="${b.x - 6}" y="${my + 3}" text-anchor="end" class="sankey-label in">${b.name}</text>
+      <text x="${b.x - 6}" y="${my + 14}" text-anchor="end" class="sankey-num">${b.n.toLocaleString()}</text>
+    </g>`;
+  }).join('');
+
+  const rightMarkup = rightBlocks.map(b => {
+    const my = b.y + b.h / 2;
+    const op = b.isOthers ? '0.45' : '0.85';
+    return `<g class="sankey-block">
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="var(--outflow)" opacity="${op}"/>
+      <text x="${b.x + b.w + 6}" y="${my + 3}" text-anchor="start" class="sankey-label out">${b.name}</text>
+      <text x="${b.x + b.w + 6}" y="${my + 14}" text-anchor="start" class="sankey-num">${b.n.toLocaleString()}</text>
+    </g>`;
+  }).join('');
+
+  const centerMarkup = `
+    <rect x="${centerX}" y="${centerInY}" width="${CENTER_W/2}" height="${centerInH}" fill="var(--inflow-2)" opacity="0.9"/>
+    <rect x="${centerX + CENTER_W/2}" y="${centerOutY}" width="${CENTER_W/2}" height="${centerOutH}" fill="var(--outflow-2)" opacity="0.9"/>
+    <text x="${W/2}" y="${H/2 - 8}" text-anchor="middle" class="sankey-label center">${sel}</text>
+    <text x="${W/2}" y="${H/2 + 6}"  text-anchor="middle" class="sankey-num">IN ${inTotal.toLocaleString()}</text>
+    <text x="${W/2}" y="${H/2 + 18}" text-anchor="middle" class="sankey-num">OUT ${outTotal.toLocaleString()}</text>`;
+
+  svgEl.innerHTML = ribbonMarkup + leftMarkup + centerMarkup + rightMarkup;
+
+  // Hover: highlight all ribbons sharing the same city name (cross-side), dim the rest
+  const paths = svgEl.querySelectorAll('.sankey-ribbon');
+  paths.forEach((path, i) => {
+    path.addEventListener('mouseenter', () => {
+      const hoveredName = ribbonData[i].name;
+      paths.forEach((p, j) => {
+        const jBase = ribbonData[j].isOthers ? BASE_OPACITY * 0.6 : BASE_OPACITY;
+        const match  = ribbonData[j].name === hoveredName;
+        p.setAttribute('opacity', match ? String(Math.min(jBase + 0.2, 1)) : '0.18');
+      });
+    });
+    path.addEventListener('mouseleave', () => {
+      paths.forEach((p, j) => {
+        p.setAttribute('opacity', String(ribbonData[j].isOthers ? BASE_OPACITY * 0.6 : BASE_OPACITY));
+      });
+    });
+    path.style.cursor = ribbonData[i].isOthers ? 'default' : 'pointer';
+    if (!ribbonData[i].isOthers) {
+      path.addEventListener('click', () => _onAreaSelect?.(ribbonData[i].name, state.aggregation));
+    }
+  });
 }
 
 // ── 3. Worker Demographics — diverging grouped bar ────────────────────────────
@@ -496,143 +881,72 @@ function _renderDemographics(outflows, inflows, state) {
   _demoChart.resize();
 }
 
-// ── 4. Commute Reach — distance-band stacked bars ─────────────────────────────
+// ── 4. Commute Reach — distance-band stacked bars (HTML/CSS) ─────────────────
 
 function _renderReach(outflows, inflows, state) {
-  if (!_reachChart) return;
-  const tc  = _tc(state.theme);
+  const bandsEl  = document.getElementById('reach-bands');
+  const legendEl = document.getElementById('reach-legend');
+  if (!bandsEl) return;
+
   const outB = _bucketFlows(outflows);
   const inB  = _bucketFlows(inflows);
   const outT = outB.reduce((s, v) => s + v, 0) || 1;
   const inT  = inB.reduce((s, v) => s + v, 0) || 1;
 
-  if (outT === 1 && inT === 1) { _reachChart.clear(); return; }
+  function row(label, buckets, total, dirClass) {
+    const segs = buckets.map((n, i) => {
+      const pct = n / total;
+      const w   = (pct * 100).toFixed(1);
+      return `<span class="rb-${i}" style="width:${w}%">${pct >= 0.10 ? Math.round(pct * 100) + '%' : ''}</span>`;
+    }).join('');
+    return `<div class="reach-row ${dirClass}"><span class="reach-row-lbl">${label}</span><div class="reach-bar">${segs}</div></div>`;
+  }
 
-  const dk = state.theme === 'dark';
-  const outflowRgb = dk ? '228,137,90'  : '204,104,58';
-  const inflowRgb  = dk ? '90,166,167'  : '30,111,111';
-  const opacities  = [1.0, 0.70, 0.42, 0.22];
+  bandsEl.innerHTML = row('Outflow', outB, outT, 'outflow') + row('Inflow', inB, inT, 'inflow');
 
-  const yCategories = ['Outflow', 'Inflow'];
-
-  _reachChart.setOption({
-    backgroundColor: 'transparent', animation: true, animationDuration: 400,
-    legend: {
-      top: 2, left: 'center', itemWidth: 8, itemHeight: 8,
-      textStyle: { color: tc.muted, fontSize: 9 },
-      data: REACH_LABELS.map((l, i) => ({ name: l, icon: 'rect', itemStyle: { color: `rgba(${outflowRgb},${opacities[i]})` } })),
-    },
-    tooltip: {
-      trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: tc.ttBg, borderColor: tc.ttBorder,
-      textStyle: { color: tc.text, fontSize: 11 },
-      formatter: params => {
-        const cat   = params[0]?.name;
-        const isOut = cat === 'Outflow';
-        const buckets = isOut ? outB : inB;
-        const total   = isOut ? outT : inT;
-        return [
-          `<strong>${cat}</strong>`,
-          ...REACH_LABELS.map((l, i) => `${l}: <strong>${buckets[i].toLocaleString()}</strong> (${Math.round(buckets[i]/total*100)}%)`),
-        ].join('<br/>');
-      },
-    },
-    grid: { top: 20, right: 10, bottom: 4, left: 4, containLabel: true },
-    xAxis: {
-      type: 'value', max: 100, axisLabel: { show: false },
-      splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'category', data: yCategories,
-      axisLabel: { color: tc.text, fontSize: 10 },
-      axisLine: { lineStyle: { color: tc.axis } }, axisTick: { show: false },
-    },
-    series: REACH_LABELS.map((label, i) => ({
-      name: label, type: 'bar', stack: 'total', barMaxWidth: 28,
-      data: [
-        // Outflow row: outflow palette
-        { value: Math.round(outB[i] / outT * 100), itemStyle: { color: `rgba(${outflowRgb},${opacities[i]})` } },
-        // Inflow row: inflow palette
-        { value: Math.round(inB[i]  / inT  * 100), itemStyle: { color: `rgba(${inflowRgb},${opacities[i]})` } },
-      ],
-      label: {
-        show: true, color: i < 2 ? '#fff' : tc.text, fontSize: 8, fontWeight: 600,
-        formatter: p => p.value >= 9 ? `${p.value}%` : '',
-      },
-      emphasis: { itemStyle: { opacity: 0.9 } },
-    })),
-  }, true);
-
-  _reachChart.resize();
+  if (legendEl) {
+    legendEl.innerHTML = REACH_LABELS.map((l, i) =>
+      `<span class="rk"><span class="rk-sw rk-diag-${i}"></span>${l}</span>`
+    ).join('');
+  }
 }
 
-// ── 5. Industry Mix — stacked vertical bar per top-5 destination/origin ───────
+// ── 5. Industry Mix — hand-built horizontal stacked bars (design-spec HTML) ───
 
 function _renderIndustry(outflows, inflows, state) {
-  if (!_industryChart) return;
-  const tc    = _tc(state.theme);
+  const stackEl = document.getElementById('industry-stack');
+  if (!stackEl) return;
+
   const flows = _industryDir === 'outflow' ? outflows : inflows;
   const top5  = flows.slice(0, 5);
-  if (!top5.length) { _industryChart.clear(); return; }
+  if (!top5.length) { stackEl.innerHTML = ''; return; }
 
-  const dk       = state.theme === 'dark';
-  const goodsCol = dk ? '#b58e54' : '#8b6b3a';
+  const totals   = top5.map(f => Number(f.SI01||0) + Number(f.SI02||0) + Number(f.SI03||0));
+  const maxTotal = Math.max(...totals) || 1;
 
-  const names    = top5.map(f => f.dest_name);
-  const goods    = top5.map(f => Number(f.SI01 || 0));
-  const trade    = top5.map(f => Number(f.SI02 || 0));
-  const services = top5.map(f => Number(f.SI03 || 0));
-
-  _industryChart.setOption({
-    backgroundColor: 'transparent', animation: true, animationDuration: 400,
-    legend: {
-      top: 2, left: 'center', itemWidth: 10, itemHeight: 8,
-      textStyle: { color: tc.muted, fontSize: 9 },
-      data: [
-        { name: 'Goods',           icon: 'rect', itemStyle: { color: goodsCol   } },
-        { name: 'Trade/Transport', icon: 'rect', itemStyle: { color: tc.outflow } },
-        { name: 'Services',        icon: 'rect', itemStyle: { color: tc.inflow  } },
-      ],
-    },
-    tooltip: {
-      trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: tc.ttBg, borderColor: tc.ttBorder,
-      textStyle: { color: tc.text, fontSize: 11 },
-      formatter: params => {
-        const city  = params[0]?.name;
-        const total = params.reduce((s, p) => s + p.value, 0);
-        const lines = [`<strong>${city}</strong>`];
-        params.forEach(p => {
-          const pct = total > 0 ? ((p.value / total) * 100).toFixed(0) : '0';
-          lines.push(`<span style="color:${p.color}">■</span> ${p.seriesName}: <strong>${Number(p.value).toLocaleString()}</strong> (${pct}%)`);
-        });
-        return lines.join('<br/>');
-      },
-    },
-    grid: { top: 22, right: 8, bottom: 4, left: 4, containLabel: true },
-    xAxis: {
-      type: 'category', data: names,
-      axisLabel: { color: tc.text, fontSize: 9, interval: 0, overflow: 'truncate', width: 72, rotate: -20 },
-      axisLine: { lineStyle: { color: tc.axis } }, axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { color: tc.muted, fontSize: 9, formatter: v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : String(v) },
-      splitLine: { lineStyle: { color: tc.axis } },
-      axisLine: { show: false }, axisTick: { show: false },
-    },
-    series: [
-      { name: 'Goods',           type: 'bar', stack: 'total', data: goods,    itemStyle: { color: goodsCol   }, emphasis: { itemStyle: { opacity: 0.85 } } },
-      { name: 'Trade/Transport', type: 'bar', stack: 'total', data: trade,    itemStyle: { color: tc.outflow }, emphasis: { itemStyle: { opacity: 0.85 } } },
-      { name: 'Services',        type: 'bar', stack: 'total', data: services, itemStyle: { color: tc.inflow  }, emphasis: { itemStyle: { opacity: 0.85 } } },
-    ],
-  }, true);
-
-  _industryChart.resize();
-  _industryChart.off('click');
-  _industryChart.on('click', params => {
-    if (params.componentType === 'series' && params.name) _onAreaSelect?.(params.name, state.aggregation);
-  });
+  stackEl.innerHTML = top5.map((f, i) => {
+    const total    = totals[i];
+    const goods    = Number(f.SI01 || 0);
+    const trade    = Number(f.SI02 || 0);
+    const services = Number(f.SI03 || 0);
+    const barW     = ((total / maxTotal) * 100).toFixed(1);
+    const gPct = total > 0 ? goods    / total : 0;
+    const tPct = total > 0 ? trade    / total : 0;
+    const sPct = total > 0 ? services / total : 0;
+    return `
+      <div class="industry-row">
+        <div class="ir-head">
+          <span class="ir-name">${f.dest_name}</span>
+          <span class="ir-total">${total.toLocaleString()}</span>
+        </div>
+        <div class="ir-bar" style="width:${barW}%">
+          <span class="seg-goods"    style="width:${(gPct*100).toFixed(1)}%">${gPct >= 0.18 ? Math.round(gPct*100)+'%' : ''}</span>
+          <span class="seg-trade"    style="width:${(tPct*100).toFixed(1)}%">${tPct >= 0.18 ? Math.round(tPct*100)+'%' : ''}</span>
+          <span class="seg-services" style="width:${(sPct*100).toFixed(1)}%">${sPct >= 0.18 ? Math.round(sPct*100)+'%' : ''}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // ── Download helpers ──────────────────────────────────────────────────────────
