@@ -14,16 +14,17 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
 - **City and county aggregation** — select any city or county; display destinations at city or county granularity independently
 - **Both flow directions** — "where residents work" and "where workers live"
 - **22 years of data** — LEHD LODES data from 2002–2023; switch years from the header
-- **Five chart panels** (right sidebar, collapsible and resizable):
+- **Four chart panels** (right sidebar, collapsible and resizable):
   - *Commute Balance* — diverging bar showing top destinations and origins simultaneously
-  - *Flow Diagram* — bilateral Sankey (top 4 + Others per side)
-  - *Worker Demographics* — age, earnings, and industry breakdowns with direction toggle
+  - *Flow Diagram* — bilateral alluvial diagram (top 5 + Others per side) with a flow summary strip showing total inflow, live-and-work, and total outflow proportionally
   - *Commute Reach* — distance-band distribution (< 10 mi, 10–25 mi, 25–50 mi, 50+ mi)
   - *Industry Mix* — stacked bar across top-5 cities with inflow/outflow toggle
 - **Export** — every chart exports as PNG or CSV
+- **Clickable zone polygons** — click any city or county polygon on the map to select it directly
 - **Layer controls** — toggle flow lines and polygon choropleth; set a minimum-commuter threshold for flow lines
+- **Gradient color legend** — top-left overlay shows the flow color scale matching arc colors exactly
 - **Map controls** — zoom, compass with pitch visualization, reset tilt & north, reset view, geolocate, fullscreen, scale bar
-- **Light / dark mode** — full theme switching including map tiles, arc colors, chart colors, and map controls
+- **Light / dark mode** — full theme switching including map tiles, arc colors, chart colors, map controls, navbar logo, and browser favicon
 - **Fully client-side** — DuckDB-WASM queries pre-processed Parquet files directly in the browser; no server or API keys required
 
 ## Data
@@ -51,9 +52,9 @@ Pre-processed data files are committed to the repo under `data/<year>/` so the a
 | Layer | Library |
 |---|---|
 | Build | [Vite](https://vitejs.dev/) |
-| Map | [MapLibre GL JS](https://maplibre.org/) + [CARTO](https://carto.com/) raster tiles |
+| Map | [MapLibre GL JS](https://maplibre.org/) + [CARTO](https://carto.com/) GL vector tiles |
 | Flow visualization | [Flowmap.gl](https://flowmap.gl/) FlowmapLayer via `@deck.gl/mapbox` |
-| Charts | [ECharts](https://echarts.apache.org/) v5 |
+| Charts | Custom SVG / DOM — no charting library |
 | In-browser data | [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview.html) querying Parquet files |
 | Data pipeline | Python — pandas, GeoPandas, PyArrow |
 | Python env | [uv](https://docs.astral.sh/uv/) |
@@ -145,8 +146,14 @@ To enable it on a new repository:
 ├── scripts/
 │   └── process_data.py         # Offline data pipeline
 │
+├── public/
+│   ├── favicon-light.svg           # Theme-aware favicon (light mode)
+│   └── favicon-dark.svg            # Theme-aware favicon (dark mode)
+│
 ├── assets/
-│   └── wfrc-logo.png
+│   └── logo/
+│       ├── WFRC_logo_abbreviated_color_transparent.png   # Navbar logo (light mode)
+│       └── WFRC_logo_abbreviated_white_transparent.png   # Navbar logo (dark mode)
 │
 └── .github/
     └── workflows/
