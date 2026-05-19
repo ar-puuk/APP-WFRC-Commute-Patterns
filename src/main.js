@@ -3,7 +3,7 @@ import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow } from './map.js';
+import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction } from './map.js';
 import { initSidebar, updateSidebarStats } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, resizeCharts } from './charts.js';
 
@@ -86,6 +86,14 @@ async function main() {
 
   // 5. Init map
   initMap('map', state.theme);
+
+  initPolygonInteraction((name) => {
+    if (name === state.selectedArea) return;
+    state.selectedArea     = name;
+    state.selectedAreaType = state.aggregation;
+    _updateSidebarAreaLabels(name);
+    refreshVisualization();
+  });
 
   // 6. Load boundary files in background (optional — graceful if missing)
   loadBoundaries(base, state.theme);

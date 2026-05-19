@@ -74,6 +74,8 @@ let _direction    = 'outflow';
 let _selfFlowCount    = 0;
 let _selfOutTotal     = 0;   // total commuters who reside in selected area
 let _selfInTotal      = 0;   // total workers employed in selected area
+let _onPolygonClick      = null;
+let _deckClickedThisTick = false;
 
 // ── Donut SVG helper ─────────────────────────────────────────────────────────
 
@@ -213,6 +215,25 @@ export function setPolygonsVisible(v) {
   }
 }
 
+export function initPolygonInteraction(onAreaClick) {
+  _onPolygonClick = onAreaClick;
+  if (!map) return;
+
+  ['county-fill', 'city-fill'].forEach(layerId => {
+    map.on('click', layerId, (e) => {
+      if (_deckClickedThisTick || !_polygonsVisible) return;
+      const name = e.features?.[0]?.properties?.name;
+      if (name) _onPolygonClick(name);
+    });
+    map.on('mousemove', layerId, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', layerId, () => {
+      map.getCanvas().style.cursor = '';
+    });
+  });
+}
+
 export function setSelfFlow(count, outTotal = 0, inTotal = 0) {
   _selfFlowCount = count    ?? 0;
   _selfOutTotal  = outTotal ?? 0;
@@ -267,7 +288,24 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     pickable: true,
     onHover: (info) => {
       const obj = info?.object;
-      if (!obj || !info.picked) { _hideTooltip(); return; }
+      if (!obj || !info.picked) {
+        // Fall through to polygon hover when no arc/location is under the cursor
+        const features = _polygonsVisible
+          ? map.queryRenderedFeatures([info.x, info.y], { layers: ['county-fill', 'city-fill'] })
+          : [];
+        if (features.length) {
+          const name = features[0].properties?.name;
+          if (name) {
+            const cta = state.direction === 'outflow'
+              ? `Where do <strong>${name}</strong> residents work?`
+              : `Where do <strong>${name}</strong> workers live?`;
+            _showTooltip(info, `<div class="ft-cta">${cta}</div>`, 'map-tooltip--cta');
+            return;
+          }
+        }
+        _hideTooltip();
+        return;
+      }
       if (obj.type === 'flow') {
         const count     = Number(obj.count);
         const originId  = obj.origin?.id ?? '';
@@ -329,6 +367,8 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
       }
     },
     onClick: (info) => {
+      _deckClickedThisTick = true;
+      setTimeout(() => { _deckClickedThisTick = false; }, 0);
       _hideTooltip();
       if (!onArcClick) return;
       const obj = info?.object;
