@@ -56,6 +56,7 @@ function _distanceToZoom(avgMiles) {
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function main() {
+  _initPanelToggles(); // no data dependency — run immediately so mobile layout is correct from the start
   setProgress(5);
 
   const base = import.meta.env.BASE_URL ?? '/';
@@ -150,6 +151,51 @@ async function main() {
 
   document.querySelector('.sidebar-loading')?.remove();
   setProgress(100);
+}
+
+// ── Panel collapse toggles ────────────────────────────────────────────────────
+function _initPanelToggles() {
+  const grid = document.querySelector('.body-grid');
+  if (!grid) return;
+
+  grid.classList.add('no-transition');
+  if (window.innerWidth <= 768) {
+    grid.classList.add('left-collapsed', 'right-collapsed');
+  } else {
+    const stored = JSON.parse(localStorage.getItem('wfrc-panels') || '{}');
+    if (stored.leftCollapsed)  grid.classList.add('left-collapsed');
+    if (stored.rightCollapsed) grid.classList.add('right-collapsed');
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => grid.classList.remove('no-transition')));
+  _updateToggleLabels(grid);
+
+  document.getElementById('left-panel-toggle')?.addEventListener('click', () => {
+    grid.classList.toggle('left-collapsed');
+    _savePanelState(grid);
+    _updateToggleLabels(grid);
+    setTimeout(resizeCharts, 300);
+  });
+
+  document.getElementById('right-panel-toggle')?.addEventListener('click', () => {
+    grid.classList.toggle('right-collapsed');
+    _savePanelState(grid);
+    _updateToggleLabels(grid);
+    setTimeout(resizeCharts, 300);
+  });
+}
+
+function _savePanelState(grid) {
+  localStorage.setItem('wfrc-panels', JSON.stringify({
+    leftCollapsed:  grid.classList.contains('left-collapsed'),
+    rightCollapsed: grid.classList.contains('right-collapsed'),
+  }));
+}
+
+function _updateToggleLabels(grid) {
+  const leftBtn  = document.getElementById('left-panel-toggle');
+  const rightBtn = document.getElementById('right-panel-toggle');
+  if (leftBtn)  leftBtn.setAttribute('aria-label',  grid.classList.contains('left-collapsed')  ? 'Expand left panel'  : 'Collapse left panel');
+  if (rightBtn) rightBtn.setAttribute('aria-label', grid.classList.contains('right-collapsed') ? 'Expand right panel' : 'Collapse right panel');
 }
 
 // ── Right panel resize handle ─────────────────────────────────────────────────

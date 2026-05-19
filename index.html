@@ -20,7 +20,7 @@
         <img src="assets/logo/WFRC_logo_abbreviated_color_transparent.png" class="mast-logo mast-logo--light" alt="WFRC" />
         <img src="assets/logo/WFRC_logo_abbreviated_white_transparent.png" class="mast-logo mast-logo--dark" alt="WFRC" />
         <div class="mast-titles">
-          <div class="mast-title">Wasatch Front Commuter Patterns</div>
+          <div class="mast-title"><span>Wasatch Front</span><span>Commuter Flow</span></div>
           <div class="mast-sub">Regional OD Flows &middot; LEHD LODES 8</div>
         </div>
       </div>
@@ -66,6 +66,12 @@
 
       <!-- Map stage with four overlay positions -->
       <main class="map-stage">
+        <button class="panel-toggle panel-toggle--left" id="left-panel-toggle" aria-label="Collapse left panel" title="Collapse left panel">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="panel-toggle panel-toggle--right" id="right-panel-toggle" aria-label="Collapse right panel" title="Collapse right panel">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
         <!-- TL: Dataline + legend -->
         <div class="map-overlay tl">
           <div class="map-dataline" id="map-dataline">
