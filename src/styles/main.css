@@ -184,16 +184,17 @@ a { color: inherit; }
   gap: 14px;
 }
 
-.mast-mono {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.34em;
-  color: var(--paper);
-  background: var(--navy);
-  padding: 8px 11px 7px 13px;
-  line-height: 1;
-  border-radius: 1px;
+.mast-logo {
+  height: 45px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
 }
+
+.mast-logo--dark { display: none; }
+
+[data-theme="dark"] .mast-logo--light { display: none; }
+[data-theme="dark"] .mast-logo--dark  { display: block; }
 
 .mast-titles { line-height: 1.1; }
 
