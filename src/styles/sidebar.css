@@ -255,8 +255,9 @@
 
 .bd-bar {
   position: relative;
-  height: 4px;
+  height: 7px;
   background: var(--rule);
+  border-radius: 2px;
   overflow: hidden;
 }
 
