@@ -68,7 +68,6 @@ async function main() {
   // 2. Resolve year from URL or default
   const urlYear = _getUrlYear(availableYears, manifest.default);
   state.year = urlYear;
-  _setUrlYear(urlYear);
 
   // 3. Load year-specific metadata
   const [cityMetaArr, countyMetaArr] = await Promise.all([
@@ -101,7 +100,10 @@ async function main() {
 
   setProgress(88);
 
-  // 7. Build sidebar
+  // 7. Apply URL params (area/dir/agg) now that metadata is available
+  _applyUrlParams(cityMeta, countyMeta);
+
+  // 8. Build sidebar
   const cityNames   = cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort();
   const countyNames = countyMetaArr.map(d => d.name).sort();
 
@@ -111,7 +113,7 @@ async function main() {
     onAreaFly: () => {},
   });
 
-  // 8. Init charts (right panel)
+  // 9. Init charts (right panel)
   initCharts((areaName, areaType) => {
     state.selectedArea     = areaName;
     state.selectedAreaType = areaType;
@@ -318,7 +320,6 @@ async function _changeYear(newYear, base) {
     setProgress(85);
 
     state.year = newYear;
-    _setUrlYear(newYear);
     _updateScrubber(newYear, _availableYears);
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
@@ -349,6 +350,7 @@ async function _changeYear(newYear, base) {
 
 // ── Refresh visualization ─────────────────────────────────────────────────────
 async function refreshVisualization() {
+  _syncUrl();
   if (state.loading) return;
   state.loading = true;
 
@@ -520,9 +522,28 @@ function _getUrlYear(availableYears, defaultYear) {
   return (urlYear && availableYears.includes(urlYear)) ? urlYear : defaultYear;
 }
 
-function _setUrlYear(year) {
+function _applyUrlParams(cm, ctm) {
+  const p = new URLSearchParams(window.location.search);
+  const agg = p.get('agg');
+  if (agg === 'city' || agg === 'county') state.aggregation = agg;
+  const area = p.get('area');
+  if (area) {
+    const meta = state.aggregation === 'county' ? ctm : cm;
+    if (meta[area]) {
+      state.selectedArea     = area;
+      state.selectedAreaType = state.aggregation;
+    }
+  }
+  const dir = p.get('dir');
+  if (dir === 'outflow' || dir === 'inflow') state.direction = dir;
+}
+
+function _syncUrl() {
   const url = new URL(window.location.href);
-  url.searchParams.set('year', year);
+  url.searchParams.set('year', state.year);
+  url.searchParams.set('area', state.selectedArea);
+  url.searchParams.set('dir',  state.direction);
+  url.searchParams.set('agg',  state.aggregation);
   history.replaceState(null, '', url);
 }
 
