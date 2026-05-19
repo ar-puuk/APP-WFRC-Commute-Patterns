@@ -41,15 +41,21 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
 
     <!-- DIRECTION -->
     <div class="rail-section tight">
-      <div class="eyebrow">Direction</div>
+      <div class="eyebrow">Direction <span class="eyebrow-suffix">&middot; where</span></div>
       <div class="seg tall" id="direction-toggle" role="group" aria-label="Flow direction">
         <button data-value="outflow" class="${state.direction === 'outflow' ? 'active' : ''}">
-          <span class="seg-line em">Where</span>
-          <span class="seg-line">residents <strong>WORK</strong></span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 640 640" fill="currentColor" aria-hidden="true"><path d="M264 112L376 112C380.4 112 384 115.6 384 120L384 160L256 160L256 120C256 115.6 259.6 112 264 112zM208 120L208 160L128 160C92.7 160 64 188.7 64 224L64 320L576 320L576 224C576 188.7 547.3 160 512 160L432 160L432 120C432 89.1 406.9 64 376 64L264 64C233.1 64 208 89.1 208 120zM576 368L384 368L384 384C384 401.7 369.7 416 352 416L288 416C270.3 416 256 401.7 256 384L256 368L64 368L64 480C64 515.3 92.7 544 128 544L512 544C547.3 544 576 515.3 576 480L576 368z"/></svg>
+          <span class="seg-text">
+            <span class="seg-line">Residents</span>
+            <span class="seg-line">WORK</span>
+          </span>
         </button>
         <button data-value="inflow" class="${state.direction === 'inflow' ? 'active' : ''}">
-          <span class="seg-line em">Where</span>
-          <span class="seg-line">workers <strong>LIVE</strong></span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 640 640" fill="currentColor" aria-hidden="true"><path d="M341.8 72.6C329.5 61.2 310.5 61.2 298.3 72.6L74.3 280.6C64.7 289.6 61.5 303.5 66.3 315.7C71.1 327.9 82.8 336 96 336L112 336L112 512C112 547.3 140.7 576 176 576L464 576C499.3 576 528 547.3 528 512L528 336L544 336C557.2 336 569 327.9 573.8 315.7C578.6 303.5 575.4 289.5 565.8 280.6L341.8 72.6zM304 384L336 384C362.5 384 384 405.5 384 432L384 528L256 528L256 432C256 405.5 277.5 384 304 384z"/></svg>
+          <span class="seg-text">
+            <span class="seg-line">Workers</span>
+            <span class="seg-line">LIVE</span>
+          </span>
         </button>
       </div>
     </div>

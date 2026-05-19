@@ -122,6 +122,11 @@ a { color: inherit; }
   color: var(--ink-3);
 }
 
+.eyebrow .eyebrow-suffix {
+  font-weight: 500;
+  opacity: 0.6;
+}
+
 .eyebrow-faint {
   font-size: 10px;
   font-weight: 500;
