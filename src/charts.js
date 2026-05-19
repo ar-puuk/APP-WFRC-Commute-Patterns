@@ -1,13 +1,15 @@
 import * as echarts from 'echarts';
 
-let _demoChart = null;
+let _demoChart     = null;
 let _onAreaSelect  = null;
+let _sankeyTooltip = null;
 
-let _lastOutflows = [];
-let _lastInflows  = [];
-let _lastTotalOut = 0;
-let _lastTotalIn  = 0;
-let _lastState    = null;
+let _lastOutflows  = [];
+let _lastInflows   = [];
+let _lastTotalOut  = 0;
+let _lastTotalIn   = 0;
+let _lastSelfFlow  = 0;
+let _lastState     = null;
 
 // Per-chart UI state (not reset on data change)
 let _demoDimension = 'age';      // 'age' | 'earnings' | 'industry'
@@ -61,15 +63,17 @@ export function initCharts(onAreaSelect) {
   });
 }
 
-export function updateCharts(outflows, inflows, totalOut, totalIn, appState) {
+export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, appState) {
   _lastOutflows = outflows;
   _lastInflows  = inflows;
   _lastTotalOut = totalOut;
   _lastTotalIn  = totalIn;
+  _lastSelfFlow = selfFlow ?? 0;
   _lastState    = appState;
 
   _renderBar(outflows, inflows, totalOut, totalIn, appState);
   _renderSankey(outflows, inflows, appState);
+  _renderFlowSummary(totalIn, totalOut, selfFlow ?? 0, appState);
   _renderDemographics(outflows, inflows, appState);
   _renderReach(outflows, inflows, appState);
   _renderIndustry(outflows, inflows, appState);
@@ -213,7 +217,7 @@ export function exportSankeyPng() {
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
   const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bg.setAttribute('width', '460'); bg.setAttribute('height', '250');
+  bg.setAttribute('width', '460'); bg.setAttribute('height', '280');
   bg.setAttribute('fill', dk ? '#0a0e17' : '#f6f3eb');
   clone.insertBefore(bg, clone.firstChild);
 
@@ -245,10 +249,10 @@ export function exportSankeyPng() {
   const img  = new Image();
   img.onload = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 920; canvas.height = 500;
+    canvas.width = 920; canvas.height = 560;
     const ctx = canvas.getContext('2d');
     ctx.scale(2, 2);
-    ctx.drawImage(img, 0, 0, 460, 250);
+    ctx.drawImage(img, 0, 0, 460, 280);
     URL.revokeObjectURL(url);
     _dlUrl(canvas.toDataURL('image/png'), `commute-flow-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}.png`);
   };
@@ -656,17 +660,35 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
   });
 }
 
-// ── 2. Flow Diagram — hand-built bilateral SVG Sankey (design-spec) ──────────
+// ── Shared ribbon path (used by Sankey + flow summary) ───────────────────────
+function _ribbonPath(x1, y1, h1, x2, y2, h2) {
+  const cx = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${cx} ${y1},${cx} ${y2},${x2} ${y2} L ${x2} ${y2+h2} C ${cx} ${y2+h2},${cx} ${y1+h1},${x1} ${y1+h1} Z`;
+}
+
+function _ensureSankeyTooltip() {
+  if (!_sankeyTooltip) {
+    _sankeyTooltip = document.createElement('div');
+    _sankeyTooltip.className = 'sankey-tooltip';
+    document.body.appendChild(_sankeyTooltip);
+  }
+  return _sankeyTooltip;
+}
+
+// ── 2. Flow Diagram — bilateral SVG alluvial ──────────────────────────────────
 
 function _renderSankey(outflows, inflows, state) {
   const svgEl = document.getElementById('sankey-svg');
   if (!svgEl) return;
 
-  const sel    = state.selectedArea;
+  const sel = state.selectedArea;
   if (!inflows.length && !outflows.length) { svgEl.innerHTML = ''; return; }
 
-  // Include cities that individually represent ≥5% of their side's total, up to 6.
-  // Fall back to top 3 when nothing clears the threshold.
+  function trunc(str, max = 14) {
+    return str.length > max ? str.slice(0, max - 1) + '…' : str;
+  }
+
+  // Include cities that represent ≥5% of their side's total, up to 6. Fall back to top 3.
   function buildSide(flows) {
     const sideTotal = flows.reduce((s, f) => s + Number(f.S000), 0) || 1;
     const included  = [];
@@ -688,23 +710,20 @@ function _renderSankey(outflows, inflows, state) {
   const inTotal  = inSide.reduce((s, d) => s + d.n, 0);
   const outTotal = outSide.reduce((s, d) => s + d.n, 0);
 
-  const nShown = Math.max(
-    inSide.filter(d => !d.isOthers).length,
-    outSide.filter(d => !d.isOthers).length
-  );
-  const subEl = document.getElementById('sankey-sub');
+  const nShown = Math.max(inSide.filter(d => !d.isOthers).length, outSide.filter(d => !d.isOthers).length);
+  const subEl  = document.getElementById('sankey-sub');
   if (subEl) subEl.textContent = `02 · Top ${nShown} by volume`;
 
-  const W = 460, H = 250, PAD = 8;
-  const LABEL_PAD = 92, CENTER_W = 110, SIDE_W = 12;
-  const totalH  = H - PAD * 2;
+  const W = 460, H = 280, PAD = 10;
+  const LABEL_PAD = 90, CENTER_W = 120, SIDE_W = 14;
+  const totalH   = H - PAD * 2;
   const maxTotal = Math.max(inTotal, outTotal, 1);
   const scale    = totalH / maxTotal;
 
   function makeBlocks(side, total, x) {
     let y = PAD + (totalH - total * scale) / 2;
     return side.map(s => {
-      const h = Math.max(s.n * scale, 1);
+      const h = Math.max(s.n * scale, 2);
       const b = { ...s, x, y, w: SIDE_W, h };
       y += h;
       return b;
@@ -720,83 +739,141 @@ function _renderSankey(outflows, inflows, state) {
   const centerInY  = PAD + (totalH - centerInH)  / 2;
   const centerOutY = PAD + (totalH - centerOutH) / 2;
 
-  function ribbonPath(x1, y1, h1, x2, y2, h2) {
-    const cx = (x1 + x2) / 2;
-    return `M ${x1} ${y1} C ${cx} ${y1},${cx} ${y2},${x2} ${y2} L ${x2} ${y2+h2} C ${cx} ${y2+h2},${cx} ${y1+h1},${x1} ${y1+h1} Z`;
-  }
-
-  // Build ribbon descriptors (needed for hover reset)
+  // ribbonData includes n + sideTotal for tooltip percentage
   const ribbonData = [];
   let leftY = centerInY;
   leftBlocks.forEach(b => {
-    ribbonData.push({ d: ribbonPath(b.x + b.w, b.y, b.h, centerX, leftY, b.h), color: 'var(--inflow)', name: b.name, isOthers: b.isOthers });
+    ribbonData.push({ d: _ribbonPath(b.x + b.w, b.y, b.h, centerX, leftY, b.h), color: 'var(--inflow)', name: b.name, n: b.n, sideTotal: inTotal, isOthers: b.isOthers });
     leftY += b.h;
   });
   let rightY = centerOutY;
   rightBlocks.forEach(b => {
-    ribbonData.push({ d: ribbonPath(centerX + CENTER_W, rightY, b.h, b.x, b.y, b.h), color: 'var(--outflow)', name: b.name, isOthers: b.isOthers });
+    ribbonData.push({ d: _ribbonPath(centerX + CENTER_W, rightY, b.h, b.x, b.y, b.h), color: 'var(--outflow)', name: b.name, n: b.n, sideTotal: outTotal, isOthers: b.isOthers });
     rightY += b.h;
   });
 
-  const BASE_OPACITY = 0.55;
+  const BASE_OPACITY = 0.52;
 
-  const ribbonMarkup = ribbonData.map((r, i) => `
-    <path class="sankey-ribbon" data-idx="${i}" data-name="${r.name}"
-      d="${r.d}" fill="${r.color}"
-      opacity="${r.isOthers ? BASE_OPACITY * 0.6 : BASE_OPACITY}">
-      <title>${r.name}</title>
-    </path>`).join('');
+  const ribbonMarkup = ribbonData.map((r, i) =>
+    `<path class="sankey-ribbon" data-idx="${i}" d="${r.d}" fill="${r.color}" opacity="${r.isOthers ? BASE_OPACITY * 0.55 : BASE_OPACITY}"/>`
+  ).join('');
 
   const leftMarkup = leftBlocks.map(b => {
     const my = b.y + b.h / 2;
-    const op = b.isOthers ? '0.45' : '0.85';
+    const op = b.isOthers ? '0.4' : '0.82';
     return `<g class="sankey-block">
-      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="var(--inflow)" opacity="${op}"/>
-      <text x="${b.x - 6}" y="${my + 3}" text-anchor="end" class="sankey-label in">${b.name}</text>
-      <text x="${b.x - 6}" y="${my + 14}" text-anchor="end" class="sankey-num">${b.n.toLocaleString()}</text>
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="var(--inflow)" opacity="${op}" rx="1"/>
+      <text x="${b.x - 7}" y="${my + 3}" text-anchor="end" class="sankey-label in">${trunc(b.name)}</text>
+      <text x="${b.x - 7}" y="${my + 14}" text-anchor="end" class="sankey-num">${b.n.toLocaleString()}</text>
     </g>`;
   }).join('');
 
   const rightMarkup = rightBlocks.map(b => {
     const my = b.y + b.h / 2;
-    const op = b.isOthers ? '0.45' : '0.85';
+    const op = b.isOthers ? '0.4' : '0.82';
     return `<g class="sankey-block">
-      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="var(--outflow)" opacity="${op}"/>
-      <text x="${b.x + b.w + 6}" y="${my + 3}" text-anchor="start" class="sankey-label out">${b.name}</text>
-      <text x="${b.x + b.w + 6}" y="${my + 14}" text-anchor="start" class="sankey-num">${b.n.toLocaleString()}</text>
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="var(--outflow)" opacity="${op}" rx="1"/>
+      <text x="${b.x + b.w + 7}" y="${my + 3}" text-anchor="start" class="sankey-label out">${trunc(b.name)}</text>
+      <text x="${b.x + b.w + 7}" y="${my + 14}" text-anchor="start" class="sankey-num">${b.n.toLocaleString()}</text>
     </g>`;
   }).join('');
 
-  const centerMarkup = `
-    <rect x="${centerX}" y="${centerInY}" width="${CENTER_W/2}" height="${centerInH}" fill="var(--inflow-2)" opacity="0.9"/>
-    <rect x="${centerX + CENTER_W/2}" y="${centerOutY}" width="${CENTER_W/2}" height="${centerOutH}" fill="var(--outflow-2)" opacity="0.9"/>
-    <text x="${W/2}" y="${H/2 - 8}" text-anchor="middle" class="sankey-label center">${sel}</text>
-    <text x="${W/2}" y="${H/2 + 6}"  text-anchor="middle" class="sankey-num">IN ${inTotal.toLocaleString()}</text>
-    <text x="${W/2}" y="${H/2 + 18}" text-anchor="middle" class="sankey-num">OUT ${outTotal.toLocaleString()}</text>`;
+  // Center node: split halves showing inflow/outflow proportion, area name centered
+  const centerTopY    = Math.min(centerInY, centerOutY);
+  const centerBottomY = Math.max(centerInY + centerInH, centerOutY + centerOutH);
+  const centerMarkup  = `
+    <rect x="${centerX}"              y="${centerInY}"  width="${CENTER_W/2}" height="${centerInH}"  fill="var(--inflow-2)"  opacity="0.82" rx="1"/>
+    <rect x="${centerX + CENTER_W/2}" y="${centerOutY}" width="${CENTER_W/2}" height="${centerOutH}" fill="var(--outflow-2)" opacity="0.82" rx="1"/>
+    <text x="${W/2}" y="${(centerTopY + centerBottomY) / 2 + 4}" text-anchor="middle" class="sankey-label center">${trunc(sel, 16)}</text>`;
 
   svgEl.innerHTML = ribbonMarkup + leftMarkup + centerMarkup + rightMarkup;
 
-  // Hover: highlight all ribbons sharing the same city name (cross-side), dim the rest
+  // Hover: highlight matching ribbons, show custom tooltip
   const paths = svgEl.querySelectorAll('.sankey-ribbon');
   paths.forEach((path, i) => {
+    const rd = ribbonData[i];
+
     path.addEventListener('mouseenter', () => {
-      const hoveredName = ribbonData[i].name;
       paths.forEach((p, j) => {
-        const jBase = ribbonData[j].isOthers ? BASE_OPACITY * 0.6 : BASE_OPACITY;
-        const match  = ribbonData[j].name === hoveredName;
-        p.setAttribute('opacity', match ? String(Math.min(jBase + 0.2, 1)) : '0.18');
+        const jBase = ribbonData[j].isOthers ? BASE_OPACITY * 0.55 : BASE_OPACITY;
+        p.setAttribute('opacity', ribbonData[j].name === rd.name ? String(Math.min(jBase + 0.25, 1)) : '0.12');
       });
     });
+
+    path.addEventListener('mousemove', (e) => {
+      const tt  = _ensureSankeyTooltip();
+      const pct = rd.sideTotal > 0 ? Math.round(rd.n / rd.sideTotal * 100) : 0;
+      tt.innerHTML = `<strong>${rd.name}</strong><br>${rd.n.toLocaleString()} commuters · ${pct}%`;
+      tt.style.display = 'block';
+      tt.style.left    = `${e.clientX + 14}px`;
+      tt.style.top     = `${e.clientY - 32}px`;
+    });
+
     path.addEventListener('mouseleave', () => {
       paths.forEach((p, j) => {
-        p.setAttribute('opacity', String(ribbonData[j].isOthers ? BASE_OPACITY * 0.6 : BASE_OPACITY));
+        p.setAttribute('opacity', String(ribbonData[j].isOthers ? BASE_OPACITY * 0.55 : BASE_OPACITY));
       });
+      if (_sankeyTooltip) _sankeyTooltip.style.display = 'none';
     });
-    path.style.cursor = ribbonData[i].isOthers ? 'default' : 'pointer';
-    if (!ribbonData[i].isOthers) {
-      path.addEventListener('click', () => _onAreaSelect?.(ribbonData[i].name, state.aggregation));
-    }
+
+    path.style.cursor = rd.isOthers ? 'default' : 'pointer';
+    if (!rd.isOthers) path.addEventListener('click', () => _onAreaSelect?.(rd.name, state.aggregation));
   });
+}
+
+// ── 2b. Flow Summary — total inflow / self-flow / total outflow bars ──────────
+
+function _renderFlowSummary(totalIn, totalOut, selfFlow, state) {
+  const el = document.getElementById('flow-summary');
+  if (!el) return;
+
+  function fmt(n) {
+    if (n >= 10000) return `${Math.round(n / 1000)}k`;
+    if (n >= 1000)  return `${parseFloat((n / 1000).toFixed(1))}k`;
+    return n ? n.toLocaleString() : '—';
+  }
+
+  const W = 460, H = 92;
+  const TOP_PAD = 22, BAR_H = 50, BOTTOM_PAD = 20;
+  const BASE_Y  = TOP_PAD + BAR_H;   // y=72, bottom of bars
+  const COLW = 88, GUTTER = 38;
+  const START_X = (W - (3 * COLW + 2 * GUTTER)) / 2; // ≈ 57
+
+  const inX   = START_X;
+  const selfX = START_X + COLW + GUTTER;
+  const outX  = START_X + 2 * (COLW + GUTTER);
+
+  const maxVal = Math.max(totalIn, totalOut, selfFlow, 1);
+  const inH    = Math.max((totalIn  / maxVal) * BAR_H, 4);
+  const selfH  = Math.max((selfFlow / maxVal) * BAR_H, 4);
+  const outH   = Math.max((totalOut / maxVal) * BAR_H, 4);
+
+  const inY   = BASE_Y - inH;
+  const selfY = BASE_Y - selfH;
+  const outY  = BASE_Y - outH;
+
+  const ribIn  = _ribbonPath(inX + COLW, inY,   inH,   selfX,        selfY, selfH);
+  const ribOut = _ribbonPath(selfX + COLW, selfY, selfH, outX,        outY,  outH);
+
+  const selfPct = totalOut > 0 ? Math.round(selfFlow / (totalOut + selfFlow) * 100) : 0;
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">
+      <path d="${ribIn}"  fill="var(--inflow)"  opacity="0.15"/>
+      <path d="${ribOut}" fill="var(--outflow)" opacity="0.15"/>
+
+      <rect x="${inX}"   y="${inY}"   width="${COLW}" height="${inH}"   fill="var(--inflow)"  opacity="0.72" rx="2"/>
+      <rect x="${selfX}" y="${selfY}" width="${COLW}" height="${selfH}" fill="var(--ink-3)"   opacity="0.45" rx="2"/>
+      <rect x="${outX}"  y="${outY}"  width="${COLW}" height="${outH}"  fill="var(--outflow)" opacity="0.72" rx="2"/>
+
+      <text x="${inX   + COLW/2}" y="${inY   - 5}" text-anchor="middle" class="fs-val in">${fmt(totalIn)}</text>
+      <text x="${selfX + COLW/2}" y="${selfY - 5}" text-anchor="middle" class="fs-val">${fmt(selfFlow)}</text>
+      <text x="${outX  + COLW/2}" y="${outY  - 5}" text-anchor="middle" class="fs-val out">${fmt(totalOut)}</text>
+
+      <text x="${inX   + COLW/2}" y="${BASE_Y + 14}" text-anchor="middle" class="fs-lbl">workers in</text>
+      <text x="${selfX + COLW/2}" y="${BASE_Y + 14}" text-anchor="middle" class="fs-lbl">live &amp; work · ${selfPct}%</text>
+      <text x="${outX  + COLW/2}" y="${BASE_Y + 14}" text-anchor="middle" class="fs-lbl">residents out</text>
+    </svg>`;
 }
 
 // ── 3. Worker Demographics — diverging grouped bar ────────────────────────────

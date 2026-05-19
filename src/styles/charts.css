@@ -194,7 +194,7 @@
 .sankey-wrap { position: relative; }
 .sankey-wrap svg { display: block; width: 100%; height: auto; }
 
-.sankey-ribbon { transition: opacity 0.2s ease; }
+.sankey-ribbon { transition: opacity 0.18s ease; }
 
 .sankey-label {
   font-size: 10.5px;
@@ -214,6 +214,46 @@
   font-family: 'Inter', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
+}
+
+.sankey-tooltip {
+  position: fixed;
+  display: none;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  white-space: nowrap;
+}
+
+/* ── 02b Flow Summary — mini proportional bar chart ─────────── */
+.flow-summary {
+  padding: 2px 4px 4px;
+  border-top: 1px solid var(--rule);
+}
+
+.fs-val {
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: var(--ink-3);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.fs-val.in  { fill: var(--inflow-2); }
+.fs-val.out { fill: var(--outflow-2); }
+
+.fs-lbl {
+  font-size: 9px;
+  fill: var(--ink-4);
+  font-family: 'Inter', system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ── 04 Industry Mix — horizontal stacked bars ─────────────── */

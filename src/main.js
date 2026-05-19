@@ -23,10 +23,11 @@ let cityMeta   = {};
 let countyMeta = {};
 
 // Cached results for re-rendering without re-querying
-let _lastOutflows = [];
-let _lastInflows  = [];
-let _lastTotalOut = 0;
-let _lastTotalIn  = 0;
+let _lastOutflows  = [];
+let _lastInflows   = [];
+let _lastTotalOut  = 0;
+let _lastTotalIn   = 0;
+let _lastSelfCount = 0;
 
 // Track last flew state so we don't re-fly on direction/theme/filter changes
 let _lastFlewArea        = null;
@@ -380,10 +381,11 @@ async function refreshVisualization() {
       })
       .filter(f => f.home_lat != null && f.work_lat != null);
 
-    _lastOutflows = enrichedOut;
-    _lastInflows  = enrichedIn;
-    _lastTotalOut = totalOut;
-    _lastTotalIn  = totalIn;
+    _lastOutflows  = enrichedOut;
+    _lastInflows   = enrichedIn;
+    _lastTotalOut  = totalOut;
+    _lastTotalIn   = totalIn;
+    _lastSelfCount = selfCount;
 
     setSelfFlow(selfCount, totalOut, totalIn);
 
@@ -426,7 +428,7 @@ function _applyFilter() {
 
   updateLayers(filtered, state, arcClickHandler, total);
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
-  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, state);
+  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastSelfCount, state);
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
