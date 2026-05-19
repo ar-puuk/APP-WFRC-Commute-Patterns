@@ -457,7 +457,7 @@ function _updateDataline(total, appState) {
 // With adaptiveScalesEnabled=true, flowmap.gl maps the visible flow range to
 // the full scheme — so scheme[0] = minVal and scheme[last] = maxVal.
 const _LEGEND_ORANGES = ['#fff5eb','#fee6ce','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#a63603','#7f2704'];
-const _LEGEND_TEAL    = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
+const _LEGEND_GREEN   = ['#d0eeec','#a2dbd8','#74c8c3','#46b5ae','#2e9898','#1e6f6f','#0f4040'];
 
 function _updateLegend(flows, direction, theme) {
   const el = document.getElementById('map-legend');
@@ -475,7 +475,7 @@ function _updateLegend(flows, direction, theme) {
     return n.toLocaleString();
   }
 
-  const scheme = direction === 'inflow' ? _LEGEND_TEAL : _LEGEND_ORANGES;
+  const scheme = direction === 'inflow' ? _LEGEND_GREEN : _LEGEND_ORANGES;
   const colors = theme === 'dark' ? [...scheme].reverse() : scheme;
   const gradient = `linear-gradient(to right, ${colors.join(',')})`;
 

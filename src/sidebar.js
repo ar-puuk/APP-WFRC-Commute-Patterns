@@ -110,11 +110,15 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
     </div>
   `;
 
+  // Reflect direction on body so map toolbar + slider can pick up the accent color
+  document.body.dataset.direction = _state.direction;
+
   // Wire direction toggle
   document.getElementById('direction-toggle').addEventListener('click', e => {
     const btn = e.target.closest('[data-value]');
     if (!btn) return;
     _state.direction = btn.dataset.value;
+    document.body.dataset.direction = btn.dataset.value;
     _setActiveToggle('direction-toggle', btn.dataset.value);
     _onSelectionChange();
   });

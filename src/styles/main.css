@@ -524,6 +524,11 @@ a { color: inherit; }
   color: var(--paper);
 }
 
+[data-direction="outflow"] .map-layer-toolbar button:hover:not(.active) { background: var(--outflow-tint); }
+[data-direction="outflow"] .map-layer-toolbar button.active { background: var(--outflow); color: var(--paper); }
+[data-direction="inflow"]  .map-layer-toolbar button:hover:not(.active) { background: var(--inflow-tint);  }
+[data-direction="inflow"]  .map-layer-toolbar button.active { background: var(--inflow);  color: var(--paper); }
+
 /* ── Flow filter ───────────────────────────────────────────── */
 .map-flow-filter {
   background: var(--paper);
@@ -550,6 +555,9 @@ input[type="range"] {
   width: 100px;
   accent-color: var(--navy);
 }
+
+[data-direction="outflow"] input[type="range"] { accent-color: var(--outflow); }
+[data-direction="inflow"]  input[type="range"] { accent-color: var(--inflow);  }
 
 .mf-val {
   font-size: 11.5px;

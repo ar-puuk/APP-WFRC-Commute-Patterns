@@ -141,6 +141,13 @@
   font-weight: 600;
 }
 
+/* Direction toggle: outflow = rust, inflow = green */
+.seg button[data-value="outflow"]:hover:not(.active) { background: var(--outflow-tint); color: var(--ink); }
+.seg button[data-value="inflow"]:hover:not(.active)  { background: var(--inflow-tint);  color: var(--ink); }
+
+.seg button[data-value="outflow"].active { background: var(--outflow); color: var(--paper); }
+.seg button[data-value="inflow"].active  { background: var(--inflow);  color: var(--paper); }
+
 .seg.tall button {
   padding: 11px 8px;
   font-size: 11.5px;

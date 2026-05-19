@@ -35,14 +35,14 @@ function _makeCtrlGroup(...btns) {
   return { onAdd: () => el, onRemove: () => el.remove() };
 }
 
-// ── Color schemes (choropleth) ────────────────────────────────────────────────
-// SCHEME_TEAL mirrors flowmap.gl's built-in schemeTeal exactly.
-// SCHEME_ORANGE uses ColorBrewer Oranges (7-class) — same source as
-// flowmap.gl's COLOR_SCHEMES['Oranges'] = asScheme(schemeOranges).
+// ── Color schemes (choropleth + flow lines) ───────────────────────────────────
+// SCHEME_GREEN is a custom 7-stop ramp anchored on --inflow (#1e6f6f / #5aa6a7),
+// keeping H≈178° throughout so it matches the green-teal used in the sidebar charts.
+// SCHEME_ORANGE uses ColorBrewer Oranges (7-class) to match --outflow (#cc683a).
 // For the MapLibre choropleth we reverse manually for dark mode.
-// FlowmapLayer uses the named strings 'Teal' / 'Oranges' directly so it
-// handles the dark-mode reversal itself (array path skips that step).
-const SCHEME_TEAL   = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
+// FlowmapLayer receives the same array pre-reversed for dark mode (array path
+// skips flowmap.gl's internal reversal, so we handle it ourselves).
+const SCHEME_GREEN  = ['#d0eeec','#a2dbd8','#74c8c3','#46b5ae','#2e9898','#1e6f6f','#0f4040'];
 const SCHEME_ORANGE = ['#feedde','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#8c2d04'];
 
 // Linear interpolation through an RGB hex color array (mirrors D3 interpolateRgbBasis
@@ -255,9 +255,12 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     flowTotals.set(`${f.home_name}||${f.work_name}`, Number(f.dest_total ?? 0));
   });
 
-  // Named schemes: flowmap.gl looks these up in its own COLOR_SCHEMES map and
-  // reverses them automatically when darkMode=true — arrays skip that step.
-  const colorScheme = state.direction === 'outflow' ? 'Oranges' : 'Teal';
+  // Outflow uses flowmap.gl's named 'Oranges' (auto-reversed for dark mode).
+  // Inflow uses our custom SCHEME_GREEN array; arrays skip flowmap.gl's internal
+  // reversal, so we pre-reverse for dark mode to match named-scheme behavior.
+  const colorScheme = state.direction === 'outflow'
+    ? 'Oranges'
+    : (state.theme === 'dark' ? [...SCHEME_GREEN].reverse() : SCHEME_GREEN);
 
   const flowLayer = new FlowmapLayer({
     id: 'commute-flows',
@@ -451,7 +454,7 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme, direct
   // Pick scheme and reverse for dark mode (mirrors flowmap.gl's internal reversal).
   // Light: lightest color = lowest flow (barely visible on white bg).
   // Dark:  lightest color = highest flow (glows bright on dark bg).
-  const baseScheme = isOutflow ? SCHEME_ORANGE : SCHEME_TEAL;
+  const baseScheme = isOutflow ? SCHEME_ORANGE : SCHEME_GREEN;
   const scheme     = theme === 'dark' ? [...baseScheme].reverse() : baseScheme;
 
   const matchPairs = [];
