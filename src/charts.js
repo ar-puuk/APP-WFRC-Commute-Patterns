@@ -199,9 +199,13 @@ export function exportBarPng() {
   _dlUrl(canvas.toDataURL('image/png'), `commute-balance-${area}-${_lastState.year ?? ''}.png`);
 }
 export function exportSankeyPng() {
-  const svgEl = document.getElementById('sankey-svg');
+  const svgEl    = document.getElementById('sankey-svg');
+  const sumSvgEl = document.getElementById('flow-summary')?.querySelector('svg');
   if (!svgEl || !_lastState) return;
-  const dk = _lastState.theme === 'dark';
+  const dk   = _lastState.theme === 'dark';
+  const font = 'Inter, system-ui, sans-serif';
+  const bgCol  = dk ? '#0a0e17' : '#f6f3eb';
+  const ruleCol = dk ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.15)';
 
   const vars = {
     '--inflow':    dk ? '#5aa6a7' : '#1e6f6f',
@@ -210,53 +214,83 @@ export function exportSankeyPng() {
     '--outflow-2': dk ? '#c5703f' : '#b35828',
     '--ink':       dk ? '#e8e5dc' : '#121726',
     '--ink-2':     dk ? '#c4c1b8' : '#2a2f40',
+    '--ink-3':     dk ? '#92929a' : '#5b6071',
     '--ink-4':     dk ? '#696a73' : '#898d9c',
   };
 
-  const clone = svgEl.cloneNode(true);
-  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  function resolveVarFills(el) {
+    el.querySelectorAll('[fill]').forEach(n => {
+      const m = n.getAttribute('fill').match(/var\((--[^)]+)\)/);
+      if (m && vars[m[1]]) n.setAttribute('fill', vars[m[1]]);
+    });
+  }
 
-  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bg.setAttribute('width', '460'); bg.setAttribute('height', '280');
-  bg.setAttribute('fill', dk ? '#0a0e17' : '#f6f3eb');
-  clone.insertBefore(bg, clone.firstChild);
+  function svgToImage(clone) {
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const xml  = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.src = url;
+    });
+  }
 
-  clone.querySelectorAll('[fill]').forEach(el => {
-    const m = el.getAttribute('fill').match(/var\((--[^)]+)\)/);
-    if (m && vars[m[1]]) el.setAttribute('fill', vars[m[1]]);
-  });
-
-  const font = 'Inter, system-ui, sans-serif';
-  clone.querySelectorAll('.sankey-label').forEach(el => {
-    el.setAttribute('font-size', '10.5');
-    el.setAttribute('font-weight', '600');
-    el.setAttribute('font-family', font);
-    el.setAttribute('fill', vars['--ink-2']);
+  // ── Sankey clone ──────────────────────────────────────────────
+  const sankeyClone = svgEl.cloneNode(true);
+  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bgRect.setAttribute('width', '460'); bgRect.setAttribute('height', '280');
+  bgRect.setAttribute('fill', bgCol);
+  sankeyClone.insertBefore(bgRect, sankeyClone.firstChild);
+  resolveVarFills(sankeyClone);
+  sankeyClone.querySelectorAll('.sankey-label').forEach(el => {
+    el.setAttribute('font-size', '10.5'); el.setAttribute('font-weight', '600');
+    el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-2']);
     if (el.classList.contains('in'))     el.setAttribute('fill', vars['--inflow-2']);
     if (el.classList.contains('out'))    el.setAttribute('fill', vars['--outflow-2']);
     if (el.classList.contains('center')) { el.setAttribute('fill', vars['--ink']); el.setAttribute('font-weight', '700'); el.setAttribute('font-size', '12'); }
   });
-  clone.querySelectorAll('.sankey-num').forEach(el => {
-    el.setAttribute('font-size', '9.5');
-    el.setAttribute('font-weight', '500');
-    el.setAttribute('font-family', font);
-    el.setAttribute('fill', vars['--ink-4']);
+  sankeyClone.querySelectorAll('.sankey-num').forEach(el => {
+    el.setAttribute('font-size', '9.5'); el.setAttribute('font-weight', '500');
+    el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-4']);
   });
 
-  const xml  = new XMLSerializer().serializeToString(clone);
-  const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const img  = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 920; canvas.height = 560;
+  // ── Flow summary clone ────────────────────────────────────────
+  const SUM_H = 92;
+  let sumPromise = Promise.resolve(null);
+  if (sumSvgEl) {
+    const sumClone = sumSvgEl.cloneNode(true);
+    resolveVarFills(sumClone);
+    sumClone.querySelectorAll('.fs-val').forEach(el => {
+      el.setAttribute('font-size', '11.5'); el.setAttribute('font-weight', '700');
+      el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-3']);
+      if (el.classList.contains('in'))  el.setAttribute('fill', vars['--inflow-2']);
+      if (el.classList.contains('out')) el.setAttribute('fill', vars['--outflow-2']);
+    });
+    sumClone.querySelectorAll('.fs-lbl').forEach(el => {
+      el.setAttribute('font-size', '9'); el.setAttribute('font-weight', '400');
+      el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-4']);
+    });
+    sumPromise = svgToImage(sumClone);
+  }
+
+  Promise.all([svgToImage(sankeyClone), sumPromise]).then(([sankeyImg, sumImg]) => {
+    const TOTAL_H = 280 + (sumImg ? 1 + SUM_H : 0);
+    const canvas  = document.createElement('canvas');
+    canvas.width  = 920; canvas.height = TOTAL_H * 2;
     const ctx = canvas.getContext('2d');
     ctx.scale(2, 2);
-    ctx.drawImage(img, 0, 0, 460, 280);
-    URL.revokeObjectURL(url);
+    ctx.fillStyle = bgCol;
+    ctx.fillRect(0, 0, 460, TOTAL_H);
+    ctx.drawImage(sankeyImg, 0, 0, 460, 280);
+    if (sumImg) {
+      ctx.fillStyle = ruleCol;
+      ctx.fillRect(0, 280, 460, 1);
+      ctx.drawImage(sumImg, 0, 281, 460, SUM_H);
+    }
     _dlUrl(canvas.toDataURL('image/png'), `commute-flow-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}.png`);
-  };
-  img.src = url;
+  });
 }
 export function exportDemoPng() {
   _pngDownload(_demoChart, `worker-demographics-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
