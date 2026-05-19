@@ -64,6 +64,29 @@ function _makeCtrlGroup(...btns) {
   return { onAdd: () => el, onRemove: () => el.remove() };
 }
 
+// ── Color schemes (choropleth) ────────────────────────────────────────────────
+// SCHEME_TEAL mirrors flowmap.gl's built-in schemeTeal exactly.
+// SCHEME_ORANGE uses ColorBrewer Oranges (7-class) — same source as
+// flowmap.gl's COLOR_SCHEMES['Oranges'] = asScheme(schemeOranges).
+// For the MapLibre choropleth we reverse manually for dark mode.
+// FlowmapLayer uses the named strings 'Teal' / 'Oranges' directly so it
+// handles the dark-mode reversal itself (array path skips that step).
+const SCHEME_TEAL   = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
+const SCHEME_ORANGE = ['#feedde','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#8c2d04'];
+
+// Linear interpolation through an RGB hex color array (mirrors D3 interpolateRgbBasis
+// but without the dependency; sufficient for the 7-stop choropleth ramp).
+function _lerpScheme(scheme, t) {
+  t = Math.max(0, Math.min(1, t));
+  const n = scheme.length - 1;
+  const i = Math.min(Math.floor(t * n), n - 1);
+  const f = t * n - i;
+  const hex = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  const [r1,g1,b1] = hex(scheme[i]);
+  const [r2,g2,b2] = hex(scheme[i+1]);
+  return [Math.round(r1+f*(r2-r1)), Math.round(g1+f*(g2-g1)), Math.round(b1+f*(b2-b1))];
+}
+
 // ── Module state ─────────────────────────────────────────────────────────────
 let map         = null;
 let deckOverlay = null;
@@ -76,6 +99,7 @@ let _flowVisible     = true;
 let _polygonsVisible = true;
 // Cached for replay when toggling visibility
 let _lastFlowArgs = null;
+let _direction    = 'outflow';
 let _selfFlowCount    = 0;
 let _selfOutTotal     = 0;   // total commuters who reside in selected area
 let _selfInTotal      = 0;   // total workers employed in selected area
@@ -91,7 +115,7 @@ function _donutSvg(pct, strokeColor, size = 66) {
   const fs  = Math.round(size * 0.195);
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke-width="5.5"
-      style="stroke:var(--sidebar-border)"/>
+      style="stroke:var(--rule-strong)"/>
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke-width="5.5"
       stroke-linecap="round"
       stroke-dasharray="${arc} ${C.toFixed(2)}"
@@ -99,7 +123,7 @@ function _donutSvg(pct, strokeColor, size = 66) {
       style="stroke:${strokeColor}"/>
     <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
       font-size="${fs}" font-weight="700"
-      style="fill:var(--sidebar-text);font-family:var(--font-heading)">${pct}%</text>
+      style="fill:var(--ink);font-family:'Inter',sans-serif">${pct}%</text>
   </svg>`;
 }
 
@@ -191,19 +215,16 @@ export function switchTheme(theme, onReady) {
   // and makes style.load-based layer restoration unreliable.
   map.getSource('basemap')?.setTiles(TILE_URLS[theme]);
 
-  // Update boundary outline/selection colors for the new theme
-  const outlineColor     = theme === 'dark' ? 'rgba(80,210,230,0.5)'  : 'rgba(0,100,120,0.30)';
-  const outlineColorCity = theme === 'dark' ? 'rgba(80,210,230,0.35)' : 'rgba(0,100,120,0.22)';
-  const selColor         = theme === 'dark' ? '#50d2e6'               : '#007888';
-  if (map.getLayer('county-outline'))  map.setPaintProperty('county-outline',  'line-color', outlineColor);
-  if (map.getLayer('county-selected')) map.setPaintProperty('county-selected', 'line-color', selColor);
-  if (map.getLayer('city-outline'))    map.setPaintProperty('city-outline',    'line-color', outlineColorCity);
-  if (map.getLayer('city-selected'))   map.setPaintProperty('city-selected',   'line-color', selColor);
+  // Update boundary outlines to neutral gray (selection color handled by updateChoropleth)
+  const outlineColor     = theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
+  const outlineColorCity = theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
+  if (map.getLayer('county-outline')) map.setPaintProperty('county-outline', 'line-color', outlineColor);
+  if (map.getLayer('city-outline'))   map.setPaintProperty('city-outline',   'line-color', outlineColorCity);
 
-  // Re-render choropleth and flow layer with the new theme immediately
+  // Re-render choropleth (passes direction → updates selected outline color too)
   if (_pendingChoropleth) {
-    const { flows, selectedArea, aggregation } = _pendingChoropleth;
-    updateChoropleth(flows, selectedArea, aggregation, theme);
+    const { flows, selectedArea, aggregation, direction } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, theme, direction);
   }
   if (_lastFlowArgs) updateLayers(..._lastFlowArgs);
 
@@ -225,8 +246,8 @@ export function setPolygonsVisible(v) {
       if (map?.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
   } else if (_pendingChoropleth) {
-    const { flows, selectedArea, aggregation, theme } = _pendingChoropleth;
-    updateChoropleth(flows, selectedArea, aggregation, theme);
+    const { flows, selectedArea, aggregation, theme, direction } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, theme, direction);
   }
 }
 
@@ -239,6 +260,7 @@ export function setSelfFlow(count, outTotal = 0, inTotal = 0) {
 export function updateLayers(flows, state, onArcClick, total = 0) {
   if (!deckOverlay) return;
   _lastFlowArgs = [flows, state, onArcClick, total];
+  _direction    = state.direction;
 
   if (!flows.length || !_flowVisible) {
     deckOverlay.setProps({ layers: [] });
@@ -254,6 +276,10 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     flowTotals.set(`${f.home_name}||${f.work_name}`, Number(f.dest_total ?? 0));
   });
 
+  // Named schemes: flowmap.gl looks these up in its own COLOR_SCHEMES map and
+  // reverses them automatically when darkMode=true — arrays skip that step.
+  const colorScheme = state.direction === 'outflow' ? 'Oranges' : 'Teal';
+
   const flowLayer = new FlowmapLayer({
     id: 'commute-flows',
     data: {
@@ -268,6 +294,7 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     getFlowDestId:    flow => flow.dest,
     getFlowMagnitude: flow => flow.count,
     darkMode: state.theme === 'dark',
+    colorScheme,
     flowLinesRenderingMode: 'animated-straight',
     clusteringEnabled: false,
     locationTotalsEnabled: true,
@@ -289,9 +316,8 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         const selPct = total     > 0 ? parseFloat((count / total     * 100).toFixed(1)) : null;
         const dstPct = destTotal > 0 ? parseFloat((count / destTotal * 100).toFixed(1)) : null;
 
-        // teal = selected-area context, orange (accent) = other-area context
-        const selDonut = selPct != null ? _donutSvg(selPct, 'var(--accent-teal)') : '';
-        const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--accent)')      : '';
+        const selDonut = selPct != null ? _donutSvg(selPct, 'var(--inflow)')   : '';
+        const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--outflow)') : '';
 
         // "commuters" = workers who reside in that city; "workforce" = workers employed in that city
         const selLabel = isOutflow
@@ -318,8 +344,8 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         if (locId === state.selectedArea && _selfFlowCount > 0) {
           const outPct = _selfOutTotal > 0 ? parseFloat((_selfFlowCount / _selfOutTotal * 100).toFixed(1)) : null;
           const inPct  = _selfInTotal  > 0 ? parseFloat((_selfFlowCount / _selfInTotal  * 100).toFixed(1)) : null;
-          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--accent-teal)') : '';
-          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--accent)')      : '';
+          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--inflow)')   : '';
+          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--outflow)') : '';
           _showTooltip(info, `
             <div class="ft-route">${locId}</div>
             <div class="ft-count">${Number(_selfFlowCount).toLocaleString()}<span class="ft-unit">live &amp; work here</span></div>
@@ -392,8 +418,8 @@ export async function loadBoundaries(base, theme) {
  * Update choropleth fill colours to reflect the current flow data.
  * Called after each data refresh.
  */
-export function updateChoropleth(flows, selectedArea, aggregation, theme) {
-  _pendingChoropleth = { flows, selectedArea, aggregation, theme };
+export function updateChoropleth(flows, selectedArea, aggregation, theme, direction = 'outflow') {
+  _pendingChoropleth = { flows, selectedArea, aggregation, theme, direction };
   if (!map) return;
   // Note: isStyleLoaded() can return false inside the load event callback itself,
   // so we rely on getLayer() below to bail out when layers aren't ready yet.
@@ -426,8 +452,13 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme) {
   if (map.getLayer(layers.offOut))  map.setLayoutProperty(layers.offOut,  'visibility', 'none');
   if (map.getLayer(layers.offSel))  map.setLayoutProperty(layers.offSel,  'visibility', 'none');
 
-  // Highlight selected area with a distinct outline
+  // Direction-aware selected-area outline
+  const isOutflow    = direction === 'outflow';
+  const selLineColor = isOutflow
+    ? (theme === 'dark' ? '#e4895a' : '#cc683a')
+    : (theme === 'dark' ? '#5aa6a7' : '#1e6f6f');
   map.setFilter(layers.sel, ['==', ['get', 'name'], selectedArea ?? '']);
+  if (map.getLayer(layers.sel)) map.setPaintProperty(layers.sel, 'line-color', selLineColor);
 
   if (!flows.length) {
     map.setPaintProperty(layers.fill, 'fill-color', ['rgba', 0, 0, 0, 0]);
@@ -436,30 +467,30 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme) {
 
   const maxFlow = Math.max(...flows.map(d => Number(d.S000)), 1);
 
+  // Pick scheme and reverse for dark mode (mirrors flowmap.gl's internal reversal).
+  // Light: lightest color = lowest flow (barely visible on white bg).
+  // Dark:  lightest color = highest flow (glows bright on dark bg).
+  const baseScheme = isOutflow ? SCHEME_ORANGE : SCHEME_TEAL;
+  const scheme     = theme === 'dark' ? [...baseScheme].reverse() : baseScheme;
+
   const matchPairs = [];
 
-  // Selected area: subtle teal highlight (it's the origin, not a destination)
+  // Selected area: pin to the lightest stop (step 0) so the origin reads as background.
   if (selectedArea) {
-    const selColor = theme === 'dark'
-      ? ['rgba', 40, 130, 155, 0.28]
-      : ['rgba',  0, 120, 140, 0.14];
-    matchPairs.push(selectedArea, selColor);
+    const [r,g,b] = _lerpScheme(scheme, 0);
+    matchPairs.push(selectedArea, ['rgba', r, g, b, theme === 'dark' ? 0.22 : 0.45]);
   }
 
-  // Destination zones: teal choropleth proportional to flow volume.
-  // Light mode: alpha ramp (dark teal, transparent→opaque on white bg).
-  // Dark mode: luminosity ramp (dark→bright teal at fixed opacity) — inverted so
-  // high-flow zones read as bright against the dark basemap.
+  // Zone fills: cube-root power scale (exponent 1/3) matching flowmap.gl's createFlowColorScale.
+  // Gives more visual separation at the low end than sqrt (1/2) or linear.
   flows.forEach(f => {
-    const t = Math.sqrt(Number(f.S000) / maxFlow);
-    // Both themes scale opacity AND color for maximum clarity.
-    // Light: dark teal, opacity 0.08→0.80 (transparent→opaque on white bg).
-    // Dark:  luminosity 0.30→0.88 opacity + dark→bright teal (low blends into dark bg, high glows).
-    const rgba = theme === 'dark'
-      ? ['rgba', Math.round(20 + t * 80), Math.round(70 + t * 150), Math.round(90 + t * 150),
-          parseFloat((0.30 + 0.58 * t).toFixed(3))]
-      : ['rgba', 0, 120, 140, parseFloat((0.08 + 0.72 * t).toFixed(3))];
-    matchPairs.push(f.dest_name, rgba);
+    const t     = Math.cbrt(Number(f.S000) / maxFlow);
+    const [r,g,b] = _lerpScheme(scheme, t);
+    // Alpha: dark mode ramps from near-invisible to fully opaque; light mode similar but shallower.
+    const alpha = theme === 'dark'
+      ? parseFloat((0.15 + 0.75 * t).toFixed(3))
+      : parseFloat((0.12 + 0.72 * t).toFixed(3));
+    matchPairs.push(f.dest_name, ['rgba', r, g, b, alpha]);
   });
 
   // match expression: ['match', input, label, output, ..., fallback]
@@ -490,12 +521,18 @@ export function fitToFlows(flows) {
 
 // ── Internal: add boundary layers after style load ────────────────────────────
 
+// ── Zoom / reset helpers (wired from main.js) ─────────────────────────────────
+
+export function zoomIn()    { map?.zoomIn(); }
+export function zoomOut()   { map?.zoomOut(); }
+export function resetView() { map?.flyTo({ ...INITIAL_VIEW, duration: 800 }); }
+
 function _addBoundaryLayers() {
   if (!map || !_boundaries.county || !_boundaries.city) return;
 
-  const outlineColor     = _theme === 'dark' ? 'rgba(80,210,230,0.5)'   : 'rgba(0,100,120,0.30)';
-  const outlineColorCity = _theme === 'dark' ? 'rgba(80,210,230,0.35)'  : 'rgba(0,100,120,0.22)';
-  const selColor         = _theme === 'dark' ? '#50d2e6'                : '#007888';
+  const outlineColor     = _theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
+  const outlineColorCity = _theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
+  const selColor         = _theme === 'dark' ? '#5aa6a7'                : '#1e6f6f'; // placeholder; updateChoropleth will set direction-aware color
 
   // Add (or replace) GeoJSON sources
   if (map.getSource('county-zones')) {
@@ -531,7 +568,7 @@ function _addBoundaryLayers() {
 
   // Replay choropleth using the CURRENT theme (not the stored one)
   if (_pendingChoropleth) {
-    const { flows, selectedArea, aggregation } = _pendingChoropleth;
-    updateChoropleth(flows, selectedArea, aggregation, _theme);
+    const { flows, selectedArea, aggregation, direction } = _pendingChoropleth;
+    updateChoropleth(flows, selectedArea, aggregation, _theme, direction);
   }
 }
