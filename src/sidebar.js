@@ -402,7 +402,17 @@ function _highlightItem(items, idx) {
 }
 
 function _initCreditsModal() {
-  if (document.getElementById('credits-backdrop')) return;
+  const existing = document.getElementById('credits-backdrop');
+  if (existing) {
+    // Sidebar was re-rendered (year change) — the open button is a new element;
+    // re-attach its listener to the already-existing backdrop.
+    document.getElementById('credits-open-btn')
+      ?.addEventListener('click', () => {
+        existing.classList.add('is-open');
+        document.getElementById('credits-close-btn')?.focus();
+      });
+    return;
+  }
 
   const year = new Date().getFullYear();
 
