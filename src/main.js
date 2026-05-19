@@ -102,7 +102,7 @@ async function main() {
   setProgress(88);
 
   // 7. Build sidebar
-  const cityNames   = cityMetaArr.map(d => d.name).sort();
+  const cityNames   = cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort();
   const countyNames = countyMetaArr.map(d => d.name).sort();
 
   initSidebar({
@@ -328,7 +328,7 @@ async function _changeYear(newYear, base) {
     }
 
     initSidebar({
-      cityNames:   cityMetaArr.map(d => d.name).sort(),
+      cityNames:   cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort(),
       countyNames: countyMetaArr.map(d => d.name).sort(),
       state,
       onSelectionChange: () => refreshVisualization(),

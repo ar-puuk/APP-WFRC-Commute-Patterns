@@ -6,16 +6,22 @@
     "lon": -113.08286236344776
   },
   {
+    "name": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.72213598645439,
+    "lon": -111.74344128395055
+  },
+  {
     "name": "Davis County",
     "county_fips": "49011",
     "lat": 40.99009061107343,
     "lon": -112.11133930124865
   },
   {
-    "name": "Weber County",
-    "county_fips": "49057",
-    "lat": 41.27005263158548,
-    "lon": -111.9137506497804
+    "name": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.704590223343246,
+    "lon": -112.784592475682
   },
   {
     "name": "Morgan County",
@@ -30,10 +36,10 @@
     "lon": -111.92361652864467
   },
   {
-    "name": "Utah County",
-    "county_fips": "49049",
-    "lat": 40.11983861210566,
-    "lon": -111.66970318477209
+    "name": "Summit County",
+    "county_fips": "49043",
+    "lat": 40.86866683754639,
+    "lon": -110.95608375912673
   },
   {
     "name": "Tooele County",
@@ -42,15 +48,21 @@
     "lon": -113.13120182810658
   },
   {
+    "name": "Utah County",
+    "county_fips": "49049",
+    "lat": 40.11983861210566,
+    "lon": -111.66970318477209
+  },
+  {
     "name": "Wasatch County",
     "county_fips": "49051",
     "lat": 40.33038914487206,
     "lon": -111.1677025746522
   },
   {
-    "name": "Summit County",
-    "county_fips": "49043",
-    "lat": 40.86866683754639,
-    "lon": -110.95608375912673
+    "name": "Weber County",
+    "county_fips": "49057",
+    "lat": 41.27005263158548,
+    "lon": -111.9137506497804
   }
 ]

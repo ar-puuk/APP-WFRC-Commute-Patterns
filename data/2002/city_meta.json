@@ -16,12 +16,28 @@
     "place_fips": "4900650"
   },
   {
+    "name": "Amalga",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.85648575980267,
+    "lon": -111.89740048220119,
+    "place_fips": "4901090"
+  },
+  {
     "name": "American Fork",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 40.378293526722835,
     "lon": -111.79527265252585,
     "place_fips": "4901310"
+  },
+  {
+    "name": "Avon",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.53533310894248,
+    "lon": -111.81243767576723,
+    "place_fips": "4902960"
   },
   {
     "name": "Bear River City",
@@ -38,6 +54,14 @@
     "lat": 40.096866306501276,
     "lon": -111.7289698432664,
     "place_fips": "4904720"
+  },
+  {
+    "name": "Benson",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.74917494514868,
+    "lon": -111.91727724126284,
+    "place_fips": "4905050"
   },
   {
     "name": "Bluffdale",
@@ -80,6 +104,22 @@
     "place_fips": "4908570"
   },
   {
+    "name": "Cache",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.83087309090352,
+    "lon": -112.00528961769183,
+    "place_fips": "4909725"
+  },
+  {
+    "name": "Cache County Unincorporated",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
     "name": "Cedar Fort",
     "county": "Utah County",
     "county_fips": "49049",
@@ -110,6 +150,14 @@
     "lat": 40.46615449790132,
     "lon": -111.45992545348605,
     "place_fips": "4912420"
+  },
+  {
+    "name": "Clarkston",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.920470965191925,
+    "lon": -112.05035755685762,
+    "place_fips": "4913190"
   },
   {
     "name": "Clearfield",
@@ -152,12 +200,28 @@
     "place_fips": "4915830"
   },
   {
+    "name": "Cornish",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.9716143006374,
+    "lon": -111.95648356388062,
+    "place_fips": "4915940"
+  },
+  {
     "name": "Cottonwood Heights",
     "county": "Salt Lake County",
     "county_fips": "49035",
     "lat": 40.61365106117086,
     "lon": -111.81440285140711,
     "place_fips": "4916270"
+  },
+  {
+    "name": "Cove",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.96826174386179,
+    "lon": -111.77938905484628,
+    "place_fips": "4916490"
   },
   {
     "name": "Daniel",
@@ -286,6 +350,14 @@
     "lat": 40.602796747991306,
     "lon": -112.32137517226154,
     "place_fips": "4923640"
+  },
+  {
+    "name": "Eureka",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.9587903170804,
+    "lon": -112.11494151859257,
+    "place_fips": "4924080"
   },
   {
     "name": "Fairfield",
@@ -472,6 +544,22 @@
     "place_fips": "4937060"
   },
   {
+    "name": "Hyde Park",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.80078053560542,
+    "lon": -111.81212032548085,
+    "place_fips": "4937390"
+  },
+  {
+    "name": "Hyrum",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.632473757669096,
+    "lon": -111.84448457648593,
+    "place_fips": "4937500"
+  },
+  {
     "name": "Independence",
     "county": "Wasatch County",
     "county_fips": "49051",
@@ -486,6 +574,14 @@
     "lat": 40.54111904487818,
     "lon": -111.4752443445492,
     "place_fips": "4937924"
+  },
+  {
+    "name": "Juab County Unincorporated",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Kamas",
@@ -544,6 +640,22 @@
     "place_fips": "4944320"
   },
   {
+    "name": "Levan",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.556140104705314,
+    "lon": -111.86061205509611,
+    "place_fips": "4944650"
+  },
+  {
+    "name": "Lewiston",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.961898842174364,
+    "lon": -111.87991411203708,
+    "place_fips": "4944760"
+  },
+  {
     "name": "Liberty",
     "county": "Weber County",
     "county_fips": "49057",
@@ -558,6 +670,14 @@
     "lat": 40.34139946311877,
     "lon": -111.71869827817174,
     "place_fips": "4945090"
+  },
+  {
+    "name": "Logan",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.739837410928665,
+    "lon": -111.8422676767139,
+    "place_fips": "4945860"
   },
   {
     "name": "Magna metro",
@@ -600,6 +720,14 @@
     "place_fips": "4948300"
   },
   {
+    "name": "Mendon",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.7102091380167,
+    "lon": -111.97764437166715,
+    "place_fips": "4949160"
+  },
+  {
     "name": "Midvale",
     "county": "Salt Lake County",
     "county_fips": "49035",
@@ -622,6 +750,22 @@
     "lat": 40.68924958840349,
     "lon": -111.82931200538405,
     "place_fips": "4950150"
+  },
+  {
+    "name": "Millville",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.68506288641757,
+    "lon": -111.82119075228262,
+    "place_fips": "4950370"
+  },
+  {
+    "name": "Mona",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.812150144663576,
+    "lon": -111.84944452523563,
+    "place_fips": "4951140"
   },
   {
     "name": "Morgan",
@@ -654,6 +798,38 @@
     "lat": 40.649806510783876,
     "lon": -111.88741422119122,
     "place_fips": "4953230"
+  },
+  {
+    "name": "Nephi",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.70691133338169,
+    "lon": -111.8325854961911,
+    "place_fips": "4954220"
+  },
+  {
+    "name": "Newton",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.86112697373997,
+    "lon": -111.9907425818509,
+    "place_fips": "4954550"
+  },
+  {
+    "name": "Nibley",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.672646151074694,
+    "lon": -111.84606651139504,
+    "place_fips": "4954660"
+  },
+  {
+    "name": "North Logan",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.775904547177056,
+    "lon": -111.8066925598906,
+    "place_fips": "4954990"
   },
   {
     "name": "North Ogden",
@@ -712,6 +888,14 @@
     "place_fips": "4957630"
   },
   {
+    "name": "Paradise",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.56817982800243,
+    "lon": -111.83336649093819,
+    "place_fips": "4957850"
+  },
+  {
     "name": "Park City",
     "county": "Summit County",
     "county_fips": "49043",
@@ -742,6 +926,14 @@
     "lat": 41.464749715802014,
     "lon": -112.04007714998669,
     "place_fips": "4959390"
+  },
+  {
+    "name": "Peter",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.77158323921818,
+    "lon": -111.98587115530066,
+    "place_fips": "4959555"
   },
   {
     "name": "Plain City",
@@ -784,12 +976,36 @@
     "place_fips": "4961590"
   },
   {
+    "name": "Providence",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.70346031099361,
+    "lon": -111.81232004732823,
+    "place_fips": "4962360"
+  },
+  {
     "name": "Provo",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 40.24571030178496,
     "lon": -111.64572465029792,
     "place_fips": "4962470"
+  },
+  {
+    "name": "Richmond",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.92307957541033,
+    "lon": -111.807672553833,
+    "place_fips": "4963680"
+  },
+  {
+    "name": "River Heights",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.722090509783136,
+    "lon": -111.81918532673443,
+    "place_fips": "4964120"
   },
   {
     "name": "Riverdale",
@@ -814,6 +1030,14 @@
     "lat": 40.51765720901357,
     "lon": -111.96357937078115,
     "place_fips": "4964340"
+  },
+  {
+    "name": "Rocky Ridge",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.919746959746284,
+    "lon": -111.82574746826654,
+    "place_fips": "4964590"
   },
   {
     "name": "Roy",
@@ -873,6 +1097,14 @@
   },
   {
     "name": "Santaquin",
+    "county": "Juab County",
+    "county_fips": "49023",
+    "lat": 39.97078532878223,
+    "lon": -111.79418772364596,
+    "place_fips": "4967770"
+  },
+  {
+    "name": "Santaquin",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 39.97078532878223,
@@ -894,6 +1126,14 @@
     "lat": 40.74892595772638,
     "lon": -111.51390732328677,
     "place_fips": "4969280"
+  },
+  {
+    "name": "Smithfield",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.83495147431373,
+    "lon": -111.82654556636236,
+    "place_fips": "4969640"
   },
   {
     "name": "Snowville",
@@ -1080,6 +1320,14 @@
     "place_fips": "4977120"
   },
   {
+    "name": "Trenton",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.91163536224164,
+    "lon": -111.93557651661989,
+    "place_fips": "4977230"
+  },
+  {
     "name": "Uintah",
     "county": "Weber County",
     "county_fips": "49057",
@@ -1150,6 +1398,14 @@
     "lat": null,
     "lon": null,
     "place_fips": ""
+  },
+  {
+    "name": "Wellsville",
+    "county": "Cache County",
+    "county_fips": "49005",
+    "lat": 41.62232386166795,
+    "lon": -111.94294422351938,
+    "place_fips": "4982620"
   },
   {
     "name": "Wendover",
