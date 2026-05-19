@@ -225,6 +225,8 @@ export function initPolygonInteraction(onAreaClick) {
       const name = e.features?.[0]?.properties?.name;
       if (name) _onPolygonClick(name);
     });
+    map.on('mousemove', layerId, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = ''; });
   });
 }
 
