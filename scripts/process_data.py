@@ -56,17 +56,19 @@ def download_cached(url, filename):
     print(f"  Saved {filename} ({size_mb:.1f} MB)")
     return cache_path
 
-# ── WFRC 9-county FIPS codes ──────────────────────────────────────────────────
+# ── WFRC region county FIPS codes ────────────────────────────────────────────
 WFRC_COUNTIES = {
     "49003": "Box Elder County",
+    "49005": "Cache County",
     "49011": "Davis County",
-    "49057": "Weber County",
+    "49023": "Juab County",
     "49029": "Morgan County",
     "49035": "Salt Lake County",
-    "49049": "Utah County",
-    "49045": "Tooele County",
-    "49051": "Wasatch County",
     "49043": "Summit County",
+    "49045": "Tooele County",
+    "49049": "Utah County",
+    "49051": "Wasatch County",
+    "49057": "Weber County",
 }
 
 # ── LEHD LODES8 URLs ──────────────────────────────────────────────────────────
@@ -76,10 +78,10 @@ LODES_YEARS_DEFAULT = [str(y) for y in range(2023, 2001, -1)]
 OD_TEMPLATE = LODES_BASE + "/od/ut_od_main_JT00_{year}.csv.gz"
 XWALK_URL = LODES_BASE + "/ut_xwalk.csv.gz"
 
-# ── Census TIGER 2020 URLs (Utah state FIPS = 49) ────────────────────────────
-TIGER_BASE = "https://www2.census.gov/geo/tiger/TIGER2020"
-PLACES_URL = f"{TIGER_BASE}/PLACE/tl_2020_49_place.zip"
-COUNTIES_URL = f"{TIGER_BASE}/COUNTY/tl_2020_us_county.zip"  # counties file is national
+# ── Census TIGER 2024 URLs (Utah state FIPS = 49) ────────────────────────────
+TIGER_BASE = "https://www2.census.gov/geo/tiger/TIGER2024"
+PLACES_URL = f"{TIGER_BASE}/PLACE/tl_2024_49_place.zip"
+COUNTIES_URL = f"{TIGER_BASE}/COUNTY/tl_2024_us_county.zip"  # counties file is national
 
 # ── LEHD OD columns to aggregate ─────────────────────────────────────────────
 AGG_COLS = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
@@ -212,7 +214,7 @@ def aggregate_county_flows(od):
 
 
 def load_tiger_places():
-    local = download_cached(PLACES_URL, "tl_2020_49_place.zip")
+    local = download_cached(PLACES_URL, "tl_2024_49_place.zip")
     places = gpd.read_file(local)
     # Project to Utah State Plane (meters) for accurate centroid, then back to WGS84
     centroids = places.to_crs(epsg=26912).geometry.centroid
@@ -226,7 +228,7 @@ def load_tiger_places():
 
 
 def load_tiger_counties():
-    local = download_cached(COUNTIES_URL, "tl_2020_us_county.zip")
+    local = download_cached(COUNTIES_URL, "tl_2024_us_county.zip")
     counties = gpd.read_file(local)
     # Filter to Utah (STATEFP = 49) before computing centroids
     counties = counties[counties["STATEFP"] == "49"].copy()
@@ -372,7 +374,7 @@ def generate_boundaries(places=None, counties=None, force=False):
     # ── City/place boundaries: filter to WFRC region, simplify, export ───────
     wfrc_union = wfrc_gdf.geometry.union_all()
     places_in = places[places.geometry.intersects(wfrc_union)].copy()
-    places_in["name"] = places_in["NAME"]
+    places_in["name"] = places_in["NAMELSAD"].apply(_clean_stplcname)
     city_gdf = places_in[["name", "geometry"]].copy()
     city_gdf = city_gdf.to_crs(epsg=26912)
     city_gdf["geometry"] = city_gdf["geometry"].simplify(100, preserve_topology=True)

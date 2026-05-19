@@ -69,7 +69,6 @@ async function main() {
   // 2. Resolve year from URL or default
   const urlYear = _getUrlYear(availableYears, manifest.default);
   state.year = urlYear;
-  _setUrlYear(urlYear);
 
   // 3. Load year-specific metadata
   const [cityMetaArr, countyMetaArr] = await Promise.all([
@@ -102,8 +101,11 @@ async function main() {
 
   setProgress(88);
 
-  // 7. Build sidebar
-  const cityNames   = cityMetaArr.map(d => d.name).sort();
+  // 7. Apply URL params (area/dir/agg) now that metadata is available
+  _applyUrlParams(cityMeta, countyMeta);
+
+  // 8. Build sidebar
+  const cityNames   = cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort();
   const countyNames = countyMetaArr.map(d => d.name).sort();
 
   initSidebar({
@@ -112,7 +114,7 @@ async function main() {
     onAreaFly: () => {},
   });
 
-  // 8. Init charts (right panel)
+  // 9. Init charts (right panel)
   initCharts((areaName, areaType) => {
     state.selectedArea     = areaName;
     state.selectedAreaType = areaType;
@@ -364,7 +366,6 @@ async function _changeYear(newYear, base) {
     setProgress(85);
 
     state.year = newYear;
-    _setUrlYear(newYear);
     _updateScrubber(newYear, _availableYears);
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
@@ -374,7 +375,7 @@ async function _changeYear(newYear, base) {
     }
 
     initSidebar({
-      cityNames:   cityMetaArr.map(d => d.name).sort(),
+      cityNames:   cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort(),
       countyNames: countyMetaArr.map(d => d.name).sort(),
       state,
       onSelectionChange: () => refreshVisualization(),
@@ -395,6 +396,7 @@ async function _changeYear(newYear, base) {
 
 // ── Refresh visualization ─────────────────────────────────────────────────────
 async function refreshVisualization() {
+  _syncUrl();
   if (state.loading) return;
   state.loading = true;
 
@@ -503,7 +505,7 @@ function _updateDataline(total, appState) {
 // With adaptiveScalesEnabled=true, flowmap.gl maps the visible flow range to
 // the full scheme — so scheme[0] = minVal and scheme[last] = maxVal.
 const _LEGEND_ORANGES = ['#fff5eb','#fee6ce','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#a63603','#7f2704'];
-const _LEGEND_TEAL    = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
+const _LEGEND_GREEN   = ['#d0eeec','#a2dbd8','#74c8c3','#46b5ae','#2e9898','#1e6f6f','#0f4040'];
 
 function _updateLegend(flows, direction, theme) {
   const el = document.getElementById('map-legend');
@@ -521,7 +523,7 @@ function _updateLegend(flows, direction, theme) {
     return n.toLocaleString();
   }
 
-  const scheme = direction === 'inflow' ? _LEGEND_TEAL : _LEGEND_ORANGES;
+  const scheme = direction === 'inflow' ? _LEGEND_GREEN : _LEGEND_ORANGES;
   const colors = theme === 'dark' ? [...scheme].reverse() : scheme;
   const gradient = `linear-gradient(to right, ${colors.join(',')})`;
 
@@ -566,9 +568,28 @@ function _getUrlYear(availableYears, defaultYear) {
   return (urlYear && availableYears.includes(urlYear)) ? urlYear : defaultYear;
 }
 
-function _setUrlYear(year) {
+function _applyUrlParams(cm, ctm) {
+  const p = new URLSearchParams(window.location.search);
+  const agg = p.get('agg');
+  if (agg === 'city' || agg === 'county') state.aggregation = agg;
+  const area = p.get('area');
+  if (area) {
+    const meta = state.aggregation === 'county' ? ctm : cm;
+    if (meta[area]) {
+      state.selectedArea     = area;
+      state.selectedAreaType = state.aggregation;
+    }
+  }
+  const dir = p.get('dir');
+  if (dir === 'outflow' || dir === 'inflow') state.direction = dir;
+}
+
+function _syncUrl() {
   const url = new URL(window.location.href);
-  url.searchParams.set('year', year);
+  url.searchParams.set('year', state.year);
+  url.searchParams.set('area', state.selectedArea);
+  url.searchParams.set('dir',  state.direction);
+  url.searchParams.set('agg',  state.aggregation);
   history.replaceState(null, '', url);
 }
 
