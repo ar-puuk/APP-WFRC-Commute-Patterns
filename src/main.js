@@ -192,6 +192,7 @@ function _initPanelToggles() {
 }
 
 function _savePanelState(grid) {
+  if (window.innerWidth <= 768) return; // don't let mobile state bleed into desktop prefs
   localStorage.setItem('wfrc-panels', JSON.stringify({
     leftCollapsed:  grid.classList.contains('left-collapsed'),
     rightCollapsed: grid.classList.contains('right-collapsed'),
