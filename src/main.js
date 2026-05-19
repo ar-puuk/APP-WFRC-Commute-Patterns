@@ -422,7 +422,7 @@ function _applyFilter() {
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
-  _updateLegend(filtered, state.direction);
+  _updateLegend(filtered, state.direction, state.theme);
 }
 
 // ── Dataline map overlay update ───────────────────────────────────────────────
@@ -437,30 +437,27 @@ function _updateDataline(total, appState) {
   const isOut = appState.direction === 'outflow';
   dlLabel.textContent = isOut ? 'RESIDENTS COMMUTING OUT' : 'WORKERS COMMUTING IN';
   dlValue.textContent = total > 0 ? total.toLocaleString() : '—';
-  dlFrom.textContent  = `From ${appState.selectedArea} · ${appState.year}`;
+  dlFrom.textContent  = `${isOut ? 'From' : 'To'} ${appState.selectedArea} · ${appState.year}`;
   dlArrow.textContent = isOut ? '↗' : '↘';
   if (dl) dl.classList.toggle('inflow', !isOut);
 }
 
 // ── Flow legend ───────────────────────────────────────────────────────────────
-function _updateLegend(flows, direction) {
+// Color arrays match @flowmap.gl/data COLOR_SCHEMES exactly.
+// With adaptiveScalesEnabled=true, flowmap.gl maps the visible flow range to
+// the full scheme — so scheme[0] = minVal and scheme[last] = maxVal.
+const _LEGEND_ORANGES = ['#fff5eb','#fee6ce','#fdd0a2','#fdae6b','#fd8d3c','#f16913','#d94801','#a63603','#7f2704'];
+const _LEGEND_TEAL    = ['#d1eeea','#a8dbd9','#85c4c9','#68abb8','#4f90a6','#3b738f','#2a5674'];
+
+function _updateLegend(flows, direction, theme) {
   const el = document.getElementById('map-legend');
   if (!el) return;
 
-  const counts = flows.map(f => Number(f.S000)).filter(n => n > 0).sort((a, b) => a - b);
+  const counts = flows.map(f => Number(f.S000)).filter(n => n > 0);
   if (!counts.length) { el.innerHTML = ''; return; }
 
-  const minVal = counts[0];
-  const maxVal = counts[counts.length - 1];
-
-  // Up to 4 tiers: min, ~33rd pct, ~66th pct, max
-  const picks = [
-    counts[0],
-    counts[Math.floor(counts.length * 0.33)],
-    counts[Math.floor(counts.length * 0.66)],
-    counts[counts.length - 1],
-  ];
-  const tiers = [...new Set(picks)]; // deduplicate when data is sparse
+  const minVal = Math.min(...counts);
+  const maxVal = Math.max(...counts);
 
   function fmtN(n) {
     if (n >= 10000) return `${Math.round(n / 1000)}k`;
@@ -468,23 +465,19 @@ function _updateLegend(flows, direction) {
     return n.toLocaleString();
   }
 
-  // Swatch height mirrors flowmap.gl's adaptive scale: widths span the visible
-  // range, so the thinnest arc = minVal, thickest = maxVal. We normalize within
-  // that range (not from 0) with a sqrt curve.
-  const minH = 1.5, maxH = 7;
-  function swatchH(val) {
-    if (maxVal === minVal) return (minH + maxH) / 2;
-    const t = Math.sqrt((val - minVal) / (maxVal - minVal));
-    return +(minH + t * (maxH - minH)).toFixed(1);
-  }
+  const scheme = direction === 'inflow' ? _LEGEND_TEAL : _LEGEND_ORANGES;
+  const colors = theme === 'dark' ? [...scheme].reverse() : scheme;
+  const gradient = `linear-gradient(to right, ${colors.join(',')})`;
 
-  const colorClass = direction === 'inflow' ? 'inflow' : '';
+  const label = direction === 'inflow' ? 'Inflow' : 'Outflow';
 
-  el.innerHTML = tiers.map(val => `
-    <div class="lg-row">
-      <span class="lg-swatch ${colorClass}" style="height:${swatchH(val)}px"></span>
-      <span>${fmtN(val)}</span>
-    </div>`).join('');
+  el.innerHTML = `
+    <div class="lg-label">${label} · commuters</div>
+    <div class="lg-gradient-bar" style="background:${gradient}"></div>
+    <div class="lg-gradient-labels">
+      <span>${fmtN(minVal)}</span>
+      <span>${fmtN(maxVal)}</span>
+    </div>`;
 }
 
 // ── Arc click → select destination as new area ────────────────────────────────

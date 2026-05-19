@@ -65,7 +65,7 @@
 
       <!-- Map stage with four overlay positions -->
       <main class="map-stage">
-        <!-- TL: Dataline -->
+        <!-- TL: Dataline + legend -->
         <div class="map-overlay tl">
           <div class="map-dataline" id="map-dataline">
             <div class="dl-label" id="dl-label">RESIDENTS COMMUTING OUT</div>
@@ -75,6 +75,7 @@
               <span id="dl-from">Select an area</span>
             </div>
           </div>
+          <div class="map-legend" id="map-legend"></div>
         </div>
 
         <!-- BL: Layer toolbar + min-flow slider -->
@@ -98,11 +99,6 @@
             <input type="range" id="min-flow-input" min="0" max="1000" step="10" value="50" aria-label="Minimum commuters to display" />
             <span class="mf-val" id="mf-val">50</span>
           </div>
-        </div>
-
-        <!-- BR: Flow width legend (rows injected by JS) -->
-        <div class="map-overlay br">
-          <div class="map-legend" id="map-legend"></div>
         </div>
 
         <div id="map"></div>
