@@ -3,88 +3,88 @@
     "name": "Alpine",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.46293473994792,
-    "lon": -111.77243702510528,
+    "lat": 40.46295367712932,
+    "lon": -111.77244029241801,
     "place_fips": "4900540"
   },
   {
     "name": "Alta",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.5818279252126,
-    "lon": -111.62287058239157,
+    "lat": 40.58180398451227,
+    "lon": -111.62261227793941,
     "place_fips": "4900650"
   },
   {
     "name": "Amalga",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.85648575980267,
-    "lon": -111.89740048220119,
+    "lat": 41.856706611835314,
+    "lon": -111.89746768493438,
     "place_fips": "4901090"
   },
   {
     "name": "American Fork",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.378293526722835,
-    "lon": -111.79527265252585,
+    "lat": 40.378098852021225,
+    "lon": -111.7955192091937,
     "place_fips": "4901310"
   },
   {
     "name": "Avon",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.53533310894248,
-    "lon": -111.81243767576723,
+    "lat": 41.53532829922968,
+    "lon": -111.81243264552397,
     "place_fips": "4902960"
   },
   {
     "name": "Bear River City",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.61237670331729,
-    "lon": -112.12495311393414,
+    "lat": 41.61236940999817,
+    "lon": -112.12494831805891,
     "place_fips": "4903950"
   },
   {
     "name": "Benjamin",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.096866306501276,
-    "lon": -111.7289698432664,
+    "lat": 40.096866306501255,
+    "lon": -111.72896984326641,
     "place_fips": "4904720"
   },
   {
     "name": "Benson",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.74917494514868,
-    "lon": -111.91727724126284,
+    "lat": 41.749271746104434,
+    "lon": -111.91732300835406,
     "place_fips": "4905050"
   },
   {
     "name": "Bluffdale",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.47440982895456,
-    "lon": -111.93810683385809,
+    "lat": 40.47435446295458,
+    "lon": -111.9380989740679,
     "place_fips": "4906810"
   },
   {
     "name": "Bluffdale",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.47440982895456,
-    "lon": -111.93810683385809,
+    "lat": 40.47435446295458,
+    "lon": -111.9380989740679,
     "place_fips": "4906810"
   },
   {
     "name": "Bountiful",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 40.872131937951444,
-    "lon": -111.86467738909997,
+    "lat": 40.87212859265772,
+    "lon": -111.86467862486082,
     "place_fips": "4907690"
   },
   {
@@ -99,24 +99,24 @@
     "name": "Brigham City",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.503486861371684,
-    "lon": -112.04534199584329,
+    "lat": 41.50351151213109,
+    "lon": -112.04550636923258,
     "place_fips": "4908460"
   },
   {
     "name": "Brighton",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.619571552744134,
-    "lon": -111.60053532773209,
+    "lat": 40.61957155274029,
+    "lon": -111.60053532761982,
     "place_fips": "4908570"
   },
   {
     "name": "Cache",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.83087309090352,
-    "lon": -112.00528961769183,
+    "lat": 41.830859180533395,
+    "lon": -112.00524205424743,
     "place_fips": "4909725"
   },
   {
@@ -131,71 +131,71 @@
     "name": "Cedar Fort",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.34139228873885,
-    "lon": -112.10855335123101,
+    "lat": 40.341369626310104,
+    "lon": -112.1086025441228,
     "place_fips": "4911430"
   },
   {
     "name": "Cedar Hills",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.41347524448549,
-    "lon": -111.7530318095116,
+    "lat": 40.41347445898254,
+    "lon": -111.75303225670059,
     "place_fips": "4911440"
   },
   {
     "name": "Centerville",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 40.92841916231572,
-    "lon": -111.88485567877196,
+    "lat": 40.92834587905268,
+    "lon": -111.88475135284305,
     "place_fips": "4911980"
   },
   {
     "name": "Charleston",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.46615449790132,
-    "lon": -111.45992545348605,
+    "lat": 40.46705154098538,
+    "lon": -111.46032121090865,
     "place_fips": "4912420"
   },
   {
     "name": "Clarkston",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.920470965191925,
-    "lon": -112.05035755685762,
+    "lat": 41.920480942408965,
+    "lon": -112.05037569015374,
     "place_fips": "4913190"
   },
   {
     "name": "Clearfield",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.10299187647212,
-    "lon": -112.02377328707519,
+    "lat": 41.10299406878304,
+    "lon": -112.02373909043001,
     "place_fips": "4913850"
   },
   {
     "name": "Clinton",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.139510616738775,
-    "lon": -112.06557584552613,
+    "lat": 41.139510611016355,
+    "lon": -112.06557583780875,
     "place_fips": "4914290"
   },
   {
     "name": "Coalville",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.91198422615272,
-    "lon": -111.41301444448516,
+    "lat": 40.91206979424323,
+    "lon": -111.41283438470875,
     "place_fips": "4914840"
   },
   {
     "name": "Copperton metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.5661151012336,
+    "lat": 40.56611510123361,
     "lon": -112.09791983028401,
     "place_fips": "4915720"
   },
@@ -203,40 +203,40 @@
     "name": "Corinne",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.549713057967175,
-    "lon": -112.12275635913396,
+    "lat": 41.549720905123124,
+    "lon": -112.12271570889551,
     "place_fips": "4915830"
   },
   {
     "name": "Cornish",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.9716143006374,
-    "lon": -111.95648356388062,
+    "lat": 41.971616445318325,
+    "lon": -111.95648719763125,
     "place_fips": "4915940"
   },
   {
     "name": "Cottonwood Heights",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.61365106117086,
-    "lon": -111.81440285140711,
+    "lat": 40.61367888591949,
+    "lon": -111.81455145479327,
     "place_fips": "4916270"
   },
   {
     "name": "Cove",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.96826174386179,
-    "lon": -111.77938905484628,
+    "lat": 41.9682584410033,
+    "lon": -111.77938768179986,
     "place_fips": "4916490"
   },
   {
     "name": "Daniel",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.46672240737693,
-    "lon": -111.40947480392013,
+    "lat": 40.46672026467315,
+    "lon": -111.40951426427554,
     "place_fips": "4918140"
   },
   {
@@ -251,31 +251,31 @@
     "name": "Deweyville",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.693014318673725,
-    "lon": -112.08834544060058,
+    "lat": 41.693023881145024,
+    "lon": -112.0883453954909,
     "place_fips": "4919680"
   },
   {
     "name": "Draper",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.495615384446225,
-    "lon": -111.86054031846191,
+    "lat": 40.498146488901206,
+    "lon": -111.8616894443837,
     "place_fips": "4920120"
   },
   {
     "name": "Draper",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.495615384446225,
-    "lon": -111.86054031846191,
+    "lat": 40.498146488901206,
+    "lon": -111.8616894443837,
     "place_fips": "4920120"
   },
   {
     "name": "Dugway",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.23068632671855,
+    "lat": 40.230686326718505,
     "lon": -112.75405447218141,
     "place_fips": "4920450"
   },
@@ -283,23 +283,23 @@
     "name": "Eagle Mountain",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.31371043707967,
-    "lon": -112.01143525170995,
+    "lat": 40.3143201264297,
+    "lon": -112.01170789799426,
     "place_fips": "4920810"
   },
   {
     "name": "East Basin",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.73591228982941,
-    "lon": -111.47078647679766,
+    "lat": 40.735912289829564,
+    "lon": -111.47078647679764,
     "place_fips": "4920850"
   },
   {
     "name": "Echo",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.98025941991777,
+    "lat": 40.98025941991775,
     "lon": -111.43924593055459,
     "place_fips": "4921880"
   },
@@ -307,7 +307,7 @@
     "name": "Eden",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.302248165829425,
+    "lat": 41.30224816582942,
     "lon": -111.80857819329351,
     "place_fips": "4921990"
   },
@@ -315,7 +315,7 @@
     "name": "Elberta",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 39.955789650040266,
+    "lat": 39.95578965004027,
     "lon": -111.95692316733704,
     "place_fips": "4922210"
   },
@@ -323,119 +323,119 @@
     "name": "Elk Ridge",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.00986967305394,
-    "lon": -111.67748223826943,
+    "lat": 40.01036043308916,
+    "lon": -111.67799699881503,
     "place_fips": "4922370"
   },
   {
     "name": "Elwood",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.6757979213448,
-    "lon": -112.13763495586299,
+    "lat": 41.67589766282437,
+    "lon": -112.13761173633208,
     "place_fips": "4922760"
   },
   {
     "name": "Emigration Canyon metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.78857845877272,
-    "lon": -111.74138872750213,
+    "lat": 40.788572407152195,
+    "lon": -111.74139800658934,
     "place_fips": "4922875"
   },
   {
     "name": "Enterprise",
     "county": "Morgan County",
     "county_fips": "49029",
-    "lat": 41.10698562592943,
-    "lon": -111.73071305804224,
+    "lat": 41.10698562592937,
+    "lon": -111.73071305804226,
     "place_fips": "4923310"
   },
   {
     "name": "Erda",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.602796747991306,
-    "lon": -112.32137517226154,
+    "lat": 40.617409094571435,
+    "lon": -112.30775082029925,
     "place_fips": "4923640"
   },
   {
     "name": "Eureka",
     "county": "Juab County",
     "county_fips": "49023",
-    "lat": 39.9587903170804,
-    "lon": -112.11494151859257,
+    "lat": 39.9586613385207,
+    "lon": -112.11507504861119,
     "place_fips": "4924080"
   },
   {
     "name": "Fairfield",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.24618617892733,
-    "lon": -112.08424693439991,
+    "lat": 40.246205379037605,
+    "lon": -112.08427293445986,
     "place_fips": "4924410"
   },
   {
     "name": "Farmington",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 40.984553500687966,
-    "lon": -111.9064340343293,
+    "lat": 40.98455812320804,
+    "lon": -111.90642918389278,
     "place_fips": "4924740"
   },
   {
     "name": "Farr West",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.30153591603736,
-    "lon": -112.03178762202077,
+    "lat": 41.30155836031257,
+    "lon": -112.03180581250209,
     "place_fips": "4924850"
   },
   {
     "name": "Fielding",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.81265640061678,
-    "lon": -112.11739005523411,
+    "lat": 41.81248021911204,
+    "lon": -112.1172803993139,
     "place_fips": "4925290"
   },
   {
     "name": "Francis",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.610161268787635,
-    "lon": -111.27288353532548,
+    "lat": 40.61251090656655,
+    "lon": -111.28223052604315,
     "place_fips": "4926940"
   },
   {
     "name": "Fruit Heights",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.027574478450454,
-    "lon": -111.90811950223014,
+    "lat": 41.02762197612565,
+    "lon": -111.90804112973998,
     "place_fips": "4927490"
   },
   {
     "name": "Garland",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.73619803418589,
-    "lon": -112.16268796449631,
+    "lat": 41.73627191763635,
+    "lon": -112.1627893643104,
     "place_fips": "4928150"
   },
   {
     "name": "Genola",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.01175306555926,
-    "lon": -111.8464489635934,
+    "lat": 40.011746633031954,
+    "lon": -111.84645612685378,
     "place_fips": "4928810"
   },
   {
     "name": "Goshen",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 39.951113707109705,
+    "lat": 39.95111370710971,
     "lon": -111.9008264473826,
     "place_fips": "4930130"
   },
@@ -443,71 +443,71 @@
     "name": "Granite",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.56881513826519,
-    "lon": -111.80110415270913,
+    "lat": 40.568917080737755,
+    "lon": -111.80084290135133,
     "place_fips": "4930900"
   },
   {
     "name": "Grantsville",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.614737390398446,
-    "lon": -112.47764201782405,
+    "lat": 40.61318636534513,
+    "lon": -112.47079610256868,
     "place_fips": "4931120"
   },
   {
     "name": "Harrisville",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.28526339421512,
-    "lon": -111.98595497453569,
+    "lat": 41.28531821813624,
+    "lon": -111.98597009453124,
     "place_fips": "4933540"
   },
   {
     "name": "Heber",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.50707806321697,
-    "lon": -111.39851401958488,
+    "lat": 40.541649651950394,
+    "lon": -111.38787925810772,
     "place_fips": "4934200"
   },
   {
     "name": "Henefer",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 41.01375801782511,
-    "lon": -111.49311933437085,
+    "lat": 41.01381353009256,
+    "lon": -111.49327270623724,
     "place_fips": "4934640"
   },
   {
     "name": "Herriman",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.48990146824504,
-    "lon": -112.01702817840331,
+    "lat": 40.49181878532766,
+    "lon": -112.02042991032876,
     "place_fips": "4934970"
   },
   {
     "name": "Hideout",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.643747419346866,
-    "lon": -111.40142169044556,
+    "lat": 40.64706367341319,
+    "lon": -111.40623688543565,
     "place_fips": "4935120"
   },
   {
     "name": "Highland",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.42754852983342,
-    "lon": -111.79569481628731,
+    "lat": 40.427555539179316,
+    "lon": -111.79559961420966,
     "place_fips": "4935190"
   },
   {
     "name": "Hobble Creek",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.20844507426029,
+    "lat": 40.20844507426027,
     "lon": -111.4858260335015,
     "place_fips": "4935823"
   },
@@ -515,80 +515,80 @@
     "name": "Holladay",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.66000502954364,
-    "lon": -111.82259958047639,
+    "lat": 40.659923739314785,
+    "lon": -111.8226965938881,
     "place_fips": "4936070"
   },
   {
     "name": "Honeyville",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.63612703127459,
-    "lon": -112.08567004946403,
+    "lat": 41.63611946753641,
+    "lon": -112.08574532549865,
     "place_fips": "4936290"
   },
   {
     "name": "Hooper",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.15990697500901,
-    "lon": -112.28709850876862,
+    "lat": 41.159906563624034,
+    "lon": -112.28709682084825,
     "place_fips": "4936400"
   },
   {
     "name": "Howell",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.773263846097876,
-    "lon": -112.4450458565874,
+    "lat": 41.77332894873661,
+    "lon": -112.44504764897118,
     "place_fips": "4936620"
   },
   {
     "name": "Hoytsville",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.875765526578405,
-    "lon": -111.38473362815482,
+    "lat": 40.87576559328489,
+    "lon": -111.38473445657753,
     "place_fips": "4936730"
   },
   {
     "name": "Huntsville",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.26020998222327,
-    "lon": -111.77426339575443,
+    "lat": 41.26002838803378,
+    "lon": -111.7723766491206,
     "place_fips": "4937060"
   },
   {
     "name": "Hyde Park",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.80078053560542,
-    "lon": -111.81212032548085,
+    "lat": 41.80108358304338,
+    "lon": -111.80988726865162,
     "place_fips": "4937390"
   },
   {
     "name": "Hyrum",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.632473757669096,
-    "lon": -111.84448457648593,
+    "lat": 41.63240968925125,
+    "lon": -111.84450647423658,
     "place_fips": "4937500"
   },
   {
     "name": "Independence",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.41075630282649,
-    "lon": -111.2957403793189,
+    "lat": 40.41083604700363,
+    "lon": -111.29570841821656,
     "place_fips": "4937690"
   },
   {
     "name": "Interlaken",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.54111904487818,
-    "lon": -111.4752443445492,
+    "lat": 40.541183604274224,
+    "lon": -111.4753478595575,
     "place_fips": "4937924"
   },
   {
@@ -603,32 +603,32 @@
     "name": "Kamas",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.649913291171174,
-    "lon": -111.27221228480971,
+    "lat": 40.6499963407007,
+    "lon": -111.27342230086414,
     "place_fips": "4939810"
   },
   {
     "name": "Kaysville",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.02899046476346,
-    "lon": -111.94553436811192,
+    "lat": 41.02899691832165,
+    "lon": -111.94554494952273,
     "place_fips": "4940360"
   },
   {
     "name": "Kearns metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.65194932090802,
-    "lon": -112.00939867461605,
+    "lat": 40.65194444717099,
+    "lon": -112.00938994945649,
     "place_fips": "4940470"
   },
   {
     "name": "Lake Point",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": null,
-    "lon": null,
+    "lat": 40.68151599076589,
+    "lon": -112.26316831573165,
     "place_fips": "4942010"
   },
   {
@@ -643,39 +643,39 @@
     "name": "Layton",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.0769689880986,
-    "lon": -111.96203090361709,
+    "lat": 41.07689654050736,
+    "lon": -111.96217956023929,
     "place_fips": "4943660"
   },
   {
     "name": "Lehi",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.41354304188735,
-    "lon": -111.87246873976491,
+    "lat": 40.41571018445118,
+    "lon": -111.87071820455851,
     "place_fips": "4944320"
   },
   {
     "name": "Levan",
     "county": "Juab County",
     "county_fips": "49023",
-    "lat": 39.556140104705314,
-    "lon": -111.86061205509611,
+    "lat": 39.55615603960228,
+    "lon": -111.86057935352324,
     "place_fips": "4944650"
   },
   {
     "name": "Lewiston",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.961898842174364,
-    "lon": -111.87991411203708,
+    "lat": 41.96191290271924,
+    "lon": -111.87986046016054,
     "place_fips": "4944760"
   },
   {
     "name": "Liberty",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.34253571676383,
+    "lat": 41.34253571676379,
     "lon": -111.86488026099612,
     "place_fips": "4944870"
   },
@@ -683,112 +683,112 @@
     "name": "Lindon",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.34139946311877,
-    "lon": -111.71869827817174,
+    "lat": 40.34137617745079,
+    "lon": -111.71874992641649,
     "place_fips": "4945090"
   },
   {
     "name": "Logan",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.739837410928665,
-    "lon": -111.8422676767139,
+    "lat": 41.73955788490199,
+    "lon": -111.84247632162662,
     "place_fips": "4945860"
   },
   {
     "name": "Magna metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.76326625021872,
-    "lon": -112.15990337934116,
+    "lat": 40.76327654406236,
+    "lon": -112.15987584140323,
     "place_fips": "4947290"
   },
   {
     "name": "Mantua",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.5005942444677,
-    "lon": -111.93434642888057,
+    "lat": 41.500699178933125,
+    "lon": -111.93430520944875,
     "place_fips": "4947840"
   },
   {
     "name": "Mapleton",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.1187618230589,
-    "lon": -111.57423929043246,
+    "lat": 40.118757376617374,
+    "lon": -111.57424626086343,
     "place_fips": "4947950"
   },
   {
     "name": "Marion",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.68102235284119,
-    "lon": -111.27731925421132,
+    "lat": 40.68102215867708,
+    "lon": -111.27731893036339,
     "place_fips": "4948170"
   },
   {
     "name": "Marriott-Slaterville",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.262352180390764,
-    "lon": -112.03660864533163,
+    "lat": 41.26191201181568,
+    "lon": -112.03661842969808,
     "place_fips": "4948300"
   },
   {
     "name": "Mendon",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.7102091380167,
-    "lon": -111.97764437166715,
+    "lat": 41.71153784112455,
+    "lon": -111.97753734319431,
     "place_fips": "4949160"
   },
   {
     "name": "Midvale",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.6147585940943,
-    "lon": -111.89275285349356,
+    "lat": 40.61472295891924,
+    "lon": -111.89282256006,
     "place_fips": "4949710"
   },
   {
     "name": "Midway",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.51828850135159,
-    "lon": -111.47452379384298,
+    "lat": 40.52020153906302,
+    "lon": -111.47550974968563,
     "place_fips": "4949820"
   },
   {
     "name": "Millcreek",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.68924958840349,
-    "lon": -111.82931200538405,
+    "lat": 40.689017456148264,
+    "lon": -111.82955958399887,
     "place_fips": "4950150"
   },
   {
     "name": "Millville",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.68506288641757,
-    "lon": -111.82119075228262,
+    "lat": 41.68510334241967,
+    "lon": -111.82114184549305,
     "place_fips": "4950370"
   },
   {
     "name": "Mona",
     "county": "Juab County",
     "county_fips": "49023",
-    "lat": 39.812150144663576,
-    "lon": -111.84944452523563,
+    "lat": 39.81223480015583,
+    "lon": -111.84945672355212,
     "place_fips": "4951140"
   },
   {
     "name": "Morgan",
     "county": "Morgan County",
     "county_fips": "49029",
-    "lat": 41.041415476293736,
-    "lon": -111.68015732988991,
+    "lat": 41.041732762004,
+    "lon": -111.68054470117977,
     "place_fips": "4951910"
   },
   {
@@ -803,7 +803,7 @@
     "name": "Mountain Green",
     "county": "Morgan County",
     "county_fips": "49029",
-    "lat": 41.147540268576705,
+    "lat": 41.147540268576684,
     "lon": -111.78998444699968,
     "place_fips": "4952460"
   },
@@ -811,79 +811,79 @@
     "name": "Murray",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.649806510783876,
-    "lon": -111.88741422119122,
+    "lat": 40.649790691463735,
+    "lon": -111.88749304566277,
     "place_fips": "4953230"
   },
   {
     "name": "Nephi",
     "county": "Juab County",
     "county_fips": "49023",
-    "lat": 39.70691133338169,
-    "lon": -111.8325854961911,
+    "lat": 39.70469736434153,
+    "lon": -111.83334978329073,
     "place_fips": "4954220"
   },
   {
     "name": "Newton",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.86112697373997,
-    "lon": -111.9907425818509,
+    "lat": 41.861159900580105,
+    "lon": -111.99075180129093,
     "place_fips": "4954550"
   },
   {
     "name": "Nibley",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.672646151074694,
-    "lon": -111.84606651139504,
+    "lat": 41.67301379194488,
+    "lon": -111.84684752907131,
     "place_fips": "4954660"
   },
   {
     "name": "North Logan",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.775904547177056,
-    "lon": -111.8066925598906,
+    "lat": 41.77588533233786,
+    "lon": -111.80668500147576,
     "place_fips": "4954990"
   },
   {
     "name": "North Ogden",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.31229650007349,
-    "lon": -111.95834874436672,
+    "lat": 41.31218266856676,
+    "lon": -111.9585036190337,
     "place_fips": "4955100"
   },
   {
     "name": "North Salt Lake",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 40.843893714043446,
-    "lon": -111.91871597915828,
+    "lat": 40.844009941791434,
+    "lon": -111.91839028564567,
     "place_fips": "4955210"
   },
   {
     "name": "Oakley",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.72569073519391,
-    "lon": -111.27880137635417,
+    "lat": 40.72564744691354,
+    "lon": -111.27894187788957,
     "place_fips": "4955650"
   },
   {
     "name": "Ogden",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.22785167880003,
-    "lon": -111.96818862506348,
+    "lat": 41.22784512283872,
+    "lon": -111.96816731365632,
     "place_fips": "4955980"
   },
   {
     "name": "Ophir",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.37174073675024,
+    "lat": 40.37174073675025,
     "lon": -112.25032310266238,
     "place_fips": "4956750"
   },
@@ -891,48 +891,48 @@
     "name": "Orem",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.298057997800825,
-    "lon": -111.69942290009485,
+    "lat": 40.29806505425351,
+    "lon": -111.69944525653625,
     "place_fips": "4957300"
   },
   {
     "name": "Palmyra",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.13456824160845,
-    "lon": -111.69252249224714,
+    "lat": 40.134175996848896,
+    "lon": -111.69304926250646,
     "place_fips": "4957630"
   },
   {
     "name": "Paradise",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.56817982800243,
-    "lon": -111.83336649093819,
+    "lat": 41.568175673613894,
+    "lon": -111.8333489446506,
     "place_fips": "4957850"
   },
   {
     "name": "Park City",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.65022952346891,
-    "lon": -111.50129810366833,
+    "lat": 40.652080348785404,
+    "lon": -111.49724543542534,
     "place_fips": "4958070"
   },
   {
     "name": "Park City",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.65022952346891,
-    "lon": -111.50129810366833,
+    "lat": 40.652080348785404,
+    "lon": -111.49724543542534,
     "place_fips": "4958070"
   },
   {
     "name": "Payson",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.03551231627114,
-    "lon": -111.73905924154103,
+    "lat": 40.03548726219634,
+    "lon": -111.73900299990244,
     "place_fips": "4958730"
   },
   {
@@ -947,119 +947,119 @@
     "name": "Perry",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.464749715802014,
-    "lon": -112.04007714998669,
+    "lat": 41.464819144043865,
+    "lon": -112.04004699357245,
     "place_fips": "4959390"
   },
   {
     "name": "Peter",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.77158323921818,
-    "lon": -111.98587115530066,
+    "lat": 41.771876617603276,
+    "lon": -111.98593245278232,
     "place_fips": "4959555"
   },
   {
     "name": "Plain City",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.307113435617985,
-    "lon": -112.08770364204042,
+    "lat": 41.30696033100662,
+    "lon": -112.08746179797184,
     "place_fips": "4960710"
   },
   {
     "name": "Pleasant Grove",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.37154066059649,
-    "lon": -111.74116013523643,
+    "lat": 40.37149715027879,
+    "lon": -111.74128060996793,
     "place_fips": "4960930"
   },
   {
     "name": "Pleasant View",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.324897862150735,
-    "lon": -112.0010404543167,
+    "lat": 41.324890414552954,
+    "lon": -112.0010378846301,
     "place_fips": "4961150"
   },
   {
     "name": "Plymouth",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.873382979390776,
-    "lon": -112.14539322534,
+    "lat": 41.87358698209123,
+    "lon": -112.14677782576003,
     "place_fips": "4961260"
   },
   {
     "name": "Portage",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.97565683125569,
-    "lon": -112.24051183224265,
+    "lat": 41.975632751316894,
+    "lon": -112.24051011811825,
     "place_fips": "4961590"
   },
   {
     "name": "Providence",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.70346031099361,
-    "lon": -111.81232004732823,
+    "lat": 41.703520797246064,
+    "lon": -111.81335815509425,
     "place_fips": "4962360"
   },
   {
     "name": "Provo",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.24571030178496,
-    "lon": -111.64572465029792,
+    "lat": 40.245537380543304,
+    "lon": -111.64571411774796,
     "place_fips": "4962470"
   },
   {
     "name": "Richmond",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.92307957541033,
-    "lon": -111.807672553833,
+    "lat": 41.923064871399205,
+    "lon": -111.80782316587576,
     "place_fips": "4963680"
   },
   {
     "name": "River Heights",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.722090509783136,
-    "lon": -111.81918532673443,
+    "lat": 41.72212806847732,
+    "lon": -111.81912193416251,
     "place_fips": "4964120"
   },
   {
     "name": "Riverdale",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.17317354137552,
-    "lon": -112.00235177575063,
+    "lat": 41.1731364187171,
+    "lon": -112.00225617628837,
     "place_fips": "4964010"
   },
   {
     "name": "Riverside",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.81058556805454,
-    "lon": -112.14030841027409,
+    "lat": 41.81058657081199,
+    "lon": -112.14031457973309,
     "place_fips": "4964230"
   },
   {
     "name": "Riverton",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.51765720901357,
-    "lon": -111.96357937078115,
+    "lat": 40.51763390074945,
+    "lon": -111.96351506592121,
     "place_fips": "4964340"
   },
   {
     "name": "Rocky Ridge",
     "county": "Juab County",
     "county_fips": "49023",
-    "lat": 39.919746959746284,
+    "lat": 39.91974695974629,
     "lon": -111.82574746826654,
     "place_fips": "4964590"
   },
@@ -1067,32 +1067,32 @@
     "name": "Roy",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.171453382588574,
-    "lon": -112.04852195286176,
+    "lat": 41.17146014425802,
+    "lon": -112.04847615474745,
     "place_fips": "4965110"
   },
   {
     "name": "Rush Valley",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.361288657422,
-    "lon": -112.45063941544949,
+    "lat": 40.361284652495875,
+    "lon": -112.45064341998724,
     "place_fips": "4965240"
   },
   {
     "name": "Salem",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.05385382602207,
-    "lon": -111.67180012115597,
+    "lat": 40.055147396697585,
+    "lon": -111.66721728999951,
     "place_fips": "4965770"
   },
   {
     "name": "Salt Lake City",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.777583342086515,
-    "lon": -111.93116408594561,
+    "lat": 40.777223741602015,
+    "lon": -111.9305102043396,
     "place_fips": "4967000"
   },
   {
@@ -1107,63 +1107,63 @@
     "name": "Samak",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.638907567362004,
-    "lon": -111.24130625349659,
+    "lat": 40.63890695900014,
+    "lon": -111.24130046906687,
     "place_fips": "4967400"
   },
   {
     "name": "Sandy",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.570812468645286,
-    "lon": -111.85059219869268,
+    "lat": 40.570927897362395,
+    "lon": -111.85037198750503,
     "place_fips": "4967440"
   },
   {
     "name": "Santaquin",
     "county": "Juab County",
     "county_fips": "49023",
-    "lat": 39.97078532878223,
-    "lon": -111.79418772364596,
+    "lat": 39.97072621396539,
+    "lon": -111.7943499394624,
     "place_fips": "4967770"
   },
   {
     "name": "Santaquin",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 39.97078532878223,
-    "lon": -111.79418772364596,
+    "lat": 39.97072621396539,
+    "lon": -111.7943499394624,
     "place_fips": "4967770"
   },
   {
     "name": "Saratoga Springs",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.345013187180605,
-    "lon": -111.91539216355005,
+    "lat": 40.34456670205062,
+    "lon": -111.91569855215211,
     "place_fips": "4967825"
   },
   {
     "name": "Silver Summit",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.74892595772638,
-    "lon": -111.51390732328677,
+    "lat": 40.74892595772642,
+    "lon": -111.51390732328676,
     "place_fips": "4969280"
   },
   {
     "name": "Smithfield",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.83495147431373,
-    "lon": -111.82654556636236,
+    "lat": 41.8354657912389,
+    "lon": -111.82752056137029,
     "place_fips": "4969640"
   },
   {
     "name": "Snowville",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.97282179628572,
+    "lat": 41.97282179628574,
     "lon": -112.71640701002853,
     "place_fips": "4969970"
   },
@@ -1171,88 +1171,88 @@
     "name": "Snyderville",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.70411841669037,
-    "lon": -111.54337547087569,
+    "lat": 40.70411841669028,
+    "lon": -111.5433754708757,
     "place_fips": "4970190"
   },
   {
     "name": "South Jordan",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.557058774397404,
-    "lon": -111.97835735953024,
+    "lat": 40.55464785036444,
+    "lon": -111.99169117906919,
     "place_fips": "4970850"
   },
   {
     "name": "South Ogden",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.172230136584176,
-    "lon": -111.95769929824759,
+    "lat": 41.17222710420675,
+    "lon": -111.9576933708319,
     "place_fips": "4970960"
   },
   {
     "name": "South Salt Lake",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.70564725885382,
-    "lon": -111.89862145365802,
+    "lat": 40.70564913917199,
+    "lon": -111.8986167914334,
     "place_fips": "4971070"
   },
   {
     "name": "South Weber",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.13344193127863,
-    "lon": -111.93932607977548,
+    "lat": 41.13357487955894,
+    "lon": -111.93977491047067,
     "place_fips": "4971180"
   },
   {
     "name": "South Willard",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.35829912325582,
-    "lon": -112.04088207836637,
+    "lat": 41.357337176282776,
+    "lon": -112.0410495170344,
     "place_fips": "4971255"
   },
   {
     "name": "Spanish Fork",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.11004136103261,
-    "lon": -111.64048591779093,
+    "lat": 40.113142807072386,
+    "lon": -111.642906389777,
     "place_fips": "4971290"
   },
   {
     "name": "Spring Lake",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.00593230157264,
-    "lon": -111.75031095447882,
+    "lat": 40.00583589305835,
+    "lon": -111.75052187649116,
     "place_fips": "4972170"
   },
   {
     "name": "Springville",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.163775578988655,
-    "lon": -111.6204818676416,
+    "lat": 40.1636477586703,
+    "lon": -111.62064329653657,
     "place_fips": "4972280"
   },
   {
     "name": "Stansbury Park",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.63556579248689,
-    "lon": -112.30543692859882,
+    "lat": 40.63412675651609,
+    "lon": -112.30631970905146,
     "place_fips": "4972720"
   },
   {
     "name": "Stockton",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.449592738408974,
-    "lon": -112.36739080164963,
+    "lat": 40.44959400484404,
+    "lon": -112.36739265441255,
     "place_fips": "4973050"
   },
   {
@@ -1267,15 +1267,15 @@
     "name": "Summit Park",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.74233024747594,
-    "lon": -111.58722253186608,
+    "lat": 40.74233373574405,
+    "lon": -111.5872448317867,
     "place_fips": "4974095"
   },
   {
     "name": "Sundance",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.393854619395476,
+    "lat": 40.39385461939551,
     "lon": -111.59136089995452,
     "place_fips": "4974260"
   },
@@ -1291,40 +1291,40 @@
     "name": "Syracuse",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.08590686986927,
-    "lon": -112.06987598665162,
+    "lat": 41.085917029625975,
+    "lon": -112.0698416563198,
     "place_fips": "4974810"
   },
   {
     "name": "Taylorsville",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.65694766543754,
-    "lon": -111.94932395010412,
+    "lat": 40.6569422745188,
+    "lon": -111.94933016344359,
     "place_fips": "4975360"
   },
   {
     "name": "Thatcher",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.68151328508439,
-    "lon": -112.32006340403608,
+    "lat": 41.681521856898236,
+    "lon": -112.3200433119776,
     "place_fips": "4975800"
   },
   {
     "name": "Timber Lakes",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.473336409428114,
-    "lon": -111.25330401234997,
+    "lat": 40.47333640942832,
+    "lon": -111.25330401234996,
     "place_fips": "4976280"
   },
   {
     "name": "Tooele",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.53932369370117,
-    "lon": -112.30823479181663,
+    "lat": 40.539343908622406,
+    "lon": -112.30822220698448,
     "place_fips": "4976680"
   },
   {
@@ -1339,24 +1339,24 @@
     "name": "Tremonton",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.71872212478383,
-    "lon": -112.18912507667045,
+    "lat": 41.718351895529956,
+    "lon": -112.1878370321925,
     "place_fips": "4977120"
   },
   {
     "name": "Trenton",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.91163536224164,
-    "lon": -111.93557651661989,
+    "lat": 41.91133038582369,
+    "lon": -111.93552301132856,
     "place_fips": "4977230"
   },
   {
     "name": "Uintah",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.142780040599895,
-    "lon": -111.93313269338775,
+    "lat": 41.142735793217355,
+    "lon": -111.93311035291462,
     "place_fips": "4977890"
   },
   {
@@ -1371,32 +1371,32 @@
     "name": "Vernon",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.095587986329264,
-    "lon": -112.44577629394475,
+    "lat": 40.0955896806489,
+    "lon": -112.44577449242142,
     "place_fips": "4980200"
   },
   {
     "name": "Vineyard",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.305931428169885,
-    "lon": -111.75450972627964,
+    "lat": 40.30544649218826,
+    "lon": -111.7545059531052,
     "place_fips": "4980420"
   },
   {
     "name": "Wallsburg",
     "county": "Wasatch County",
     "county_fips": "49051",
-    "lat": 40.38692731230719,
-    "lon": -111.41947720265769,
+    "lat": 40.38687131781856,
+    "lon": -111.41946414570513,
     "place_fips": "4980970"
   },
   {
     "name": "Wanship",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.816759288837694,
-    "lon": -111.41508922909391,
+    "lat": 40.816759288837645,
+    "lon": -111.41508922909392,
     "place_fips": "4981190"
   },
   {
@@ -1411,8 +1411,8 @@
     "name": "Washington Terrace",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.1682685611003,
-    "lon": -111.97822360520371,
+    "lat": 41.16831816424144,
+    "lon": -111.97815261169391,
     "place_fips": "4982070"
   },
   {
@@ -1427,112 +1427,112 @@
     "name": "Wellsville",
     "county": "Cache County",
     "county_fips": "49005",
-    "lat": 41.62232386166795,
-    "lon": -111.94294422351938,
+    "lat": 41.622432443291636,
+    "lon": -111.94266436204592,
     "place_fips": "4982620"
   },
   {
     "name": "Wendover",
     "county": "Tooele County",
     "county_fips": "49045",
-    "lat": 40.724024372249986,
-    "lon": -114.02509929734936,
+    "lat": 40.72402523287213,
+    "lon": -114.02509713672211,
     "place_fips": "4982730"
   },
   {
     "name": "West Bountiful",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 40.898343015845455,
-    "lon": -111.90820700969296,
+    "lat": 40.898368724723035,
+    "lon": -111.90821232007357,
     "place_fips": "4982840"
   },
   {
     "name": "West Haven",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.20825535794365,
-    "lon": -112.05417665096229,
+    "lat": 41.208286235730455,
+    "lon": -112.05450975540722,
     "place_fips": "4982930"
   },
   {
     "name": "West Jordan",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.602451128167004,
-    "lon": -112.00075710593681,
+    "lat": 40.602665978502934,
+    "lon": -112.00125562562754,
     "place_fips": "4982950"
   },
   {
     "name": "West Mountain",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.05091029670363,
-    "lon": -111.78499871055736,
+    "lat": 40.050915760142665,
+    "lon": -111.78499925227707,
     "place_fips": "4983252"
   },
   {
     "name": "West Point",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 41.122060345835806,
-    "lon": -112.09949861703713,
+    "lat": 41.12189420032755,
+    "lon": -112.09957148360877,
     "place_fips": "4983390"
   },
   {
     "name": "West Valley City",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.688557328478055,
-    "lon": -112.01224978638504,
+    "lat": 40.68855819672212,
+    "lon": -112.01224393051592,
     "place_fips": "4983470"
   },
   {
     "name": "White City metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
-    "lat": 40.56663144964148,
-    "lon": -111.8636372075466,
+    "lat": 40.566628038904675,
+    "lon": -111.8636496114955,
     "place_fips": "4984050"
   },
   {
     "name": "Willard",
     "county": "Box Elder County",
     "county_fips": "49003",
-    "lat": 41.414781671942,
-    "lon": -112.04477572766744,
+    "lat": 41.41375575084842,
+    "lon": -112.04451109371713,
     "place_fips": "4984710"
   },
   {
     "name": "Wolf Creek",
     "county": "Weber County",
     "county_fips": "49057",
-    "lat": 41.325300458536255,
-    "lon": -111.82875612637267,
+    "lat": 41.32530045853633,
+    "lon": -111.82875612637265,
     "place_fips": "4984950"
   },
   {
     "name": "Woodland",
     "county": "Summit County",
     "county_fips": "49043",
-    "lat": 40.58379460193745,
-    "lon": -111.23575589902546,
+    "lat": 40.58379744817092,
+    "lon": -111.23576068426902,
     "place_fips": "4985040"
   },
   {
     "name": "Woodland Hills",
     "county": "Utah County",
     "county_fips": "49049",
-    "lat": 40.013184368890464,
-    "lon": -111.65579572736544,
+    "lat": 40.01336534086155,
+    "lon": -111.6560037176682,
     "place_fips": "4985050"
   },
   {
     "name": "Woods Cross",
     "county": "Davis County",
     "county_fips": "49011",
-    "lat": 40.873085159680706,
-    "lon": -111.9170109020309,
+    "lat": 40.873084634908174,
+    "lon": -111.917008478347,
     "place_fips": "4985370"
   }
 ]

@@ -214,7 +214,7 @@ def aggregate_county_flows(od):
 
 
 def load_tiger_places():
-    local = download_cached(PLACES_URL, "tl_2020_49_place.zip")
+    local = download_cached(PLACES_URL, "tl_2024_49_place.zip")
     places = gpd.read_file(local)
     # Project to Utah State Plane (meters) for accurate centroid, then back to WGS84
     centroids = places.to_crs(epsg=26912).geometry.centroid
@@ -228,7 +228,7 @@ def load_tiger_places():
 
 
 def load_tiger_counties():
-    local = download_cached(COUNTIES_URL, "tl_2020_us_county.zip")
+    local = download_cached(COUNTIES_URL, "tl_2024_us_county.zip")
     counties = gpd.read_file(local)
     # Filter to Utah (STATEFP = 49) before computing centroids
     counties = counties[counties["STATEFP"] == "49"].copy()
@@ -374,7 +374,7 @@ def generate_boundaries(places=None, counties=None, force=False):
     # ── City/place boundaries: filter to WFRC region, simplify, export ───────
     wfrc_union = wfrc_gdf.geometry.union_all()
     places_in = places[places.geometry.intersects(wfrc_union)].copy()
-    places_in["name"] = places_in["NAME"]
+    places_in["name"] = places_in["NAMELSAD"].apply(_clean_stplcname)
     city_gdf = places_in[["name", "geometry"]].copy()
     city_gdf = city_gdf.to_crs(epsg=26912)
     city_gdf["geometry"] = city_gdf["geometry"].simplify(100, preserve_topology=True)
