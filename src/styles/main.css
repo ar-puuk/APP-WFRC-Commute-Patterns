@@ -260,7 +260,9 @@ a { color: inherit; }
   color: var(--ink);
 }
 
-.mast-title span { display: block; }
+@media (max-width: 540px) {
+  .mast-title span { display: block; }
+}
 
 .mast-sub {
   margin-top: 4px;

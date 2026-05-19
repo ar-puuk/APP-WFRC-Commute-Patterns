@@ -161,9 +161,14 @@ function _initPanelToggles() {
   if (!grid) return;
 
   grid.classList.add('no-transition');
-  if (window.innerWidth <= 768) {
-    grid.classList.add('left-collapsed', 'right-collapsed');
+  if (window.innerWidth <= 480) {
+    // Phone: collapse both, right first then left
+    grid.classList.add('right-collapsed', 'left-collapsed');
+  } else if (window.innerWidth <= 768) {
+    // Small tablet / large phone landscape: collapse right panel only
+    grid.classList.add('right-collapsed');
   } else {
+    // Desktop: restore last user preference
     const stored = JSON.parse(localStorage.getItem('wfrc-panels') || '{}');
     if (stored.leftCollapsed)  grid.classList.add('left-collapsed');
     if (stored.rightCollapsed) grid.classList.add('right-collapsed');
