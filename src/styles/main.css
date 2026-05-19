@@ -581,8 +581,6 @@ input[type="range"] {
 }
 
 .lg-swatch.inflow { background: var(--inflow); }
-.lg-swatch.thin  { height: 1px; }
-.lg-swatch.thick { height: 5px; }
 
 /* ============================================================
    RIGHT RAIL — chart panels

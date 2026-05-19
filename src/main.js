@@ -349,7 +349,7 @@ async function refreshVisualization() {
       queryFlows(state.selectedArea, state.selectedAreaType, 'inflow',  state.aggregation),
       queryTotal(state.selectedArea, state.selectedAreaType, 'outflow'),
       queryTotal(state.selectedArea, state.selectedAreaType, 'inflow'),
-      state.aggregation === 'city' ? querySelfFlow(state.selectedArea, state.selectedAreaType) : Promise.resolve(0),
+      querySelfFlow(state.selectedArea, state.selectedAreaType),
     ]);
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
@@ -377,7 +377,7 @@ async function refreshVisualization() {
     _lastTotalOut = totalOut;
     _lastTotalIn  = totalIn;
 
-    setSelfFlow(state.aggregation === 'city' ? selfCount : 0, totalOut, totalIn);
+    setSelfFlow(selfCount, totalOut, totalIn);
 
     // Fly only when the selected area or aggregation level changes
     const areaChanged = state.selectedArea !== _lastFlewArea
@@ -422,6 +422,7 @@ function _applyFilter() {
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
+  _updateLegend(filtered, state.direction);
 }
 
 // ── Dataline map overlay update ───────────────────────────────────────────────
@@ -439,9 +440,51 @@ function _updateDataline(total, appState) {
   dlFrom.textContent  = `From ${appState.selectedArea} · ${appState.year}`;
   dlArrow.textContent = isOut ? '↗' : '↘';
   if (dl) dl.classList.toggle('inflow', !isOut);
+}
 
-  // Sync legend swatches to current direction (outflow = orange, inflow = teal)
-  document.querySelectorAll('.lg-swatch').forEach(s => s.classList.toggle('inflow', !isOut));
+// ── Flow legend ───────────────────────────────────────────────────────────────
+function _updateLegend(flows, direction) {
+  const el = document.getElementById('map-legend');
+  if (!el) return;
+
+  const counts = flows.map(f => Number(f.S000)).filter(n => n > 0).sort((a, b) => a - b);
+  if (!counts.length) { el.innerHTML = ''; return; }
+
+  const minVal = counts[0];
+  const maxVal = counts[counts.length - 1];
+
+  // Up to 4 tiers: min, ~33rd pct, ~66th pct, max
+  const picks = [
+    counts[0],
+    counts[Math.floor(counts.length * 0.33)],
+    counts[Math.floor(counts.length * 0.66)],
+    counts[counts.length - 1],
+  ];
+  const tiers = [...new Set(picks)]; // deduplicate when data is sparse
+
+  function fmtN(n) {
+    if (n >= 10000) return `${Math.round(n / 1000)}k`;
+    if (n >= 1000)  return `${parseFloat((n / 1000).toFixed(1))}k`;
+    return n.toLocaleString();
+  }
+
+  // Swatch height mirrors flowmap.gl's adaptive scale: widths span the visible
+  // range, so the thinnest arc = minVal, thickest = maxVal. We normalize within
+  // that range (not from 0) with a sqrt curve.
+  const minH = 1.5, maxH = 7;
+  function swatchH(val) {
+    if (maxVal === minVal) return (minH + maxH) / 2;
+    const t = Math.sqrt((val - minVal) / (maxVal - minVal));
+    return +(minH + t * (maxH - minH)).toFixed(1);
+  }
+
+  const colorClass = direction === 'inflow' ? 'inflow' : '';
+
+  el.innerHTML = tiers.map(val => `
+    <div class="lg-row">
+      <span class="lg-swatch ${colorClass}" style="height:${swatchH(val)}px"></span>
+      <span>${fmtN(val)}</span>
+    </div>`).join('');
 }
 
 // ── Arc click → select destination as new area ────────────────────────────────
