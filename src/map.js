@@ -225,12 +225,6 @@ export function initPolygonInteraction(onAreaClick) {
       const name = e.features?.[0]?.properties?.name;
       if (name) _onPolygonClick(name);
     });
-    map.on('mousemove', layerId, () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', layerId, () => {
-      map.getCanvas().style.cursor = '';
-    });
   });
 }
 
@@ -288,24 +282,7 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
     pickable: true,
     onHover: (info) => {
       const obj = info?.object;
-      if (!obj || !info.picked) {
-        // Fall through to polygon hover when no arc/location is under the cursor
-        const features = _polygonsVisible
-          ? map.queryRenderedFeatures([info.x, info.y], { layers: ['county-fill', 'city-fill'] })
-          : [];
-        if (features.length) {
-          const name = features[0].properties?.name;
-          if (name) {
-            const cta = state.direction === 'outflow'
-              ? `Where do <strong>${name}</strong> residents work?`
-              : `Where do <strong>${name}</strong> workers live?`;
-            _showTooltip(info, `<div class="ft-cta">${cta}</div>`, 'map-tooltip--cta');
-            return;
-          }
-        }
-        _hideTooltip();
-        return;
-      }
+      if (!obj || !info.picked) { _hideTooltip(); return; }
       if (obj.type === 'flow') {
         const count     = Number(obj.count);
         const originId  = obj.origin?.id ?? '';
