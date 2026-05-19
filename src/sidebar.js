@@ -99,9 +99,8 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
 
     <!-- ATTRIBUTION -->
     <div class="sidebar-attribution">
-      Data: <a href="https://lehd.ces.census.gov/data/lodes/" target="_blank" rel="noopener">US Census LEHD LODES8</a>
-      &middot; <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html" target="_blank" rel="noopener">TIGER 2020</a><br>
-      <a href="https://wfrc.org/" target="_blank" rel="noopener">Wasatch Front Regional Council</a>
+      <a href="https://wfrc.utah.gov/" target="_blank" rel="noopener">Wasatch Front Regional Council</a>
+      <button id="credits-open-btn" class="credits-link-btn">Data &amp; Credits</button>
     </div>
   `;
 
@@ -141,6 +140,9 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
 
   // Wire search dropdown
   _initDropdown(cityNames, countyNames);
+
+  // Credits modal
+  _initCreditsModal();
 }
 
 export function updateSidebarStats(flows, appState) {
@@ -387,4 +389,111 @@ function _highlightItem(items, idx) {
     el.setAttribute('aria-selected', i === idx ? 'true' : 'false');
   });
   items[idx]?.scrollIntoView({ block: 'nearest' });
+}
+
+function _initCreditsModal() {
+  if (document.getElementById('credits-backdrop')) return;
+
+  const year = new Date().getFullYear();
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'credits-backdrop';
+  backdrop.className = 'credits-backdrop';
+  backdrop.setAttribute('role', 'dialog');
+  backdrop.setAttribute('aria-modal', 'true');
+  backdrop.setAttribute('aria-labelledby', 'credits-modal-title');
+
+  backdrop.innerHTML = `
+    <div class="credits-modal">
+      <button class="credits-close" id="credits-close-btn" aria-label="Close credits">&times;</button>
+      <h2 class="credits-title" id="credits-modal-title">Credits &amp; Attribution</h2>
+
+      <div class="credits-section">
+        <div class="credits-section-label">Data Sources</div>
+        <ul class="credits-list">
+          <li>
+            <a href="https://lehd.ces.census.gov/data/lodes/" target="_blank" rel="noopener">US Census LEHD LODES 8</a>
+            &mdash; Origin-destination employment data for Utah (2002&ndash;2022)
+          </li>
+          <li>
+            <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html" target="_blank" rel="noopener">US Census TIGER/Line 2020</a>
+            &mdash; Place and county boundary shapefiles
+          </li>
+        </ul>
+      </div>
+
+      <div class="credits-section">
+        <div class="credits-section-label">Map Tiles</div>
+        <ul class="credits-list">
+          <li>
+            <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
+            &mdash; Positron (light) &amp; Dark Matter basemap tiles
+          </li>
+          <li>
+            &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors
+          </li>
+        </ul>
+      </div>
+
+      <div class="credits-section">
+        <div class="credits-section-label">Open Source Libraries</div>
+        <ul class="credits-list">
+          <li>
+            <a href="https://maplibre.org/" target="_blank" rel="noopener">MapLibre GL JS</a>
+            &mdash; WebGL map rendering (BSD 3-Clause)
+          </li>
+          <li>
+            <a href="https://deck.gl/" target="_blank" rel="noopener">deck.gl</a>
+            &mdash; WebGL flow arc visualization (MIT)
+          </li>
+          <li>
+            <a href="https://duckdb.org/" target="_blank" rel="noopener">DuckDB-Wasm</a>
+            &mdash; In-browser SQL analytics on Parquet (MIT)
+          </li>
+          <li>
+            <a href="https://echarts.apache.org/" target="_blank" rel="noopener">Apache ECharts</a>
+            &mdash; Data visualization (Apache 2.0)
+          </li>
+          <li>
+            <a href="https://github.com/visgl/flowmap.gl" target="_blank" rel="noopener">flowmap.gl</a>
+            &mdash; Flow map layer (Apache 2.0)
+          </li>
+          <li>
+            <a href="https://vitejs.dev/" target="_blank" rel="noopener">Vite</a>
+            &mdash; Build tooling (MIT)
+          </li>
+        </ul>
+      </div>
+
+      <div class="credits-rule"></div>
+
+      <div class="credits-copyright">
+        &copy; ${year} Wasatch Front Regional Council. All rights reserved.<br>
+        Source data from the US Census Bureau LEHD program is public domain.
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  function open() {
+    backdrop.classList.add('is-open');
+    document.getElementById('credits-close-btn').focus();
+  }
+
+  function close() {
+    backdrop.classList.remove('is-open');
+    document.getElementById('credits-open-btn')?.focus();
+  }
+
+  document.getElementById('credits-open-btn').addEventListener('click', open);
+  document.getElementById('credits-close-btn').addEventListener('click', close);
+
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) close();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !backdrop.hidden) close();
+  });
 }
