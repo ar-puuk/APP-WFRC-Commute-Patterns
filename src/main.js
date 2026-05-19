@@ -11,7 +11,7 @@ import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, 
 const state = {
   theme:            'light',
   aggregation:      'city',
-  direction:        'outflow',
+  direction:        'inflow',
   selectedArea:     'Salt Lake City',
   selectedAreaType: 'city',
   year:             null,

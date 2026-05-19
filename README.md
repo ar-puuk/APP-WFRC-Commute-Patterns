@@ -2,7 +2,7 @@
 
 An interactive WebAssembly-powered map for exploring commute flow patterns across the Wasatch Front region, built entirely on open-source tools and hosted on GitHub Pages — no ArcGIS or proprietary dependencies.
 
-**Live app:** https://ar-puuk.github.io/APP-WFRC-Commute-Patterns/
+**Live app:** https://wfrcanalytics.github.io/APP-WFRC-Commute-Patterns/
 
 ![App screenshot](screenshot.png)
 
