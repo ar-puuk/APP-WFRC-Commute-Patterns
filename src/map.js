@@ -2,43 +2,14 @@ import maplibregl from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { FlowmapLayer } from '@flowmap.gl/layers';
 
-// ── Base map tile styles ─────────────────────────────────────────────────────
+// ── Base map vector styles (CARTO GL — no API key required) ──────────────────
 
-const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors ' +
-  '&copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
-
-// Carto raster tiles — free, no API key, subdomain load-balanced
-const TILE_URLS = {
-  light: [
-    'https://a.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
-    'https://b.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
-    'https://c.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
-    'https://d.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}@2x.png',
-  ],
-  dark: [
-    'https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
-    'https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
-    'https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
-    'https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png',
-  ],
+// CARTO GL vector styles: full vector tile stack, glyphs and sprites included.
+// Positron = light, Dark Matter = dark.
+const STYLE_URLS = {
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 };
-
-function buildStyle(theme) {
-  return {
-    version: 8,
-    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-    sources: {
-      basemap: {
-        type: 'raster',
-        tiles: TILE_URLS[theme],
-        tileSize: 256,
-        attribution: ATTRIBUTION,
-      },
-    },
-    layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
-  };
-}
 
 const INITIAL_VIEW = { center: [-111.89, 40.60], zoom: 8 };
 
@@ -161,7 +132,7 @@ export function initMap(containerId, theme = 'light') {
 
   map = new maplibregl.Map({
     container: containerId,
-    style: buildStyle(theme),
+    style: STYLE_URLS[theme],
     ...INITIAL_VIEW,
     maxZoom: 14,
     minZoom: 5,
@@ -174,6 +145,7 @@ export function initMap(containerId, theme = 'light') {
   });
 
   map.on('load', () => {
+    _filterLabels();
     _addBoundaryLayers();
     map.addControl(deckOverlay);
 
@@ -211,25 +183,15 @@ export function switchTheme(theme, onReady) {
   _theme = theme;
   _hideTooltip();
 
-  // Swap tile URLs in-place — avoids setStyle() which destroys all sources/layers
-  // and makes style.load-based layer restoration unreliable.
-  map.getSource('basemap')?.setTiles(TILE_URLS[theme]);
-
-  // Update boundary outlines to neutral gray (selection color handled by updateChoropleth)
-  const outlineColor     = theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
-  const outlineColorCity = theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
-  if (map.getLayer('county-outline')) map.setPaintProperty('county-outline', 'line-color', outlineColor);
-  if (map.getLayer('city-outline'))   map.setPaintProperty('city-outline',   'line-color', outlineColorCity);
-
-  // Re-render choropleth (passes direction → updates selected outline color too)
-  if (_pendingChoropleth) {
-    const { flows, selectedArea, aggregation, direction } = _pendingChoropleth;
-    updateChoropleth(flows, selectedArea, aggregation, theme, direction);
-  }
-  if (_lastFlowArgs) updateLayers(..._lastFlowArgs);
-
-  // Full re-query so charts etc. also reflect the new theme
-  onReady?.();
+  // setStyle() replaces the entire GL style (vector tiles), destroying all custom
+  // sources and layers. Re-add boundary layers and re-filter labels on idle, then
+  // call onReady() which triggers a full re-query and repaints everything.
+  map.setStyle(STYLE_URLS[theme]);
+  map.once('idle', () => {
+    _filterLabels();
+    if (_boundaries.county && _boundaries.city) _addBoundaryLayers();
+    onReady?.();
+  });
 }
 
 // ── Flow map layer ────────────────────────────────────────────────────────────
@@ -527,12 +489,46 @@ export function zoomIn()    { map?.zoomIn(); }
 export function zoomOut()   { map?.zoomOut(); }
 export function resetView() { map?.flyTo({ ...INITIAL_VIEW, duration: 800 }); }
 
+const _KEEP_LABEL_RE = /^place_(continent|country_|state|city|capital|town|village)/;
+
+// Returns the ID of the first kept place-label layer.
+// Fills are inserted immediately before it, so:
+//   roads/buildings → [moved non-kept labels] → [our fills] → kept place labels
+function _fillInsertionLayer() {
+  const layers = map.getStyle()?.layers ?? [];
+  const first = layers.find(l => l.type === 'symbol' && _KEEP_LABEL_RE.test(l.id));
+  if (first) return first.id;
+  // Fallback: after country boundary lines
+  for (const anchor of ['boundary_country_inner', 'building-top', 'building']) {
+    const i = layers.findIndex(l => l.id === anchor);
+    if (i >= 0 && i + 1 < layers.length) return layers[i + 1].id;
+  }
+  return undefined;
+}
+
+// Moves all non-kept symbol layers (road labels, POIs, water names, hamlets,
+// suburbs, …) to just before the fill insertion point so they render below our
+// choropleth fills rather than being hidden entirely.
+function _filterLabels() {
+  if (!map) return;
+  const anchor = _fillInsertionLayer();
+  if (!anchor) return;
+  const layers = [...(map.getStyle()?.layers ?? [])]; // snapshot before mutations
+  layers.forEach(layer => {
+    if (layer.type !== 'symbol') return;
+    if (!_KEEP_LABEL_RE.test(layer.id)) map.moveLayer(layer.id, anchor);
+  });
+}
+
 function _addBoundaryLayers() {
   if (!map || !_boundaries.county || !_boundaries.city) return;
 
   const outlineColor     = _theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
   const outlineColorCity = _theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
-  const selColor         = _theme === 'dark' ? '#5aa6a7'                : '#1e6f6f'; // placeholder; updateChoropleth will set direction-aware color
+  const selColor         = _theme === 'dark' ? '#5aa6a7'                : '#1e6f6f';
+
+  // Insert above roads/buildings but below the label stack.
+  const before = _fillInsertionLayer();
 
   // Add (or replace) GeoJSON sources
   if (map.getSource('county-zones')) {
@@ -548,9 +544,9 @@ function _addBoundaryLayers() {
 
   // County layers — add if missing, then always sync paint to current theme
   if (!map.getLayer('county-fill')) {
-    map.addLayer({ id: 'county-fill',     type: 'fill', source: 'county-zones', paint: { 'fill-color': 'rgba(0,0,0,0)' } });
-    map.addLayer({ id: 'county-outline',  type: 'line', source: 'county-zones', paint: { 'line-color': outlineColor,     'line-width': 1   } });
-    map.addLayer({ id: 'county-selected', type: 'line', source: 'county-zones', filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } });
+    map.addLayer({ id: 'county-fill',     type: 'fill', source: 'county-zones', paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
+    map.addLayer({ id: 'county-outline',  type: 'line', source: 'county-zones', paint: { 'line-color': outlineColor,     'line-width': 1   } }, before);
+    map.addLayer({ id: 'county-selected', type: 'line', source: 'county-zones', filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
   } else {
     map.setPaintProperty('county-outline',  'line-color', outlineColor);
     map.setPaintProperty('county-selected', 'line-color', selColor);
@@ -558,9 +554,9 @@ function _addBoundaryLayers() {
 
   // City layers — add if missing, then always sync paint to current theme
   if (!map.getLayer('city-fill')) {
-    map.addLayer({ id: 'city-fill',     type: 'fill', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } });
-    map.addLayer({ id: 'city-outline',  type: 'line', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColorCity, 'line-width': 0.5 } });
-    map.addLayer({ id: 'city-selected', type: 'line', source: 'city-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } });
+    map.addLayer({ id: 'city-fill',     type: 'fill', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
+    map.addLayer({ id: 'city-outline',  type: 'line', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColorCity, 'line-width': 0.5 } }, before);
+    map.addLayer({ id: 'city-selected', type: 'line', source: 'city-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
   } else {
     map.setPaintProperty('city-outline',  'line-color', outlineColorCity);
     map.setPaintProperty('city-selected', 'line-color', selColor);
