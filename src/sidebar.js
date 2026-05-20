@@ -257,7 +257,7 @@ function _bdRow(label, count, sum, dirClass) {
 function _updateInfoNote(state) {
   const existing = document.getElementById('cp-info-note');
   const match = state.selectedAreaType === 'county'
-    ? _infoOnlyPlaces.find(f => f.properties?.county === state.selectedArea)
+    ? _infoOnlyPlaces.find(f => f.properties?.county === state.selectedArea && f.properties?.enable === false)
     : null;
 
   if (!match) { existing?.remove(); return; }
@@ -429,6 +429,7 @@ function _highlightItem(items, idx) {
   items[idx]?.scrollIntoView({ block: 'nearest' });
 }
 
+
 function _initCreditsModal() {
   const existing = document.getElementById('credits-backdrop');
   if (existing) {
@@ -471,6 +472,11 @@ function _initCreditsModal() {
       </div>
 
       <div class="credits-section">
+        <div class="credits-section-label">Data Notes</div>
+        <div class="cp-info-note">Unincorporated areas are not included as selectable zones. Commute flows to/from certain employment sites (e.g. Hill Air Force Base) are underrepresented in LEHD LODES because federal and military positions are not covered by Unemployment Insurance wage records, hence not included in this app.</div>
+      </div>
+
+      <div class="credits-section">
         <div class="credits-section-label">Map Tiles</div>
         <ul class="credits-list">
           <li>
@@ -510,14 +516,6 @@ function _initCreditsModal() {
             <a href="https://vitejs.dev/" target="_blank" rel="noopener">Vite</a>
             &mdash; Build tooling (MIT)
           </li>
-        </ul>
-      </div>
-
-      <div class="credits-section">
-        <div class="credits-section-label">Data Notes</div>
-        <ul class="credits-list">
-          <li>Unincorporated areas are not included as selectable zones in this map.</li>
-          <li>Source data from the US Census Bureau LEHD program is public domain.</li>
         </ul>
       </div>
 
