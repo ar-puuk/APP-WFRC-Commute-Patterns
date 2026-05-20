@@ -36,8 +36,25 @@ CACHE_DIR = DATA_DIR / "cache"
 CUSTOM_FILE = DATA_DIR / "custom_places.gpkg"
 
 # Set to True to include custom places (e.g. Hill Air Force Base) in the
-# pipeline output.  When False all four merge-point functions are no-ops.
+# pipeline output.  When False all four merge-point functions are no-ops,
+# but export_for_app() still runs so the app can show info-only polygons.
 ENABLED = False
+
+# Metadata for the app's info-only display (shown when ENABLED = False).
+# Keyed by the 'name' field in custom_places.gpkg.
+CUSTOM_PLACE_NOTES = {
+    "Hill Air Force Base": {
+        "county": "Davis County",
+        "county_fips": "49011",
+        "employees_approx": "~27,000",
+        "note": (
+            "Federal civilian and military positions are excluded from LEHD "
+            "wage records (not UI-covered employment). Only private contractor "
+            "jobs appear in this dataset, significantly underrepresenting "
+            "actual commute volumes to this site."
+        ),
+    },
+}
 
 # Synthetic place FIPS base — high enough to never collide with real Utah FIPS.
 # Each custom place gets 49900XX where XX is its index in the layer.
@@ -205,3 +222,38 @@ def append_custom_boundaries(city_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     result = pd.concat([city_gdf, custom_proj], ignore_index=True)
     print(f"  Appended {len(custom_proj)} custom place boundary/ies to city GeoDataFrame.")
     return gpd.GeoDataFrame(result, crs=city_gdf.crs)
+
+
+def export_for_app(data_dir: Path) -> None:
+    """Export data/custom_places.geojson for the app — always runs regardless of ENABLED.
+
+    When ENABLED=False the app uses this file to render info-only polygons with a
+    click popup explaining why data is unavailable.  When ENABLED=True the app
+    treats the place as a normal city and ignores this file for that feature.
+    """
+    import json as _json
+
+    custom_gdf = _load_custom_layer()
+    if custom_gdf.empty:
+        return
+
+    features = []
+    for _, row in custom_gdf.iterrows():
+        name = row["name"]
+        info = CUSTOM_PLACE_NOTES.get(name, {})
+        geom = row.geometry.simplify(0.0001, preserve_topology=True)
+        features.append({
+            "type": "Feature",
+            "geometry": geom.__geo_interface__,
+            "properties": {
+                "name": name,
+                "county": info.get("county", ""),
+                "county_fips": info.get("county_fips", ""),
+                "employees_approx": info.get("employees_approx", ""),
+                "note": info.get("note", ""),
+            },
+        })
+
+    out_path = data_dir / "custom_places.geojson"
+    out_path.write_text(_json.dumps({"type": "FeatureCollection", "features": features}))
+    print(f"  Exported {out_path.name} ({len(features)} feature(s))")

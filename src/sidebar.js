@@ -2,6 +2,11 @@
 let _state              = null;
 let _onSelectionChange  = null;
 let _onAreaFly          = null;
+let _infoOnlyPlaces     = [];  // GeoJSON features for info-only custom places
+
+export function setInfoOnlyPlaces(features) {
+  _infoOnlyPlaces = features ?? [];
+}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -159,6 +164,7 @@ export function updateSidebarStats(flows, appState) {
   const state = appState;
 
   _updateSearchContext();
+  _updateInfoNote(state);
 
   if (!flows.length) {
     _clearDemoRows();
@@ -246,6 +252,28 @@ function _bdRow(label, count, sum, dirClass) {
       </div>
     </div>
   `;
+}
+
+function _updateInfoNote(state) {
+  const existing = document.getElementById('cp-info-note');
+  const match = state.selectedAreaType === 'county'
+    ? _infoOnlyPlaces.find(f => f.properties?.county === state.selectedArea)
+    : null;
+
+  if (!match) { existing?.remove(); return; }
+  if (existing) return;
+
+  const p = match.properties;
+  const note = document.createElement('div');
+  note.id        = 'cp-info-note';
+  note.className = 'cp-info-note';
+  note.innerHTML =
+    `<strong>${p.name}</strong>${p.employees_approx ? ` (${p.employees_approx} employees)` : ''} ` +
+    `is this county's largest employer but falls outside LEHD coverage &mdash; ` +
+    `federal and military positions are not UI-insured. ` +
+    `Commute flows to/from this site are not reflected in these figures.`;
+
+  document.querySelector('.sidebar-attribution')?.before(note);
 }
 
 function _clearDemoRows() {

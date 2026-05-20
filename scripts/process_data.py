@@ -427,6 +427,7 @@ def main():
     if args.boundaries:
         print("=== Generating Boundary Files ===\n")
         generate_boundaries(force=True)
+        custom_places.export_for_app(DATA_DIR)
         print("\nDone!")
         return
 
@@ -478,6 +479,8 @@ def main():
     # 10. Generate boundary GeoJSON files if needed (uses already-loaded TIGER data)
     print("\n9b. Generating boundary files (if needed)...")
     generate_boundaries(places, counties)
+    print("\n9c. Exporting custom place info for app display...")
+    custom_places.export_for_app(DATA_DIR)
 
     # 11. Build metadata
     print("\n10. Building city and county metadata...")

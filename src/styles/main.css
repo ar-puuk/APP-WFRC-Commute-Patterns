@@ -771,6 +771,53 @@ input[type="range"] {
 }
 
 /* ============================================================
+   CUSTOM PLACE INFO POPUP
+   ============================================================ */
+.custom-info-popup .maplibregl-popup-content {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 1px;
+  padding: 11px 14px 13px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  font-family: 'Inter', sans-serif;
+}
+
+.custom-info-popup .maplibregl-popup-tip {
+  border-top-color: var(--rule-strong);
+}
+
+.custom-info-popup .maplibregl-popup-close-button {
+  color: var(--ink-3);
+  font-size: 16px;
+  padding: 4px 8px;
+}
+
+.ci-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.ci-employees {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b45309;
+  margin-bottom: 6px;
+}
+
+[data-theme="dark"] .ci-employees {
+  color: #fbbf24;
+}
+
+.ci-note {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+/* ============================================================
    MAPLIBRE OVERRIDES
    ============================================================ */
 .maplibregl-ctrl-group {
@@ -815,6 +862,7 @@ input[type="range"] {
 [data-theme="dark"] .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon,
 [data-theme="dark"] .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon,
 [data-theme="dark"] .maplibregl-ctrl-fullscreen .maplibregl-ctrl-icon,
+[data-theme="dark"] .maplibregl-ctrl-shrink .maplibregl-ctrl-icon,
 [data-theme="dark"] .maplibregl-ctrl-geolocate .maplibregl-ctrl-icon {
   filter: invert(1);
 }

@@ -76,6 +76,7 @@ let _selfOutTotal     = 0;   // total commuters who reside in selected area
 let _selfInTotal      = 0;   // total workers employed in selected area
 let _onPolygonClick      = null;
 let _deckClickedThisTick = false;
+let _infoFeatures        = [];
 
 // ── Donut SVG helper ─────────────────────────────────────────────────────────
 
@@ -149,6 +150,7 @@ export function initMap(containerId, theme = 'light') {
   map.on('load', () => {
     _filterLabels();
     _addBoundaryLayers();
+    _addInfoLayers();
     map.addControl(deckOverlay);
 
     // Zoom + compass (clicking compass resets bearing; visualizePitch tilts needle)
@@ -192,6 +194,7 @@ export function switchTheme(theme, onReady) {
   map.once('idle', () => {
     _filterLabels();
     if (_boundaries.county && _boundaries.city) _addBoundaryLayers();
+    _addInfoLayers();
     onReady?.();
   });
 }
@@ -502,6 +505,55 @@ export function fitToFlows(flows) {
     [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
     { padding: 60, duration: 800, maxZoom: 11 }
   );
+}
+
+// ── Info-only custom places (non-selectable polygons with click popup) ────────
+
+export function loadInfoOnlyPlaces(features) {
+  _infoFeatures = features ?? [];
+  if (map?.isStyleLoaded()) _addInfoLayers();
+}
+
+function _addInfoLayers() {
+  if (!map || !_infoFeatures.length) return;
+
+  const geojson    = { type: 'FeatureCollection', features: _infoFeatures };
+  const fillColor  = _theme === 'dark' ? 'rgba(251,191,36,0.07)' : 'rgba(217,119,6,0.09)';
+  const lineColor  = _theme === 'dark' ? '#fbbf24'               : '#b45309';
+  const before     = _fillInsertionLayer();
+
+  if (map.getSource('custom-info')) {
+    map.getSource('custom-info').setData(geojson);
+    if (map.getLayer('custom-info-fill')) map.setPaintProperty('custom-info-fill', 'fill-color', fillColor);
+    if (map.getLayer('custom-info-line')) map.setPaintProperty('custom-info-line', 'line-color', lineColor);
+    return;
+  }
+
+  map.addSource('custom-info', { type: 'geojson', data: geojson });
+  map.addLayer({
+    id: 'custom-info-fill', type: 'fill', source: 'custom-info',
+    paint: { 'fill-color': fillColor },
+  }, before);
+  map.addLayer({
+    id: 'custom-info-line', type: 'line', source: 'custom-info',
+    paint: { 'line-color': lineColor, 'line-width': 1.5, 'line-dasharray': [3, 2] },
+  }, before);
+
+  map.on('mouseenter', 'custom-info-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'custom-info-fill', () => { map.getCanvas().style.cursor = ''; });
+  map.on('click', 'custom-info-fill', (e) => {
+    if (_deckClickedThisTick) return;
+    const p = e.features?.[0]?.properties;
+    if (!p) return;
+    new maplibregl.Popup({ maxWidth: '280px', className: 'custom-info-popup' })
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div class="ci-name">${p.name}</div>
+        ${p.employees_approx ? `<div class="ci-employees">${p.employees_approx} employees (est.)</div>` : ''}
+        <div class="ci-note">${p.note}</div>
+      `)
+      .addTo(map);
+  });
 }
 
 // ── Internal: add boundary layers after style load ────────────────────────────

@@ -3,8 +3,8 @@ import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
-import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction } from './map.js';
-import { initSidebar, updateSidebarStats } from './sidebar.js';
+import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction, loadInfoOnlyPlaces } from './map.js';
+import { initSidebar, updateSidebarStats, setInfoOnlyPlaces } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, resizeCharts } from './charts.js';
 
 // ── Global app state ─────────────────────────────────────────────────────────
@@ -97,6 +97,19 @@ async function main() {
 
   // 6. Load boundary files in background (optional — graceful if missing)
   loadBoundaries(base, state.theme);
+
+  // 6b. Load custom place info for info-only display (graceful if missing)
+  fetch(`${base}data/custom_places.geojson`)
+    .then(r => r.ok ? r.json() : null)
+    .then(gj => {
+      if (!gj) return;
+      const cityNames = Object.keys(cityMeta);
+      const infoOnly  = gj.features.filter(f => !cityNames.includes(f.properties?.name));
+      if (!infoOnly.length) return;
+      loadInfoOnlyPlaces(infoOnly);
+      setInfoOnlyPlaces(infoOnly);
+    })
+    .catch(() => {});
 
   setProgress(88);
 
