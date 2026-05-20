@@ -440,3 +440,93 @@
 
 .balance-row .b-num.left  { text-align: right; padding-right: 6px; }
 .balance-row .b-num.right { text-align: left;  padding-left: 6px; }
+
+/* ── 05/06 ACS charts — horizontal bar rows ────────────────── */
+.acs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.acs-geo-section {
+  margin-bottom: 14px;
+}
+
+.acs-geo-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.acs-row {
+  display: grid;
+  grid-template-columns: 82px 1fr 36px 58px;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  padding: 2px 0;
+}
+
+.acs-lbl {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acs-bar-track {
+  height: 14px;
+  background: var(--rule);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+
+.acs-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.35s ease;
+}
+
+.acs-pct {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.acs-count {
+  font-size: 10px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-4);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.acs-na {
+  font-size: 11px;
+  color: var(--ink-4);
+  padding: 6px 0;
+  font-style: italic;
+}
+
+.acs-source {
+  font-size: 9.5px;
+  color: var(--ink-4);
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+/* Bar colors: inflow direction uses teal, outflow uses orange */
+[data-direction="outflow"] .acs-bar-fill { background: var(--outflow); opacity: 0.75; }
+[data-direction="inflow"]  .acs-bar-fill { background: var(--inflow);  opacity: 0.75; }

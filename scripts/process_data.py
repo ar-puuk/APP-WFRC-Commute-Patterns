@@ -31,6 +31,7 @@ import geopandas as gpd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import custom_places
+import fetch_acs
 
 # ── Output directories ────────────────────────────────────────────────────────
 DATA_DIR  = Path(__file__).parent.parent / "data"
@@ -422,6 +423,10 @@ def main():
         "--boundaries", action="store_true",
         help="Generate/regenerate boundary GeoJSON files only (year-independent)"
     )
+    parser.add_argument(
+        "--skip-acs", action="store_true",
+        help="Skip ACS data fetch (useful when Census API is unavailable)"
+    )
     args = parser.parse_args()
 
     if args.boundaries:
@@ -507,6 +512,13 @@ def main():
     # 14. Update manifest
     print("\n12. Updating manifest...")
     update_manifest(int(year))
+
+    # 15. Fetch ACS commute data
+    if not args.skip_acs:
+        print("\n13. Fetching ACS commute data...")
+        fetch_acs.fetch_acs_year(int(year), DATA_DIR)
+    else:
+        print("\n13. ACS fetch skipped (--skip-acs).")
 
     print(f"\n=== Done! Data year: {year}. Files in {year_dir} ===")
 

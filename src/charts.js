@@ -10,6 +10,7 @@ let _lastTotalOut  = 0;
 let _lastTotalIn   = 0;
 let _lastSelfFlow  = 0;
 let _lastState     = null;
+let _lastAcsEntry  = null;
 
 // Per-chart UI state (not reset on data change)
 let _demoDimension = 'age';      // 'age' | 'earnings' | 'industry'
@@ -63,13 +64,14 @@ export function initCharts(onAreaSelect) {
   });
 }
 
-export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, appState) {
+export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, appState, acsEntry) {
   _lastOutflows = outflows;
   _lastInflows  = inflows;
   _lastTotalOut = totalOut;
   _lastTotalIn  = totalIn;
   _lastSelfFlow = selfFlow ?? 0;
   _lastState    = appState;
+  _lastAcsEntry = acsEntry ?? null;
 
   _renderBar(outflows, inflows, totalOut, totalIn, appState);
   _renderSankey(outflows, inflows, appState);
@@ -77,6 +79,8 @@ export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, app
   _renderDemographics(outflows, inflows, appState);
   _renderReach(outflows, inflows, appState);
   _renderIndustry(outflows, inflows, appState);
+  _renderTransport(acsEntry, appState);
+  _renderTravelTime(acsEntry, appState);
 }
 
 // ── Exports ───────────────────────────────────────────────────────────────────
@@ -1058,6 +1062,140 @@ function _renderIndustry(outflows, inflows, state) {
       </div>
     `;
   }).join('');
+}
+
+// ── 05 · Means of Transportation (ACS) ───────────────────────────────────────
+
+// keys are summed together; 'other' (020E) = taxicab, motorcycle, other means
+const _TRANS_ROWS = [
+  { keys: ['drove', 'other'], label: 'Drove alone' },
+  { keys: ['carpool'],        label: 'Carpool' },
+  { keys: ['transit'],        label: 'Public transit' },
+  { keys: ['bike', 'walk'],   label: 'Bike / Walk' },
+  { keys: ['wfh'],            label: 'Work from home' },
+];
+
+function _renderTransport(acsEntry, appState) {
+  const el = document.getElementById('transport-body');
+  if (!el) return;
+
+  if (!acsEntry) {
+    el.innerHTML = `<div class="acs-na">ACS data not available for ${appState?.year < 2009 ? 'years before 2009' : 'this area'}.</div>`;
+    return;
+  }
+
+  // inflow → workers commuting IN → workplace geography (where they work)
+  // outflow → residents commuting OUT → residence geography (where they live)
+  const isInflow = appState?.direction === 'inflow';
+  const data  = isInflow ? (acsEntry.wrk?.trans ?? null) : (acsEntry.res?.trans ?? null);
+  const geoLabel = isInflow ? 'Workers at this location' : 'Residents of this area';
+
+  if (!data) {
+    el.innerHTML = `<div class="acs-na">Workplace geography data not available for this area.</div>
+      <div class="acs-source">ACS 5-Year Estimates · ${appState?.year ?? ''} · Census Bureau</div>`;
+    return;
+  }
+
+  const total = data.total || 1;
+  const rows = _TRANS_ROWS.map(({ keys, label }) => {
+    const val = keys.reduce((sum, k) => sum + (data[k] ?? 0), 0);
+    const pct = total > 0 ? (val / total) * 100 : 0;
+    return `<div class="acs-row">
+      <span class="acs-lbl">${label}</span>
+      <div class="acs-bar-track"><div class="acs-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+      <span class="acs-pct">${pct.toFixed(0)}%</span>
+      <span class="acs-count">${val.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="acs-geo-label">${geoLabel}</div>${rows}
+    <div class="acs-source">ACS 5-Year Estimates · ${appState?.year ?? ''} · Census Bureau</div>`;
+}
+
+// ── 06 · Travel Time to Work (ACS) ───────────────────────────────────────────
+
+const _TIME_ROWS = [
+  { key: 'lt10',    label: '< 10 min' },
+  { key: 't10_19',  label: '10–19 min' },
+  { key: 't20_29',  label: '20–29 min' },
+  { key: 't30_44',  label: '30–44 min' },
+  { key: 't45_59',  label: '45–59 min' },
+  { key: 't60plus', label: '60+ min' },
+];
+
+function _renderTravelTime(acsEntry, appState) {
+  const el = document.getElementById('traveltime-body');
+  if (!el) return;
+
+  if (!acsEntry) {
+    el.innerHTML = `<div class="acs-na">ACS data not available for ${appState?.year < 2009 ? 'years before 2009' : 'this area'}.</div>`;
+    return;
+  }
+
+  const isInflow = appState?.direction === 'inflow';
+  const data  = isInflow ? (acsEntry.wrk?.time ?? null) : (acsEntry.res?.time ?? null);
+  const geoLabel = isInflow ? 'Workers at this location' : 'Residents of this area';
+
+  if (!data) {
+    el.innerHTML = `<div class="acs-na">Workplace geography data not available for this area.</div>
+      <div class="acs-source">ACS 5-Year Estimates · ${appState?.year ?? ''} · Census Bureau</div>`;
+    return;
+  }
+
+  const total = data.total || 1;
+  const rows = _TIME_ROWS.map(({ key, label }) => {
+    const val = data[key] ?? 0;
+    const pct = total > 0 ? (val / total) * 100 : 0;
+    return `<div class="acs-row">
+      <span class="acs-lbl">${label}</span>
+      <div class="acs-bar-track"><div class="acs-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+      <span class="acs-pct">${pct.toFixed(0)}%</span>
+      <span class="acs-count">${val.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="acs-geo-label">${geoLabel}</div>${rows}
+    <div class="acs-source">ACS 5-Year Estimates · ${appState?.year ?? ''} · Census Bureau</div>`;
+}
+
+// ── ACS exports ───────────────────────────────────────────────────────────────
+
+export function exportTransportCsv() {
+  if (!_lastState || !_lastAcsEntry) return;
+  const area = _lastState.selectedArea;
+  const year = _lastState.year;
+  const header = ['Area', 'Year', 'Geography', 'Mode', 'Count', 'Pct'];
+  const rows   = [header];
+
+  for (const [geoKey, geoLabel] of [['res', 'Residence'], ['wrk', 'Workplace']]) {
+    const data = _lastAcsEntry[geoKey]?.trans;
+    if (!data) continue;
+    const total = data.total || 1;
+    for (const { keys, label } of _TRANS_ROWS) {
+      const val = keys.reduce((sum, k) => sum + (data[k] ?? 0), 0);
+      rows.push([area, year, geoLabel, label, val, ((val / total) * 100).toFixed(1)]);
+    }
+  }
+  _csvDownload(rows, `transport_${area}_${year}`);
+}
+
+export function exportTravelTimeCsv() {
+  if (!_lastState || !_lastAcsEntry) return;
+  const area = _lastState.selectedArea;
+  const year = _lastState.year;
+  const header = ['Area', 'Year', 'Geography', 'TravelTime', 'Count', 'Pct'];
+  const rows   = [header];
+
+  for (const [geoKey, geoLabel] of [['res', 'Residence'], ['wrk', 'Workplace']]) {
+    const data = _lastAcsEntry[geoKey]?.time;
+    if (!data) continue;
+    const total = data.total || 1;
+    for (const { key, label } of _TIME_ROWS) {
+      const val = data[key] ?? 0;
+      rows.push([area, year, geoLabel, label, val, ((val / total) * 100).toFixed(1)]);
+    }
+  }
+  _csvDownload(rows, `traveltime_${area}_${year}`);
 }
 
 // ── Download helpers ──────────────────────────────────────────────────────────
