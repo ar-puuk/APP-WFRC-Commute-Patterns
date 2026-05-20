@@ -1,8 +1,10 @@
 # Wasatch Front Commuter Patterns
 
-An interactive WebAssembly-powered map for exploring commute flow patterns across the Wasatch Front region, built entirely on open-source tools and hosted on GitHub Pages — no ArcGIS or proprietary dependencies.
+An interactive WebAssembly-powered map for exploring commute flow patterns across the Wasatch Front region, built entirely on open-source tools — no ArcGIS or proprietary dependencies.
 
-**Live app:** https://wfrcanalytics.github.io/APP-WFRC-Commute-Patterns/
+**Live app:** https://wfrc.utah.gov/maps/regional-commuter-flows/
+
+**GitHub Pages mirror:** https://wfrcanalytics.github.io/APP-WFRC-Commute-Patterns/
 
 ![App screenshot](screenshot.png)
 
@@ -58,7 +60,7 @@ Pre-processed data files are committed to the repo under `data/<year>/` so the a
 | In-browser data | [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview.html) querying Parquet files |
 | Data pipeline | Python — pandas, GeoPandas, PyArrow |
 | Python env | [uv](https://docs.astral.sh/uv/) |
-| Deployment | GitHub Actions → GitHub Pages |
+| Deployment | GitHub Actions → WFRC FTP + GitHub Pages |
 
 ---
 
@@ -103,12 +105,19 @@ Open `http://localhost:5173/APP-WFRC-Commute-Patterns/`.
 
 ## Deployment
 
-The app deploys automatically to GitHub Pages on every push to `main` via GitHub Actions (`.github/workflows/deploy.yml`).
+Every push to `master` triggers two parallel deploy jobs via GitHub Actions (`.github/workflows/deploy.yml`):
 
-To enable it on a new repository:
+| Target | URL | Build base |
+|---|---|---|
+| WFRC web server (FTP) | https://wfrc.utah.gov/maps/regional-commuter-flows/ | `./` (relative) |
+| GitHub Pages (mirror) | https://wfrcanalytics.github.io/APP-WFRC-Commute-Patterns/ | `/APP-WFRC-Commute-Patterns/` |
+
+The FTP job requires three repository secrets: `FTP_HOST`, `FTP_USERNAME`, `FTP_PASSWORD`.
+
+To enable GitHub Pages on a new repository fork:
 
 1. Go to **Settings → Pages → Source** and select **GitHub Actions**.
-2. Push to `main` — the workflow builds with Vite and deploys `dist/` to the `github-pages` environment.
+2. Push to `master` — the workflow builds and deploys `dist/` to the `github-pages` environment.
 
 ---
 
@@ -137,6 +146,7 @@ To enable it on a new repository:
 │   ├── manifest.json           # Available years list
 │   ├── city_boundaries.geojson
 │   ├── county_boundaries.geojson
+│   ├── custom_places.gpkg      # Custom place boundaries (e.g. Hill Air Force Base)
 │   └── <year>/                 # One directory per year (2002–2023)
 │       ├── city_flows.parquet
 │       ├── county_flows.parquet
@@ -144,7 +154,9 @@ To enable it on a new repository:
 │       └── county_meta.json
 │
 ├── scripts/
-│   └── process_data.py         # Offline data pipeline
+│   ├── process_data.py         # Offline data pipeline
+│   ├── custom_places.py        # Modular extension for non-Census employment sites
+│   └── verify_custom_places.py # LEHD coverage audit for custom places
 │
 ├── public/
 │   ├── favicon-light.svg           # Theme-aware favicon (light mode)
@@ -157,7 +169,7 @@ To enable it on a new repository:
 │
 └── .github/
     └── workflows/
-        └── deploy.yml          # GitHub Actions → GitHub Pages
+        └── deploy.yml          # GitHub Actions → WFRC FTP + GitHub Pages
 ```
 
 ---
