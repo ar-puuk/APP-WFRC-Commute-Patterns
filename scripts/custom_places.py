@@ -35,6 +35,10 @@ DATA_DIR  = Path(__file__).parent.parent / "data"
 CACHE_DIR = DATA_DIR / "cache"
 CUSTOM_FILE = DATA_DIR / "custom_places.gpkg"
 
+# Set to True to include custom places (e.g. Hill Air Force Base) in the
+# pipeline output.  When False all four merge-point functions are no-ops.
+ENABLED = False
+
 # Synthetic place FIPS base — high enough to never collide with real Utah FIPS.
 # Each custom place gets 49900XX where XX is its index in the layer.
 _SYNTH_FIPS_BASE = 4990000
@@ -63,6 +67,8 @@ def _cache_valid(custom_gdf: gpd.GeoDataFrame) -> bool:
 
 
 def get_custom_block_map(xwalk_df: pd.DataFrame) -> dict:
+    if not ENABLED:
+        return {}
     """Return {place_name: frozenset(tabblk2020)} for every custom place.
 
     Uses blklat/blklon from the LEHD crosswalk for point-in-polygon.
@@ -110,6 +116,8 @@ def get_custom_block_map(xwalk_df: pd.DataFrame) -> dict:
 
 
 def apply_custom_places(lookup: dict, block_map: dict) -> dict:
+    if not ENABLED:
+        return lookup
     """Override city assignment for all blocks that fall inside a custom place.
 
     Mutates and returns the lookup dict produced by build_lookup().
@@ -136,6 +144,8 @@ def apply_custom_places(lookup: dict, block_map: dict) -> dict:
 
 
 def inject_custom_meta(meta_list: list) -> list:
+    if not ENABLED:
+        return meta_list
     """Append a metadata entry for each custom place.
 
     Centroid is computed from the boundary polygon.
@@ -177,6 +187,8 @@ def inject_custom_meta(meta_list: list) -> list:
 
 
 def append_custom_boundaries(city_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    if not ENABLED:
+        return city_gdf
     """Append custom place polygons to the city boundaries GeoDataFrame.
 
     Reprojects and simplifies to match city_gdf (already in EPSG:26912, 100 m tolerance).
