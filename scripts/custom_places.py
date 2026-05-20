@@ -44,7 +44,7 @@ def _load_custom_layer() -> gpd.GeoDataFrame:
     """Load all features from custom_places.gpkg in WGS-84."""
     if not CUSTOM_FILE.exists():
         return gpd.GeoDataFrame(columns=["name", "geometry"])
-    gdf = gpd.read_file(CUSTOM_FILE)
+    gdf = gpd.read_file(CUSTOM_FILE, layer="custom_places")
     if "name" not in gdf.columns:
         raise ValueError(f"{CUSTOM_FILE} must have a 'name' column on each feature.")
     return gdf.to_crs(epsg=4326)

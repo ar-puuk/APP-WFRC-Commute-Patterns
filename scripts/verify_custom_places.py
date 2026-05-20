@@ -44,7 +44,7 @@ def main():
     print(f"=== Custom Place LEHD Coverage Verification (year={args.year}) ===\n")
 
     # Load custom boundaries
-    custom_gdf = gpd.read_file(CUSTOM_FILE).to_crs(epsg=4326)
+    custom_gdf = gpd.read_file(CUSTOM_FILE, layer="custom_places").to_crs(epsg=4326)
     print(f"Custom places found: {list(custom_gdf['name'])}\n")
 
     # Load crosswalk with lat/lon
