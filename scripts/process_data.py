@@ -216,12 +216,11 @@ def aggregate_county_flows(od):
 def load_tiger_places():
     local = download_cached(PLACES_URL, "tl_2024_49_place.zip")
     places = gpd.read_file(local)
-    # Project to Utah State Plane (meters) for accurate centroid, then back to WGS84
-    centroids = places.to_crs(epsg=26912).geometry.centroid
-    centroids_wgs = centroids.to_crs(epsg=4326)
     places = places.to_crs(epsg=4326)
-    places["lat"] = centroids_wgs.y
-    places["lon"] = centroids_wgs.x
+    # Use Census internal point (hand-designated, always inside the place boundary)
+    # instead of geometry.centroid, which breaks for irregular/multi-part polygons.
+    places["lat"] = places["INTPTLAT"].astype(float)
+    places["lon"] = places["INTPTLON"].astype(float)
     # Build a 7-char full FIPS (state + place) to match xwalk stplc format
     places["FULL_PLACEFP"] = places["STATEFP"] + places["PLACEFP"]
     return places
@@ -230,13 +229,12 @@ def load_tiger_places():
 def load_tiger_counties():
     local = download_cached(COUNTIES_URL, "tl_2024_us_county.zip")
     counties = gpd.read_file(local)
-    # Filter to Utah (STATEFP = 49) before computing centroids
+    # Filter to Utah (STATEFP = 49) before extracting centroids
     counties = counties[counties["STATEFP"] == "49"].copy()
-    centroids = counties.to_crs(epsg=26912).geometry.centroid
-    centroids_wgs = centroids.to_crs(epsg=4326)
     counties = counties.to_crs(epsg=4326)
-    counties["lat"] = centroids_wgs.y
-    counties["lon"] = centroids_wgs.x
+    # Use Census internal point (hand-designated, always inside the county boundary)
+    counties["lat"] = counties["INTPTLAT"].astype(float)
+    counties["lon"] = counties["INTPTLON"].astype(float)
     counties["COUNTYFP_full"] = counties["STATEFP"] + counties["COUNTYFP"]
     return counties
 
@@ -252,6 +250,16 @@ def _clean_stplcname(s):
     ):
         return parts[0].strip()
     return s
+
+
+# Manual centroid overrides for places where the Census boundary produces a
+# misleading centroid (e.g. large uninhabited annexations skewing the point).
+# Keyed by city name as it appears in the flow data.
+CENTROID_OVERRIDES = {
+    # Census boundary includes a large Great Salt Lake arm; true population
+    # center is ~15 mi east of the TIGER internal point.
+    "Hooper": (41.178632, -112.142319),
+}
 
 
 def build_city_meta(city_flows, xw, places):
@@ -282,7 +290,9 @@ def build_city_meta(city_flows, xw, places):
         place_fips = name_to_plc.get(city_name)
         lat, lon = None, None
 
-        if place_fips and place_fips in places_idx.index:
+        if city_name in CENTROID_OVERRIDES:
+            lat, lon = CENTROID_OVERRIDES[city_name]
+        elif place_fips and place_fips in places_idx.index:
             row = places_idx.loc[place_fips]
             if isinstance(row, pd.DataFrame):
                 row = row.iloc[0]
