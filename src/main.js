@@ -5,7 +5,7 @@ import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
 import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction, loadInfoOnlyPlaces } from './map.js';
 import { initSidebar, updateSidebarStats, setInfoOnlyPlaces } from './sidebar.js';
-import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, resizeCharts } from './charts.js';
+import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, exportTransportCsv, exportTravelTimeCsv, resizeCharts } from './charts.js';
 
 // ── Global app state ─────────────────────────────────────────────────────────
 const state = {
@@ -21,6 +21,10 @@ const state = {
 
 let cityMeta   = {};
 let countyMeta = {};
+
+// ACS commute data: keyed by FIPS (7-digit for places, 5-digit for counties)
+let _acsCity   = {};
+let _acsCounty = {};
 
 // Cached results for re-rendering without re-querying
 let _lastOutflows  = [];
@@ -54,6 +58,24 @@ function _distanceToZoom(avgMiles) {
   return Math.min(Math.max(zoom, 7.5), 11.5);
 }
 
+// ── ACS loader ───────────────────────────────────────────────────────────────
+async function _loadAcs(base, year) {
+  const load = async (path) => {
+    try {
+      const r = await fetch(path);
+      if (!r.ok) return {};
+      const text = await r.text();
+      // Guard against SPA fallback returning index.html for missing paths
+      if (!text.trim().startsWith('{')) return {};
+      return JSON.parse(text);
+    } catch { return {}; }
+  };
+  [_acsCity, _acsCounty] = await Promise.all([
+    load(`${base}data/acs/${year}/acs_city.json`),
+    load(`${base}data/acs/${year}/acs_county.json`),
+  ]);
+}
+
 // ── Boot ─────────────────────────────────────────────────────────────────────
 async function main() {
   _initPanelToggles(); // no data dependency — run immediately so mobile layout is correct from the start
@@ -70,10 +92,11 @@ async function main() {
   const urlYear = _getUrlYear(availableYears, manifest.default);
   state.year = urlYear;
 
-  // 3. Load year-specific metadata
+  // 3. Load year-specific metadata + ACS data
   const [cityMetaArr, countyMetaArr] = await Promise.all([
     fetch(`${base}data/${state.year}/city_meta.json`).then(r => r.json()),
     fetch(`${base}data/${state.year}/county_meta.json`).then(r => r.json()),
+    _loadAcs(base, state.year),
   ]);
   cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
   countyMeta = Object.fromEntries(countyMetaArr.map(d => [d.name, d]));
@@ -146,6 +169,8 @@ async function main() {
   document.getElementById('export-reach-csv')?.addEventListener('click', () => exportReachCsv());
   document.getElementById('export-industry-png')?.addEventListener('click', () => exportIndustryPng());
   document.getElementById('export-industry-csv')?.addEventListener('click', () => exportIndustryCsv());
+  document.getElementById('export-transport-csv')?.addEventListener('click', () => exportTransportCsv());
+  document.getElementById('export-traveltime-csv')?.addEventListener('click', () => exportTravelTimeCsv());
 
   // 10. Wire year scrubber
   _initYearSelect(availableYears, base);
@@ -376,6 +401,7 @@ async function _changeYear(newYear, base) {
     const [cityMetaArr, countyMetaArr] = await Promise.all([
       fetch(`${base}data/${newYear}/city_meta.json`).then(r => r.json()),
       fetch(`${base}data/${newYear}/county_meta.json`).then(r => r.json()),
+      _loadAcs(base, newYear),
     ]);
     cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
     countyMeta = Object.fromEntries(countyMetaArr.map(d => [d.name, d]));
@@ -493,9 +519,19 @@ function _applyFilter() {
     ? dirFlows
     : dirFlows.filter(f => Number(f.S000) >= state.minFlow);
 
+  // Resolve ACS entry for the currently selected area
+  let acsEntry = null;
+  if (state.selectedAreaType === 'city') {
+    const fips = cityMeta[state.selectedArea]?.place_fips;
+    if (fips) acsEntry = _acsCity[fips] ?? null;
+  } else {
+    const fips = countyMeta[state.selectedArea]?.county_fips;
+    if (fips) acsEntry = _acsCounty[fips] ?? null;
+  }
+
   updateLayers(filtered, state, arcClickHandler, total);
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
-  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastSelfCount, state);
+  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastSelfCount, state, acsEntry);
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
