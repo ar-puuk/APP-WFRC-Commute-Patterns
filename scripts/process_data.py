@@ -30,6 +30,7 @@ import pandas as pd
 import geopandas as gpd
 import pyarrow as pa
 import pyarrow.parquet as pq
+import custom_places
 
 # ── Output directories ────────────────────────────────────────────────────────
 DATA_DIR  = Path(__file__).parent.parent / "data"
@@ -117,7 +118,7 @@ def load_xwalk():
     xw = pd.read_csv(
         local,
         dtype={"tabblk2020": str, "stplc": str, "cty": str},
-        usecols=["tabblk2020", "stplc", "stplcname", "cty", "ctyname"],
+        usecols=["tabblk2020", "stplc", "stplcname", "cty", "ctyname", "blklatdd", "blklondd"],
     )
     # County FIPS is 5 chars (state+county); place FIPS is 7 chars (state+place)
     xw["cty"] = xw["cty"].str.zfill(5)
@@ -388,6 +389,7 @@ def generate_boundaries(places=None, counties=None, force=False):
     city_gdf = places_in[["name", "geometry"]].copy()
     city_gdf = city_gdf.to_crs(epsg=26912)
     city_gdf["geometry"] = city_gdf["geometry"].simplify(100, preserve_topology=True)
+    city_gdf = custom_places.append_custom_boundaries(city_gdf)
     city_gdf = city_gdf.to_crs(epsg=4326)
     city_gdf.to_file(city_out, driver="GeoJSON")
     print(f"  Wrote {city_out.name} ({len(city_gdf)} city polygons)")
@@ -447,6 +449,8 @@ def main():
     # 4. Build block-level lookup
     print("\n3. Building block -> city/county lookup...")
     lookup = build_lookup(xw)
+    block_map = custom_places.get_custom_block_map(xw)
+    lookup = custom_places.apply_custom_places(lookup, block_map)
     print(f"  Lookup entries: {len(lookup):,}")
 
     # 5. Join OD with lookup
@@ -478,6 +482,7 @@ def main():
     # 11. Build metadata
     print("\n10. Building city and county metadata...")
     city_meta = build_city_meta(city_flows, xw, places)
+    city_meta = custom_places.inject_custom_meta(city_meta)
     county_meta = build_county_meta(counties)
     print(f"  City metadata entries: {len(city_meta)}")
     print(f"  County metadata entries: {len(county_meta)}")

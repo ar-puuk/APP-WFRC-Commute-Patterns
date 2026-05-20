@@ -504,6 +504,14 @@
     "place_fips": "4935190"
   },
   {
+    "name": "Hill Air Force Base",
+    "county": "Davis County",
+    "county_fips": "49011",
+    "lat": 41.125679,
+    "lon": -111.981168,
+    "place_fips": "4990000"
+  },
+  {
     "name": "Hobble Creek",
     "county": "Utah County",
     "county_fips": "49049",
