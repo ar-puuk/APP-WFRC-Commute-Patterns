@@ -389,6 +389,29 @@
 }
 
 /* ============================================================
+   CUSTOM PLACE INFO NOTE (county-level data gap callout)
+   ============================================================ */
+.cp-info-note {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-3);
+  background: var(--highlight);
+  border-left: 3px solid #b45309;
+  border-radius: 0 1px 1px 0;
+  padding: 8px 11px;
+  margin: 0 0 8px;
+}
+
+[data-theme="dark"] .cp-info-note {
+  border-left-color: #fbbf24;
+}
+
+.cp-info-note strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ============================================================
    FOOTER ATTRIBUTION
    ============================================================ */
 .sidebar-attribution {
