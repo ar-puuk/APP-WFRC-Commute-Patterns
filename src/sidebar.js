@@ -273,7 +273,7 @@ function _updateInfoNote(state) {
     `federal and military positions are not UI-insured. ` +
     `Commute flows to/from this site are not reflected in these figures.`;
 
-  document.querySelector('.sidebar-attribution')?.before(note);
+  document.getElementById('demo-tabs')?.closest('.rail-section')?.before(note);
 }
 
 function _clearDemoRows() {
