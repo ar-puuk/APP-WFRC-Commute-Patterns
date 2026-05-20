@@ -298,16 +298,15 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         const selPct = total     > 0 ? parseFloat((count / total     * 100).toFixed(1)) : null;
         const dstPct = destTotal > 0 ? parseFloat((count / destTotal * 100).toFixed(1)) : null;
 
-        const selDonut = selPct != null ? _donutSvg(selPct, 'var(--inflow)')   : '';
-        const dstDonut = dstPct != null ? _donutSvg(dstPct, 'var(--outflow)') : '';
+        const selDonut = selPct != null ? _donutSvg(selPct, isOutflow ? 'var(--outflow)' : 'var(--inflow)')  : '';
+        const dstDonut = dstPct != null ? _donutSvg(dstPct, isOutflow ? 'var(--inflow)'  : 'var(--outflow)') : '';
 
-        // "commuters" = workers who reside in that city; "workforce" = workers employed in that city
         const selLabel = isOutflow
-          ? `of <strong>${originId}</strong>'s<br>commuters`
+          ? `of <strong>${originId}</strong>'s<br>residents`
           : `of <strong>${destId}</strong>'s<br>workforce`;
         const dstLabel = isOutflow
           ? `of <strong>${destId}</strong>'s<br>workforce`
-          : `of <strong>${originId}</strong>'s<br>commuters`;
+          : `of <strong>${originId}</strong>'s<br>residents`;
 
         const donuts = (selDonut || dstDonut) ? `
           <div class="ft-divider"></div>
@@ -326,16 +325,18 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         if (locId === state.selectedArea && _selfFlowCount > 0) {
           const outPct = _selfOutTotal > 0 ? parseFloat((_selfFlowCount / _selfOutTotal * 100).toFixed(1)) : null;
           const inPct  = _selfInTotal  > 0 ? parseFloat((_selfFlowCount / _selfInTotal  * 100).toFixed(1)) : null;
-          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--inflow)')   : '';
-          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--outflow)') : '';
+          const outDonut = outPct != null ? _donutSvg(outPct, 'var(--outflow)') : '';
+          const inDonut  = inPct  != null ? _donutSvg(inPct,  'var(--inflow)')  : '';
+          const outWrap = outDonut ? `<div class="ft-donut-wrap">${outDonut}<div class="ft-donut-label">of <strong>${locId}</strong>'s<br>residents</div></div>` : '';
+          const inWrap  = inDonut  ? `<div class="ft-donut-wrap">${inDonut}<div class="ft-donut-label">of <strong>${locId}</strong>'s<br>workforce</div></div>` : '';
+          const centroidDonuts = state.direction === 'outflow' ? `${outWrap}${inWrap}` : `${inWrap}${outWrap}`;
           _showTooltip(info, `
             <div class="ft-route">${locId}</div>
             <div class="ft-count">${Number(_selfFlowCount).toLocaleString()}<span class="ft-unit">live &amp; work here</span></div>
             ${(outDonut || inDonut) ? `
             <div class="ft-divider"></div>
             <div class="ft-donuts">
-              ${outDonut ? `<div class="ft-donut-wrap">${outDonut}<div class="ft-donut-label">of <strong>${locId}</strong>'s<br>commuters</div></div>` : ''}
-              ${inDonut  ? `<div class="ft-donut-wrap">${inDonut}<div class="ft-donut-label">of <strong>${locId}</strong>'s<br>workforce</div></div>` : ''}
+              ${centroidDonuts}
             </div>` : ''}
           `);
         } else {

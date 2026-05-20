@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-pages:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,12 +43,44 @@ jobs:
         with:
           path: "./dist"
 
-  deploy:
+  # build-ftp:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #         cache: "npm"
+  #
+  #     - name: Install dependencies
+  #       run: npm ci
+  #
+  #     - name: Build
+  #       run: npm run build -- --base=/map/commute-pattern/
+  #       env:
+  #         NODE_ENV: production
+  #
+  #     - name: Copy data to dist
+  #       run: cp -r data dist/
+  #
+  #     - name: Deploy via FTP
+  #       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+  #       with:
+  #         server: ${{ secrets.FTP_HOST }}
+  #         username: ${{ secrets.FTP_USERNAME }}
+  #         password: ${{ secrets.FTP_PASSWORD }}
+  #         local-dir: ./dist/
+  #         server-dir: ${{ secrets.SERVER_DIR }}
+
+  deploy-pages:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-pages
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
