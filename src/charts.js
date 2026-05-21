@@ -11,6 +11,8 @@ let _lastTotalIn   = 0;
 let _lastSelfFlow  = 0;
 let _lastState     = null;
 let _lastAcsEntry  = null;
+let _lastReachOut  = [];
+let _lastReachIn   = [];
 
 // Per-chart UI state (not reset on data change)
 let _demoDimension = 'age';      // 'age' | 'earnings' | 'industry'
@@ -64,7 +66,7 @@ export function initCharts(onAreaSelect) {
   });
 }
 
-export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, appState, acsEntry) {
+export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, appState, acsEntry, reachOut, reachIn) {
   _lastOutflows = outflows;
   _lastInflows  = inflows;
   _lastTotalOut = totalOut;
@@ -72,12 +74,14 @@ export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, app
   _lastSelfFlow = selfFlow ?? 0;
   _lastState    = appState;
   _lastAcsEntry = acsEntry ?? null;
+  _lastReachOut = reachOut ?? outflows;
+  _lastReachIn  = reachIn  ?? inflows;
 
   _renderBar(outflows, inflows, totalOut, totalIn, appState);
   _renderSankey(outflows, inflows, appState);
   _renderFlowSummary(totalIn, totalOut, selfFlow ?? 0, appState);
   _renderDemographics(outflows, inflows, appState);
-  _renderReach(outflows, inflows, appState);
+  _renderReach(_lastReachOut, _lastReachIn, appState);
   _renderIndustry(outflows, inflows, appState);
   _renderTransport(acsEntry, appState);
   _renderTravelTime(acsEntry, appState);
@@ -301,8 +305,8 @@ export function exportDemoPng() {
 }
 export function exportReachPng() {
   if (!_lastState) return;
-  const outB = _bucketFlows(_lastOutflows);
-  const inB  = _bucketFlows(_lastInflows);
+  const outB = _bucketFlows(_lastReachOut);
+  const inB  = _bucketFlows(_lastReachIn);
   const outT = outB.reduce((s, v) => s + v, 0) || 1;
   const inT  = inB.reduce((s, v) => s + v, 0) || 1;
   const dk   = _lastState.theme === 'dark';
@@ -446,8 +450,8 @@ export function exportDemoCsv() {
 export function exportReachCsv() {
   if (!_lastState) return;
   const labels = ['< 10 mi', '10–25 mi', '25–50 mi', '50+ mi'];
-  const outB = _bucketFlows(_lastOutflows);
-  const inB  = _bucketFlows(_lastInflows);
+  const outB = _bucketFlows(_lastReachOut);
+  const inB  = _bucketFlows(_lastReachIn);
   const header = ['Direction', ...labels, 'Total'];
   const rows = [
     ['Outflow', ...outB, outB.reduce((s, v) => s + v, 0)],

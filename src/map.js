@@ -187,11 +187,69 @@ export function switchTheme(theme, onReady) {
   _theme = theme;
   _hideTooltip();
 
-  // setStyle() replaces the entire GL style (vector tiles), destroying all custom
-  // sources and layers. Re-add boundary layers and re-filter labels on idle, then
-  // call onReady() which triggers a full re-query and repaints everything.
-  map.setStyle(STYLE_URLS[theme]);
-  map.once('idle', () => {
+  // deck.gl is independent of MapLibre style — update flow lines immediately.
+  // _lastFlowArgs holds a reference to state, which already has the new theme.
+  if (_lastFlowArgs) updateLayers(..._lastFlowArgs);
+
+  // transformStyle re-injects user-added sources and layers into the incoming style spec
+  // before MapLibre processes it, so they survive the style swap without being destroyed.
+  // Paint properties are updated here (not via setPaintProperty after load) because
+  // MapLibre finalises spec values after style.load fires, overwriting runtime overrides.
+  map.setStyle(STYLE_URLS[theme], {
+    transformStyle: (prevStyle, nextStyle) => {
+      if (!prevStyle) return nextStyle;
+      const styleSrcIds   = new Set(Object.keys(nextStyle.sources ?? {}));
+      const styleLayerIds = new Set(nextStyle.layers.map(l => l.id));
+
+      const outlineColor     = theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
+      const outlineColorCity = theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
+      const infoFill         = theme === 'dark' ? 'rgba(251,191,36,0.07)' : 'rgba(217,119,6,0.09)';
+      const infoLine         = theme === 'dark' ? '#fbbf24'               : '#b45309';
+
+      const pc = _pendingChoropleth;
+
+      // Direction-aware selected border — matches updateChoropleth logic exactly.
+      const selIsOutflow = pc?.direction !== 'inflow';
+      const selColor = selIsOutflow
+        ? (theme === 'dark' ? '#e4895a' : '#cc683a')
+        : (theme === 'dark' ? '#5aa6a7' : '#1e6f6f');
+
+      const preservedLayers = (prevStyle.layers ?? [])
+        .filter(l => !styleLayerIds.has(l.id))
+        .map(l => {
+          const paint = { ...l.paint };
+          if (l.id === 'county-outline')   paint['line-color'] = outlineColor;
+          if (l.id === 'city-outline')     paint['line-color'] = outlineColorCity;
+          if (l.id === 'county-selected')  paint['line-color'] = selColor;
+          if (l.id === 'city-selected')    paint['line-color'] = selColor;
+          if (l.id === 'custom-info-fill') paint['fill-color'] = infoFill;
+          if (l.id === 'custom-info-line') paint['line-color'] = infoLine;
+          if (pc) {
+            const isCountyFill = l.id === 'county-fill' && pc.aggregation === 'county';
+            const isCityFill   = l.id === 'city-fill'   && pc.aggregation !== 'county';
+            if (isCountyFill || isCityFill) {
+              paint['fill-color'] = _buildFillExpr(pc.flows, pc.selectedArea, theme, pc.direction);
+            }
+          }
+          return { ...l, paint };
+        });
+
+      return {
+        ...nextStyle,
+        sources: {
+          ...nextStyle.sources,
+          ...Object.fromEntries(
+            Object.entries(prevStyle.sources ?? {}).filter(([k]) => !styleSrcIds.has(k))
+          ),
+        },
+        layers: [...nextStyle.layers, ...preservedLayers],
+      };
+    },
+  });
+
+  // style.load fires as soon as the style JSON is parsed (before tile downloads),
+  // so we can update theme-sensitive paint properties immediately.
+  map.once('style.load', () => {
     _filterLabels();
     if (_boundaries.county && _boundaries.city) _addBoundaryLayers();
     _addInfoLayers();
@@ -402,6 +460,38 @@ export async function loadBoundaries(base, theme) {
   }
 }
 
+// Builds the MapLibre match expression for choropleth fill colors.
+// Extracted so it can be called both from updateChoropleth and from transformStyle
+// (where setPaintProperty is not yet available).
+function _buildFillExpr(flows, selectedArea, theme, direction) {
+  const isOutflow  = direction === 'outflow';
+  const baseScheme = isOutflow ? SCHEME_ORANGE : SCHEME_GREEN;
+  const scheme     = theme === 'dark' ? [...baseScheme].reverse() : baseScheme;
+
+  if (!flows.length) return ['rgba', 0, 0, 0, 0];
+
+  const maxFlow    = Math.max(...flows.map(d => Number(d.S000)), 1);
+  const matchPairs = [];
+
+  if (selectedArea) {
+    const [r,g,b] = _lerpScheme(scheme, 0);
+    matchPairs.push(selectedArea, ['rgba', r, g, b, theme === 'dark' ? 0.22 : 0.45]);
+  }
+
+  flows.forEach(f => {
+    const t       = Math.cbrt(Number(f.S000) / maxFlow);
+    const [r,g,b] = _lerpScheme(scheme, t);
+    const alpha   = theme === 'dark'
+      ? parseFloat((0.15 + 0.75 * t).toFixed(3))
+      : parseFloat((0.12 + 0.72 * t).toFixed(3));
+    matchPairs.push(f.dest_name, ['rgba', r, g, b, alpha]);
+  });
+
+  return matchPairs.length
+    ? ['match', ['get', 'name'], ...matchPairs, ['rgba', 0, 0, 0, 0]]
+    : ['rgba', 0, 0, 0, 0];
+}
+
 /**
  * Update choropleth fill colours to reflect the current flow data.
  * Called after each data refresh.
@@ -448,46 +538,7 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme, direct
   map.setFilter(layers.sel, ['==', ['get', 'name'], selectedArea ?? '']);
   if (map.getLayer(layers.sel)) map.setPaintProperty(layers.sel, 'line-color', selLineColor);
 
-  if (!flows.length) {
-    map.setPaintProperty(layers.fill, 'fill-color', ['rgba', 0, 0, 0, 0]);
-    return;
-  }
-
-  const maxFlow = Math.max(...flows.map(d => Number(d.S000)), 1);
-
-  // Pick scheme and reverse for dark mode (mirrors flowmap.gl's internal reversal).
-  // Light: lightest color = lowest flow (barely visible on white bg).
-  // Dark:  lightest color = highest flow (glows bright on dark bg).
-  const baseScheme = isOutflow ? SCHEME_ORANGE : SCHEME_GREEN;
-  const scheme     = theme === 'dark' ? [...baseScheme].reverse() : baseScheme;
-
-  const matchPairs = [];
-
-  // Selected area: pin to the lightest stop (step 0) so the origin reads as background.
-  if (selectedArea) {
-    const [r,g,b] = _lerpScheme(scheme, 0);
-    matchPairs.push(selectedArea, ['rgba', r, g, b, theme === 'dark' ? 0.22 : 0.45]);
-  }
-
-  // Zone fills: cube-root power scale (exponent 1/3) matching flowmap.gl's createFlowColorScale.
-  // Gives more visual separation at the low end than sqrt (1/2) or linear.
-  flows.forEach(f => {
-    const t     = Math.cbrt(Number(f.S000) / maxFlow);
-    const [r,g,b] = _lerpScheme(scheme, t);
-    // Alpha: dark mode ramps from near-invisible to fully opaque; light mode similar but shallower.
-    const alpha = theme === 'dark'
-      ? parseFloat((0.15 + 0.75 * t).toFixed(3))
-      : parseFloat((0.12 + 0.72 * t).toFixed(3));
-    matchPairs.push(f.dest_name, ['rgba', r, g, b, alpha]);
-  });
-
-  // match expression: ['match', input, label, output, ..., fallback]
-  // outputs are ['rgba', r, g, b, a] sub-expressions — the only reliable color form in MapLibre
-  const colorExpr = matchPairs.length
-    ? ['match', ['get', 'name'], ...matchPairs, ['rgba', 0, 0, 0, 0]]
-    : ['rgba', 0, 0, 0, 0];
-
-  map.setPaintProperty(layers.fill, 'fill-color', colorExpr);
+  map.setPaintProperty(layers.fill, 'fill-color', _buildFillExpr(flows, selectedArea, theme, direction));
 }
 
 // ── Fly / fit ─────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import './styles/main.css';
 import './styles/sidebar.css';
 import './styles/charts.css';
 import './styles/toolbar.css';
-import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow } from './db.js';
+import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow, queryReachFlows } from './db.js';
 import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction, loadInfoOnlyPlaces } from './map.js';
 import { initSidebar, updateSidebarStats, setInfoOnlyPlaces } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, exportTransportCsv, exportTravelTimeCsv, resizeCharts } from './charts.js';
@@ -32,6 +32,11 @@ let _lastInflows   = [];
 let _lastTotalOut  = 0;
 let _lastTotalIn   = 0;
 let _lastSelfCount = 0;
+// City-level flows used exclusively for the reach chart.
+// For county selections these are cross-county city→city pairs (more accurate distances).
+// For city selections these mirror _lastOutflows/_lastInflows.
+let _lastReachOut  = [];
+let _lastReachIn   = [];
 
 // Track last flew state so we don't re-fly on direction/theme/filter changes
 let _lastFlewArea        = null;
@@ -183,7 +188,7 @@ async function main() {
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', state.theme);
-    switchTheme(state.theme, () => refreshVisualization());
+    switchTheme(state.theme, () => _applyFilter());
   });
 
   setProgress(94);
@@ -446,12 +451,16 @@ async function refreshVisualization() {
   state.loading = true;
 
   try {
-    const [outflows, inflows, totalOut, totalIn, selfCount] = await Promise.all([
+    const isCountyArea = state.selectedAreaType === 'county';
+
+    const [outflows, inflows, totalOut, totalIn, selfCount, reachRawOut, reachRawIn] = await Promise.all([
       queryFlows(state.selectedArea, state.selectedAreaType, 'outflow', state.aggregation),
       queryFlows(state.selectedArea, state.selectedAreaType, 'inflow',  state.aggregation),
       queryTotal(state.selectedArea, state.selectedAreaType, 'outflow'),
       queryTotal(state.selectedArea, state.selectedAreaType, 'inflow'),
       querySelfFlow(state.selectedArea, state.selectedAreaType),
+      isCountyArea ? queryReachFlows(state.selectedArea, 'outflow') : Promise.resolve(null),
+      isCountyArea ? queryReachFlows(state.selectedArea, 'inflow')  : Promise.resolve(null),
     ]);
 
     const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
@@ -479,6 +488,22 @@ async function refreshVisualization() {
     _lastTotalOut  = totalOut;
     _lastTotalIn   = totalIn;
     _lastSelfCount = selfCount;
+
+    // Reach chart: use city-level pairs for county selections so distances are
+    // measured between city centroids rather than a single county centroid.
+    // Fallback to county centroid for unincorporated areas missing a city entry.
+    if (isCountyArea && reachRawOut) {
+      const enrichReach = flows => flows.map(f => {
+        const hm = cityMeta[f.home_name] ?? countyMeta[f.home_county];
+        const wm = cityMeta[f.work_name] ?? countyMeta[f.work_county];
+        return { ...f, home_lat: hm?.lat, home_lon: hm?.lon, work_lat: wm?.lat, work_lon: wm?.lon };
+      }).filter(f => f.home_lat != null && f.work_lat != null);
+      _lastReachOut = enrichReach(reachRawOut);
+      _lastReachIn  = enrichReach(reachRawIn);
+    } else {
+      _lastReachOut = enrichedOut;
+      _lastReachIn  = enrichedIn;
+    }
 
     setSelfFlow(selfCount, totalOut, totalIn);
 
@@ -531,7 +556,7 @@ function _applyFilter() {
 
   updateLayers(filtered, state, arcClickHandler, total);
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
-  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastSelfCount, state, acsEntry);
+  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastSelfCount, state, acsEntry, _lastReachOut, _lastReachIn);
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);

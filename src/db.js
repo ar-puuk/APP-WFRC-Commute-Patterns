@@ -137,6 +137,25 @@ export async function querySelfFlow(area, areaType) {
 }
 
 /**
+ * City-level pair flows for the commute reach chart when a county is selected.
+ * Returns one row per (home_city, work_city) pair that crosses the county boundary,
+ * with home_county and work_county included so callers can fall back to county
+ * centroids for unincorporated areas that lack a city centroid.
+ */
+export async function queryReachFlows(area, direction) {
+  if (!_conn) throw new Error('DB not initialized');
+  const safe       = area.replace(/'/g, "''");
+  const filterCol  = direction === 'outflow' ? 'home_county' : 'work_county';
+  const excludeCol = direction === 'outflow' ? 'work_county' : 'home_county';
+  const result = await _conn.query(`
+    SELECT home_name, work_name, home_county, work_county, S000
+    FROM city_flows
+    WHERE ${filterCol} = '${safe}' AND ${excludeCol} != '${safe}'
+  `);
+  return result.toArray().map(r => r.toJSON());
+}
+
+/**
  * Total commuter count for the selected area (all destinations, including self).
  */
 export async function queryTotal(area, areaType, direction) {
