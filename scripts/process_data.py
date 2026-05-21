@@ -14,7 +14,7 @@ WFRC Commute Patterns — Offline Data Pipeline
 Downloads LEHD LODES8 OD data for Utah, joins with the LEHD crosswalk to
 get city/county names, filters to the WFRC 9-county region, aggregates to
 city->city and county->county flow pairs, computes geographic centroids from
-Census TIGER shapefiles, and exports Parquet + JSON files to ../data/{year}/.
+Census TIGER shapefiles, and exports Parquet + JSON files to ../data/lehd/{year}/.
 
 Run once locally before committing data files:
     uv run scripts/process_data.py            # auto-detects latest available year
@@ -444,8 +444,8 @@ def main():
     od, year = load_od(od_years)
 
     # 2. Set up year-specific output directory
-    year_dir = DATA_DIR / str(year)
-    year_dir.mkdir(exist_ok=True)
+    year_dir = DATA_DIR / "lehd" / str(year)
+    year_dir.mkdir(parents=True, exist_ok=True)
     print(f"  Output directory: {year_dir}")
 
     # 3. Load crosswalk
