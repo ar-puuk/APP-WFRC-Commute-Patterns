@@ -16,10 +16,12 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
 - **City and county aggregation** — select any city or county; display destinations at city or county granularity independently
 - **Both flow directions** — "where residents work" and "where workers live"
 - **22 years of data** — LEHD LODES data from 2002–2023; switch years from the header
-- **Four chart panels** (right sidebar, collapsible and resizable):
+- **Six chart panels** (right sidebar, collapsible and resizable):
   - *Commute Balance* — diverging bar showing top destinations and origins simultaneously
   - *Flow Diagram* — bilateral alluvial diagram (top 5 + Others per side) with a flow summary strip showing total inflow, live-and-work, and total outflow proportionally
-  - *Commute Reach* — distance-band distribution (< 10 mi, 10–25 mi, 25–50 mi, 50+ mi)
+  - *Means of Transportation* — ACS 5-Year Estimates breakdown (drove alone, carpool, transit, walk, WFH, other) for the selected city or county
+  - *Travel Time to Work* — ACS 5-Year Estimates distribution across six time bands (< 10 min through 60+ min)
+  - *Commute Reach* — distance-band distribution (< 10 mi, 10–25 mi, 25–50 mi, 50+ mi); for county selections, derived from city-level OD pairs crossing the county boundary for higher spatial accuracy
   - *Industry Mix* — stacked bar across top-5 cities with inflow/outflow toggle
 - **Export** — every chart exports as PNG or CSV
 - **Clickable zone polygons** — click any city or county polygon on the map to select it directly
@@ -35,19 +37,21 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
 
 **Coverage:** Nine WFRC-region counties — Box Elder, Davis, Weber, Morgan, Salt Lake, Utah, Tooele, Wasatch, and Summit.
 
-**Geography:** Block-level OD pairs are aggregated to city (Census-designated place) and county level using the LEHD geographic crosswalk. Centroids are derived from Census TIGER/Line 2020 shapefiles.
+**Geography:** Block-level OD pairs are aggregated to city (Census-designated place) and county level using the LEHD geographic crosswalk. Centroids are derived from Census TIGER/Line 2024 shapefiles.
 
 Pre-processed data files are committed to the repo under `data/<year>/` so the app runs with no server-side processing:
 
 | File | Description |
 |---|---|
 | `data/manifest.json` | Available years and default year |
-| `data/<year>/city_flows.parquet` | City-to-city OD pairs with commuter counts and breakdowns by age, earnings, and industry |
-| `data/<year>/county_flows.parquet` | County-to-county OD pairs |
-| `data/<year>/city_meta.json` | City centroids (lat/lon from TIGER polygons) |
-| `data/<year>/county_meta.json` | County centroids |
+| `data/lehd/<year>/city_flows.parquet` | City-to-city OD pairs with commuter counts and breakdowns by age, earnings, and industry |
+| `data/lehd/<year>/county_flows.parquet` | County-to-county OD pairs |
+| `data/lehd/<year>/city_meta.json` | City centroids (lat/lon from TIGER polygons) |
+| `data/lehd/<year>/county_meta.json` | County centroids |
 | `data/city_boundaries.geojson` | City polygon boundaries for choropleth |
 | `data/county_boundaries.geojson` | County polygon boundaries for choropleth |
+| `data/acs/<year>/acs_city.json` | ACS 5-Year Estimates keyed by 7-digit place FIPS (~320 Utah places) — transportation mode and travel time distributions |
+| `data/acs/<year>/acs_county.json` | ACS 5-Year Estimates keyed by 5-digit county FIPS (11 WFRC counties) |
 
 ## Tech stack
 
@@ -147,14 +151,20 @@ To enable GitHub Pages on a new repository fork:
 │   ├── city_boundaries.geojson
 │   ├── county_boundaries.geojson
 │   ├── custom_places.gpkg      # Custom place boundaries (e.g. Hill Air Force Base)
-│   └── <year>/                 # One directory per year (2002–2023)
-│       ├── city_flows.parquet
-│       ├── county_flows.parquet
-│       ├── city_meta.json
-│       └── county_meta.json
+│   ├── acs/                        # ACS 5-Year Estimates (one directory per year)
+│   │   └── <year>/
+│   │       ├── acs_city.json
+│   │       └── acs_county.json
+│   └── lehd/                       # LEHD LODES flow data (one directory per year)
+│       └── <year>/                 # 2002–2023
+│           ├── city_flows.parquet
+│           ├── county_flows.parquet
+│           ├── city_meta.json
+│           └── county_meta.json
 │
 ├── scripts/
-│   ├── process_data.py         # Offline data pipeline
+│   ├── process_data.py         # Offline data pipeline (LEHD + TIGER + ACS)
+│   ├── fetch_acs.py            # Fetches ACS 5-Year Estimates via Census API
 │   ├── custom_places.py        # Modular extension for non-Census employment sites
 │   └── verify_custom_places.py # LEHD coverage audit for custom places
 │
@@ -183,14 +193,16 @@ To enable GitHub Pages on a new repository fork:
 3. Filters to flows where both home and work blocks are within the WFRC 9-county region
 4. Labels unincorporated blocks as `"[County] Unincorporated"`
 5. Aggregates to city→city and county→county pairs, summing all job-count columns
-6. Downloads Census TIGER 2020 Place and County shapefiles for Utah
+6. Downloads Census TIGER 2024 Place and County shapefiles for Utah
 7. Computes polygon centroids in Utah State Plane (EPSG:26912) and projects to WGS84
 8. Exports Parquet files (Snappy-compressed), JSON metadata, and GeoJSON boundaries
+9. Fetches ACS 5-Year Estimates via the Census API (tables B08301/B08601 for means of transportation, B08303/B08603 for travel time to work) and writes `data/acs/<year>/acs_city.json` and `acs_county.json`; skip with `--skip-acs` if a Census API key is unavailable
 
 ---
 
 ## Acknowledgements
 
 - Commute data: [US Census Bureau LEHD Program](https://lehd.ces.census.gov/)
+- Commute characteristics: [US Census Bureau American Community Survey 5-Year Estimates](https://www.census.gov/programs-surveys/acs/data.html)
 - Geography: [US Census Bureau TIGER/Line Shapefiles](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html)
 - Map tiles: [CARTO](https://carto.com/attributions) / [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors

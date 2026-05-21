@@ -98,8 +98,8 @@ async function main() {
 
   // 3. Load year-specific metadata + ACS data
   const [cityMetaArr, countyMetaArr] = await Promise.all([
-    fetch(`${base}data/${state.year}/city_meta.json`).then(r => r.json()),
-    fetch(`${base}data/${state.year}/county_meta.json`).then(r => r.json()),
+    fetch(`${base}data/lehd/${state.year}/city_meta.json`).then(r => r.json()),
+    fetch(`${base}data/lehd/${state.year}/county_meta.json`).then(r => r.json()),
     _loadAcs(base, state.year),
   ]);
   cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
@@ -352,8 +352,8 @@ async function _changeYear(newYear, base) {
     setProgress(5);
 
     const [cityMetaArr, countyMetaArr] = await Promise.all([
-      fetch(`${base}data/${newYear}/city_meta.json`).then(r => r.json()),
-      fetch(`${base}data/${newYear}/county_meta.json`).then(r => r.json()),
+      fetch(`${base}data/lehd/${newYear}/city_meta.json`).then(r => r.json()),
+      fetch(`${base}data/lehd/${newYear}/county_meta.json`).then(r => r.json()),
       _loadAcs(base, newYear),
     ]);
     cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));

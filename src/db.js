@@ -43,8 +43,8 @@ export async function reloadYear(year, onProgress) {
 async function _loadYearFiles(year, onProgress) {
   const base = import.meta.env.BASE_URL ?? '/';
 
-  const cityBuf = await fetch(`${base}data/${year}/city_flows.parquet`).then(r => {
-    if (!r.ok) throw new Error(`data/${year}/city_flows.parquet: ${r.status}`);
+  const cityBuf = await fetch(`${base}data/lehd/${year}/city_flows.parquet`).then(r => {
+    if (!r.ok) throw new Error(`data/lehd/${year}/city_flows.parquet: ${r.status}`);
     return r.arrayBuffer();
   });
 
