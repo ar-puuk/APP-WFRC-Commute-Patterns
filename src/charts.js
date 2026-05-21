@@ -1164,6 +1164,114 @@ function _renderTravelTime(acsEntry, appState) {
 
 // ── ACS exports ───────────────────────────────────────────────────────────────
 
+export function exportTransportPng() {
+  if (!_lastState || !_lastAcsEntry) return;
+  const dk       = _lastState.theme === 'dark';
+  const isInflow = _lastState.direction === 'inflow';
+  const data     = isInflow ? (_lastAcsEntry.wrk?.trans ?? null) : (_lastAcsEntry.res?.trans ?? null);
+  if (!data) return;
+  const total = data.total || 1;
+  const rows  = _TRANS_ROWS.map(({ keys, label }) => {
+    const val = keys.reduce((sum, k) => sum + (data[k] ?? 0), 0);
+    return { label, val, pct: val / total };
+  });
+  const geoLabel = isInflow ? 'Workers at this location' : 'Residents of this area';
+  _acsChartPng(rows, geoLabel, dk, isInflow,
+    `transport-${_lastState.selectedArea ?? 'chart'}-${_lastState.year ?? ''}`);
+}
+
+export function exportTravelTimePng() {
+  if (!_lastState || !_lastAcsEntry) return;
+  const dk       = _lastState.theme === 'dark';
+  const isInflow = _lastState.direction === 'inflow';
+  const data     = isInflow ? (_lastAcsEntry.wrk?.time ?? null) : (_lastAcsEntry.res?.time ?? null);
+  if (!data) return;
+  const total = data.total || 1;
+  const rows  = _TIME_ROWS.map(({ key, label }) => {
+    const val = data[key] ?? 0;
+    return { label, val, pct: val / total };
+  });
+  const geoLabel = isInflow ? 'Workers at this location' : 'Residents of this area';
+  _acsChartPng(rows, geoLabel, dk, isInflow,
+    `traveltime-${_lastState.selectedArea ?? 'chart'}-${_lastState.year ?? ''}`);
+}
+
+function _acsChartPng(rows, geoLabel, dk, isInflow, filename) {
+  const W      = 480, PAD = 24;
+  const LBL_W  = 100;
+  const PCT_W  = 40, CNT_W = 64;
+  const BAR_X  = PAD + LBL_W + 8;
+  const BAR_W  = W - BAR_X - PCT_W - CNT_W - PAD;
+  const ROW_H  = 26, BAR_H = 13;
+  const HDR_H  = 30, FOOT_H = 22;
+  const H      = PAD + HDR_H + rows.length * ROW_H + FOOT_H + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W * 2; canvas.height = H * 2;
+  const ctx    = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  const bg     = dk ? '#0a0e17' : '#f6f3eb';
+  const ink    = dk ? '#e8e5dc' : '#121726';
+  const ink3   = dk ? '#92929a' : '#5b6071';
+  const ink4   = dk ? '#696a73' : '#898d9c';
+  const track  = dk ? 'rgba(232,229,220,0.09)' : 'rgba(18,23,38,0.10)';
+  const barCol = isInflow
+    ? (dk ? '#5aa6a7' : '#1e6f6f')
+    : (dk ? '#e4895a' : '#cc683a');
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  let y = PAD;
+
+  ctx.fillStyle = ink3;
+  ctx.font = '600 11px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(geoLabel.toUpperCase(), PAD, y + HDR_H / 2);
+  y += HDR_H;
+
+  rows.forEach(({ label, val, pct }) => {
+    const barFillW = pct * BAR_W;
+    const rowMidY  = y + ROW_H / 2;
+    const barY     = y + (ROW_H - BAR_H) / 2;
+
+    ctx.fillStyle = ink;
+    ctx.font = '500 11px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, PAD, rowMidY, LBL_W - 4);
+
+    ctx.fillStyle = track;
+    ctx.fillRect(BAR_X, barY, BAR_W, BAR_H);
+
+    if (barFillW >= 0.5) {
+      ctx.fillStyle = barCol;
+      ctx.globalAlpha = 0.75;
+      ctx.fillRect(BAR_X, barY, barFillW, BAR_H);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = ink3;
+    ctx.font = '600 11px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${Math.round(pct * 100)}%`, BAR_X + BAR_W + PCT_W - 4, rowMidY);
+
+    ctx.fillStyle = ink4;
+    ctx.font = '400 10px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toLocaleString(), W - PAD, rowMidY);
+
+    y += ROW_H;
+  });
+
+  ctx.fillStyle = ink4;
+  ctx.font = '400 9.5px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(`ACS 5-Year Estimates · ${_lastState.year ?? ''} · Census Bureau`, PAD, y + FOOT_H / 2);
+
+  _dlUrl(canvas.toDataURL('image/png'), `${filename}.png`);
+}
+
 export function exportTransportCsv() {
   if (!_lastState || !_lastAcsEntry) return;
   const area = _lastState.selectedArea;

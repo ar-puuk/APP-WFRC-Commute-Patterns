@@ -5,7 +5,7 @@ import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow, queryReachFlows } from './db.js';
 import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction, loadInfoOnlyPlaces } from './map.js';
 import { initSidebar, updateSidebarStats, setInfoOnlyPlaces } from './sidebar.js';
-import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, exportTransportCsv, exportTravelTimeCsv, resizeCharts } from './charts.js';
+import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, exportTransportPng, exportTransportCsv, exportTravelTimePng, exportTravelTimeCsv, resizeCharts } from './charts.js';
 
 // ── Global app state ─────────────────────────────────────────────────────────
 const state = {
@@ -174,7 +174,9 @@ async function main() {
   document.getElementById('export-reach-csv')?.addEventListener('click', () => exportReachCsv());
   document.getElementById('export-industry-png')?.addEventListener('click', () => exportIndustryPng());
   document.getElementById('export-industry-csv')?.addEventListener('click', () => exportIndustryCsv());
+  document.getElementById('export-transport-png')?.addEventListener('click', () => exportTransportPng());
   document.getElementById('export-transport-csv')?.addEventListener('click', () => exportTransportCsv());
+  document.getElementById('export-traveltime-png')?.addEventListener('click', () => exportTravelTimePng());
   document.getElementById('export-traveltime-csv')?.addEventListener('click', () => exportTravelTimeCsv());
 
   // 10. Wire year scrubber
