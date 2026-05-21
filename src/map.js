@@ -383,7 +383,7 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         `);
       } else if (obj.type === 'location') {
         const locId = obj.name ?? obj.location?.id ?? '';
-        if (locId === state.selectedArea && _selfFlowCount > 0) {
+        if (locId === state.selectedArea) {
           const outPct = _selfOutTotal > 0 ? parseFloat((_selfFlowCount / _selfOutTotal * 100).toFixed(1)) : null;
           const inPct  = _selfInTotal  > 0 ? parseFloat((_selfFlowCount / _selfInTotal  * 100).toFixed(1)) : null;
           const outDonut = outPct != null ? _donutSvg(outPct, 'var(--outflow)') : '';
