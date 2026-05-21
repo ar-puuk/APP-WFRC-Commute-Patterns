@@ -104,6 +104,8 @@ export async function queryFlows(area, areaType, direction, aggregation) {
       SUM(cf.SA01)  AS SA01, SUM(cf.SA02) AS SA02, SUM(cf.SA03) AS SA03,
       SUM(cf.SE01)  AS SE01, SUM(cf.SE02) AS SE02, SUM(cf.SE03) AS SE03,
       SUM(cf.SI01)  AS SI01, SUM(cf.SI02) AS SI02, SUM(cf.SI03) AS SI03,
+      SUM(cf.d0_10) AS d0_10, SUM(cf.d10_25) AS d10_25,
+      SUM(cf.d25_50) AS d25_50, SUM(cf.d50p) AS d50p,
       dt.dest_total
     FROM city_flows cf
     JOIN (
@@ -148,7 +150,8 @@ export async function queryReachFlows(area, direction) {
   const filterCol  = direction === 'outflow' ? 'home_county' : 'work_county';
   const excludeCol = direction === 'outflow' ? 'work_county' : 'home_county';
   const result = await _conn.query(`
-    SELECT home_name, work_name, home_county, work_county, S000
+    SELECT home_name, work_name, home_county, work_county, S000,
+           d0_10, d10_25, d25_50, d50p
     FROM city_flows
     WHERE ${filterCol} = '${safe}' AND ${excludeCol} != '${safe}'
   `);
