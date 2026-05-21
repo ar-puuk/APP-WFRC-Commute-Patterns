@@ -182,7 +182,7 @@ async function main() {
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', state.theme);
-    switchTheme(state.theme, () => refreshVisualization());
+    switchTheme(state.theme, () => _applyFilter());
   });
 
   setProgress(94);
