@@ -12,9 +12,11 @@
 WFRC Commute Patterns — Offline Data Pipeline
 
 Downloads LEHD LODES8 OD data for Utah, joins with the LEHD crosswalk to
-get city/county names, filters to the WFRC 9-county region, aggregates to
-city->city and county->county flow pairs, computes geographic centroids from
-Census TIGER shapefiles, and exports Parquet + JSON files to ../data/lehd/{year}/.
+get city/county names, filters to the WFRC 9-county region, computes
+block-centroid haversine distances and buckets them into 4 distance bands,
+aggregates to city->city and county->county flow pairs (with band counts),
+computes geographic centroids from Census TIGER shapefiles, and exports
+Parquet + JSON files to ../data/lehd/{year}/.
 
 Run once locally before committing data files:
     uv run scripts/process_data.py            # auto-detects latest available year
@@ -26,6 +28,7 @@ import json
 import argparse
 from pathlib import Path
 import requests
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import pyarrow as pa
@@ -86,7 +89,9 @@ PLACES_URL = f"{TIGER_BASE}/PLACE/tl_2024_49_place.zip"
 COUNTIES_URL = f"{TIGER_BASE}/COUNTY/tl_2024_us_county.zip"  # counties file is national
 
 # ── LEHD OD columns to aggregate ─────────────────────────────────────────────
-AGG_COLS = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
+AGG_COLS  = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
+# Distance-band worker counts added by add_distance_bands() before aggregation
+BAND_COLS = ["d0_10", "d10_25", "d25_50", "d50p"]
 
 
 def load_od(years=LODES_YEARS_DEFAULT):
@@ -129,7 +134,7 @@ def load_xwalk():
 
 
 def build_lookup(xw):
-    """Return a dict: block_fips -> {city_name, county_name, county_fips, place_fips}"""
+    """Return a dict: block_fips -> {city_name, county_name, county_fips, place_fips, lat, lon}"""
     lookup = {}
     for row in xw.itertuples(index=False):
         # Unincorporated blocks have no place; use county label
@@ -145,27 +150,27 @@ def build_lookup(xw):
             "county_name": county,
             "county_fips": row.cty,
             "place_fips": row.stplc,
+            "lat": float(row.blklatdd) if pd.notna(row.blklatdd) else None,
+            "lon": float(row.blklondd) if pd.notna(row.blklondd) else None,
         }
     return lookup
 
 
 def join_od_with_lookup(od, lookup):
-    """Add home/work city & county columns to OD dataframe."""
-    def get(col):
-        def fn(geocode):
-            info = lookup.get(geocode, {})
-            return info.get(col)
-        return fn
-
+    """Add home/work city, county, and block centroid columns to OD dataframe."""
     print("  Joining OD with crosswalk...")
     od["h_city"]     = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("city_name"))
     od["h_county"]   = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("county_name"))
     od["h_cty"]      = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("county_fips"))
     od["h_plc"]      = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("place_fips"))
+    od["h_blk_lat"]  = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("lat"))
+    od["h_blk_lon"]  = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("lon"))
 
     od["w_city"]     = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("city_name"))
     od["w_county"]   = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("county_name"))
     od["w_cty"]      = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("county_fips"))
+    od["w_blk_lat"]  = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("lat"))
+    od["w_blk_lon"]  = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("lon"))
 
     return od
 
@@ -191,25 +196,64 @@ def fill_unincorporated(od):
     return od
 
 
+def _haversine_miles_vec(lat1, lon1, lat2, lon2):
+    """Vectorized haversine distance in miles. Inputs are pandas Series or numpy arrays."""
+    R    = 3958.8
+    rlat1 = np.radians(lat1)
+    rlat2 = np.radians(lat2)
+    dlat  = np.radians(lat2 - lat1)
+    dlon  = np.radians(lon2 - lon1)
+    a = np.sin(dlat / 2) ** 2 + np.cos(rlat1) * np.cos(rlat2) * np.sin(dlon / 2) ** 2
+    return R * 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+
+
+def add_distance_bands(od):
+    """Add 4 worker-count columns bucketed by block-centroid haversine distance.
+
+    Band thresholds match the frontend REACH_BANDS: <10, 10-25, 25-50, 50+ miles.
+    Rows missing either block coordinate contribute 0 to all band columns.
+    """
+    valid = od["h_blk_lat"].notna() & od["w_blk_lat"].notna()
+    miles = pd.Series(np.nan, index=od.index, dtype="float64")
+    if valid.any():
+        miles.loc[valid] = _haversine_miles_vec(
+            od.loc[valid, "h_blk_lat"].values,
+            od.loc[valid, "h_blk_lon"].values,
+            od.loc[valid, "w_blk_lat"].values,
+            od.loc[valid, "w_blk_lon"].values,
+        )
+    s = od["S000"].fillna(0)
+    # NaN comparisons return False, so missing-coord rows fall through to 0
+    od["d0_10"]  = s.where(miles <  10,                      0)
+    od["d10_25"] = s.where((miles >= 10) & (miles <  25),    0)
+    od["d25_50"] = s.where((miles >= 25) & (miles <  50),    0)
+    od["d50p"]   = s.where(miles >= 50,                      0)
+    pct = valid.mean() * 100
+    print(f"  Block-level distance coverage: {valid.sum():,}/{len(od):,} pairs ({pct:.1f}%)")
+    return od
+
+
 def aggregate_city_flows(od):
+    cols = AGG_COLS + BAND_COLS
     grouped = (
-        od.groupby(["h_city", "w_city", "h_county", "w_county"])[AGG_COLS]
+        od.groupby(["h_city", "w_city", "h_county", "w_county"])[cols]
         .sum()
         .reset_index()
     )
-    grouped.columns = ["home_name", "work_name", "home_county", "work_county"] + AGG_COLS
+    grouped.columns = ["home_name", "work_name", "home_county", "work_county"] + cols
     grouped = grouped[grouped["S000"] > 0]
     print(f"  City flow pairs: {len(grouped):,}")
     return grouped
 
 
 def aggregate_county_flows(od):
+    cols = AGG_COLS + BAND_COLS
     grouped = (
-        od.groupby(["h_county", "w_county"])[AGG_COLS]
+        od.groupby(["h_county", "w_county"])[cols]
         .sum()
         .reset_index()
     )
-    grouped.columns = ["home_county", "work_county"] + AGG_COLS
+    grouped.columns = ["home_county", "work_county"] + cols
     grouped = grouped[grouped["S000"] > 0]
     print(f"  County flow pairs: {len(grouped):,}")
     return grouped
@@ -471,8 +515,11 @@ def main():
     print("\n6. Filling unincorporated area names...")
     od_wfrc = fill_unincorporated(od_wfrc)
 
-    # 8. Aggregate
-    print("\n7. Aggregating flows...")
+    # 8. Compute block-level distance bands, then aggregate
+    print("\n7. Computing distance bands...")
+    od_wfrc = add_distance_bands(od_wfrc)
+
+    print("\n8. Aggregating flows...")
     city_flows = aggregate_city_flows(od_wfrc)
     county_flows = aggregate_county_flows(od_wfrc)
 
@@ -497,8 +544,8 @@ def main():
 
     # 12. Export Parquet files
     print("\n11. Exporting data files...")
-    export_parquet(city_flows, year_dir / "city_flows.parquet", AGG_COLS)
-    export_parquet(county_flows, year_dir / "county_flows.parquet", AGG_COLS)
+    export_parquet(city_flows, year_dir / "city_flows.parquet", AGG_COLS + BAND_COLS)
+    export_parquet(county_flows, year_dir / "county_flows.parquet", AGG_COLS + BAND_COLS)
 
     # 13. Export JSON metadata
     with open(year_dir / "city_meta.json", "w") as f:

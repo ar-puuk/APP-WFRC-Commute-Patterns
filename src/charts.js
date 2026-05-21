@@ -625,6 +625,18 @@ const REACH_BANDS  = [10, 25, 50, Infinity];
 const REACH_LABELS = ['< 10 mi', '10–25 mi', '25–50 mi', '50+ mi'];
 
 function _bucketFlows(flows) {
+  if (!flows.length) return [0, 0, 0, 0];
+  // Use precomputed block-centroid distance bands when available (more accurate than city centroids)
+  if (flows[0].d0_10 != null) {
+    return flows.reduce((acc, f) => {
+      acc[0] += Number(f.d0_10  || 0);
+      acc[1] += Number(f.d10_25 || 0);
+      acc[2] += Number(f.d25_50 || 0);
+      acc[3] += Number(f.d50p   || 0);
+      return acc;
+    }, [0, 0, 0, 0]);
+  }
+  // Fallback: compute from city/county centroids (legacy data without band columns)
   const counts = [0, 0, 0, 0];
   flows.forEach(f => {
     if (f.home_lat == null || f.work_lat == null) return;
