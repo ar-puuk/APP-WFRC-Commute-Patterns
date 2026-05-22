@@ -1,7 +1,8 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
 
-let _db   = null;
-let _conn = null;
+let _db               = null;
+let _conn             = null;
+let _hasDistanceBands = false;
 
 /**
  * Initialize DuckDB-WASM and load Parquet files for the given year.
@@ -62,6 +63,14 @@ async function _loadYearFiles(year, onProgress) {
     `CREATE OR REPLACE VIEW city_flows AS SELECT * FROM read_parquet('${cityFile}');`
   );
 
+  // Detect whether this year's parquet includes block-centroid distance band columns.
+  // Older years (pre-2023) were generated without them; queries adapt accordingly.
+  const colResult = await _conn.query(
+    `SELECT column_name FROM information_schema.columns WHERE table_name = 'city_flows'`
+  );
+  const colNames = new Set(colResult.toArray().map(r => r.toJSON().column_name));
+  _hasDistanceBands = ['d0_10', 'd10_25', 'd25_50', 'd50p'].every(c => colNames.has(c));
+
   onProgress?.(100);
 }
 
@@ -95,6 +104,10 @@ export async function queryFlows(area, areaType, direction, aggregation) {
     ? `AND ${destCol} != '${safe}'`
     : '';
 
+  const bandCols = _hasDistanceBands
+    ? 'SUM(cf.d0_10) AS d0_10, SUM(cf.d10_25) AS d10_25, SUM(cf.d25_50) AS d25_50, SUM(cf.d50p) AS d50p,'
+    : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p,';
+
   // dest_total: total flow for each destination area across ALL origins,
   // so the tooltip can show "X% of [dest] workers/residents".
   const sql = `
@@ -104,8 +117,7 @@ export async function queryFlows(area, areaType, direction, aggregation) {
       SUM(cf.SA01)  AS SA01, SUM(cf.SA02) AS SA02, SUM(cf.SA03) AS SA03,
       SUM(cf.SE01)  AS SE01, SUM(cf.SE02) AS SE02, SUM(cf.SE03) AS SE03,
       SUM(cf.SI01)  AS SI01, SUM(cf.SI02) AS SI02, SUM(cf.SI03) AS SI03,
-      SUM(cf.d0_10) AS d0_10, SUM(cf.d10_25) AS d10_25,
-      SUM(cf.d25_50) AS d25_50, SUM(cf.d50p) AS d50p,
+      ${bandCols}
       dt.dest_total
     FROM city_flows cf
     JOIN (
@@ -149,9 +161,13 @@ export async function queryReachFlows(area, direction) {
   const safe       = area.replace(/'/g, "''");
   const filterCol  = direction === 'outflow' ? 'home_county' : 'work_county';
   const excludeCol = direction === 'outflow' ? 'work_county' : 'home_county';
+  const reachBands = _hasDistanceBands
+    ? 'd0_10, d10_25, d25_50, d50p'
+    : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p';
+
   const result = await _conn.query(`
     SELECT home_name, work_name, home_county, work_county, S000,
-           d0_10, d10_25, d25_50, d50p
+           ${reachBands}
     FROM city_flows
     WHERE ${filterCol} = '${safe}' AND ${excludeCol} != '${safe}'
   `);
