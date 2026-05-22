@@ -234,12 +234,12 @@
 
 /* ── 02b Flow Summary — mini proportional bar chart ─────────── */
 .flow-summary {
-  padding: 2px 4px 4px;
-  border-top: 1px solid var(--rule);
+  padding: 0 4px 2px;
 }
 
+
 .fs-val {
-  font-size: 11.5px;
+  font-size: 15px;
   font-weight: 700;
   fill: var(--ink-3);
   font-family: 'Inter', system-ui, sans-serif;
@@ -249,7 +249,7 @@
 .fs-val.out { fill: var(--outflow-2); }
 
 .fs-lbl {
-  font-size: 9px;
+  font-size: 11px;
   fill: var(--ink-4);
   font-family: 'Inter', system-ui, sans-serif;
   text-transform: uppercase;
@@ -359,6 +359,65 @@
 
 .balance-legend .pip.in  { background: var(--inflow); }
 .balance-legend .pip.out { background: var(--outflow); }
+
+.balance-sort-btn {
+  background: none;
+  border: none;
+  padding: 3px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--ink-4);
+  position: relative;
+  transition: color 0.15s;
+}
+.balance-sort-btn:hover { color: var(--ink-2); }
+.balance-sort-btn.active { color: var(--ink); }
+.balance-sort-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1.5px;
+  background: var(--ink);
+}
+
+.balance-expand-row {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 2px;
+}
+
+.balance-expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-4);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.balance-expand-btn:hover {
+  color: var(--ink-2);
+  border-color: var(--rule-strong);
+}
+
+.balance-expand-icon {
+  display: inline-block;
+  font-size: 8px;
+  transition: transform 0.2s ease;
+}
 
 .balance-axis {
   display: grid;

@@ -17,6 +17,7 @@ let _lastReachIn   = [];
 // Per-chart UI state (not reset on data change)
 let _demoDimension = 'age';      // 'age' | 'earnings' | 'industry'
 let _industryDir   = 'outflow';  // 'outflow' | 'inflow'
+let _balanceSort   = 'inflow';   // 'inflow'  | 'outflow'
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,38 @@ export function initCharts(onAreaSelect) {
       if (_lastState) _renderIndustry(_lastOutflows, _lastInflows, _lastState);
     });
   });
+
+  // ── Flow Overview / Venn tab toggle ──────────────────────────────────────
+  document.querySelectorAll('#flow-tab-toggle .mini-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#flow-tab-toggle .mini-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('flow-overview-panel').style.display = tab === 'overview' ? '' : 'none';
+      document.getElementById('flow-venn-panel').style.display     = tab === 'venn'     ? '' : 'none';
+    });
+  });
+
+  // ── Balance sort toggle ───────────────────────────────────────────────────
+  document.querySelectorAll('.balance-sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.balance-sort-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _balanceSort = btn.dataset.sort;
+      if (_lastState) _renderBar(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastState);
+    });
+  });
+
+  // ── Balance / Top Flows tab toggle ───────────────────────────────────────
+  document.querySelectorAll('#balance-tab-toggle .mini-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#balance-tab-toggle .mini-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('balance-tab-panel').style.display    = tab === 'balance'   ? '' : 'none';
+      document.getElementById('top-flows-tab-panel').style.display  = tab === 'top-flows' ? '' : 'none';
+    });
+  });
 }
 
 export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, appState, acsEntry, reachOut, reachIn) {
@@ -79,6 +112,7 @@ export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, app
 
   _renderBar(outflows, inflows, totalOut, totalIn, appState);
   _renderSankey(outflows, inflows, appState);
+  _renderFlowWheel(totalIn, totalOut, selfFlow ?? 0, appState);
   _renderFlowSummary(totalIn, totalOut, selfFlow ?? 0, appState);
   _renderDemographics(outflows, inflows, appState);
   _renderReach(_lastReachOut, _lastReachIn, appState);
@@ -89,10 +123,82 @@ export function updateCharts(outflows, inflows, totalOut, totalIn, selfFlow, app
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
+function _svgToPng(svgEl, filename, inlineStyle) {
+  if (!svgEl || !_lastState) return;
+  const dk    = _lastState.theme === 'dark';
+  const bgCol = dk ? '#0a0e17' : '#f6f3eb';
+  const vars  = {
+    '--ink':       dk ? '#e8e5dc' : '#121726',
+    '--ink-2':     dk ? '#c4c1b8' : '#2a2f40',
+    '--ink-3':     dk ? '#92929a' : '#5b6071',
+    '--ink-4':     dk ? '#696a73' : '#898d9c',
+    '--rule':      dk ? 'rgba(232,229,220,0.09)' : 'rgba(18,23,38,0.10)',
+    '--inflow':    dk ? '#5aa6a7' : '#1e6f6f',
+    '--inflow-2':  dk ? '#408687' : '#155656',
+    '--outflow':   dk ? '#e4895a' : '#cc683a',
+    '--outflow-2': dk ? '#c5703f' : '#b35828',
+  };
+  const vb    = svgEl.getAttribute('viewBox')?.split(' ');
+  const vbW   = vb ? parseFloat(vb[2]) : 460;
+  const vbH   = vb ? parseFloat(vb[3]) : 280;
+  const ns    = 'http://www.w3.org/2000/svg';
+  const clone = svgEl.cloneNode(true);
+
+  if (inlineStyle) {
+    const s = document.createElementNS(ns, 'style');
+    s.textContent = inlineStyle;
+    clone.insertBefore(s, clone.firstChild);
+  }
+  const bgRect = document.createElementNS(ns, 'rect');
+  bgRect.setAttribute('width', String(vbW));
+  bgRect.setAttribute('height', String(vbH));
+  bgRect.setAttribute('fill', bgCol);
+  clone.insertBefore(bgRect, clone.firstChild);
+
+  clone.querySelectorAll('*').forEach(n => {
+    ['fill', 'stroke'].forEach(attr => {
+      const val = n.getAttribute(attr);
+      if (!val) return;
+      const m = val.match(/var\((--[^)]+)\)/);
+      if (m && vars[m[1]]) n.setAttribute(attr, vars[m[1]]);
+    });
+  });
+
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = vbW * 2; canvas.height = vbH * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(2, 2);
+    ctx.fillStyle = bgCol; ctx.fillRect(0, 0, vbW, vbH);
+    ctx.drawImage(img, 0, 0, vbW, vbH);
+    _dlUrl(canvas.toDataURL('image/png'), filename);
+  };
+  img.src = url;
+}
+
 export function exportBarPng() {
   if (!_lastState) return;
-  const { rows: allRows } = _mergeFlows(_lastOutflows, _lastInflows, 10);
-  const rows = allRows.filter(r => !r.isOthers);
+  const activeTab = document.querySelector('#balance-tab-toggle .mini-toggle-btn.active')?.dataset.tab;
+  if (activeTab === 'top-flows') {
+    const dk = _lastState.theme === 'dark';
+    _svgToPng(
+      document.getElementById('sankey-svg'),
+      `commute-balance-${_lastState.selectedArea ?? 'chart'}-${_lastState.year ?? ''}.png`,
+      `.sankey-label{font-size:10.5px;font-weight:600;fill:${dk ? '#c4c1b8' : '#2a2f40'};font-family:Inter,system-ui,sans-serif;letter-spacing:-0.005em}`
+      + `.sankey-label.in{fill:${dk ? '#408687' : '#155656'}}.sankey-label.out{fill:${dk ? '#c5703f' : '#b35828'}}`
+      + `.sankey-label.center{fill:${dk ? '#e8e5dc' : '#121726'};font-weight:700;font-size:12px}`
+      + `.sankey-num{font-size:9.5px;font-weight:500;fill:${dk ? '#696a73' : '#898d9c'};font-family:Inter,system-ui,sans-serif}`
+    );
+    return;
+  }
+  const { rows: allRows } = _mergeFlows(_lastOutflows, _lastInflows, 15);
+  const rows = allRows
+    .filter(r => !r.isOthers)
+    .sort((a, b) => (_balanceSort === 'outflow' ? b.out - a.out : b.in - a.in));
   if (!rows.length) return;
 
   const dk      = _lastState.theme === 'dark';
@@ -207,98 +313,14 @@ export function exportBarPng() {
   _dlUrl(canvas.toDataURL('image/png'), `commute-balance-${area}-${_lastState.year ?? ''}.png`);
 }
 export function exportSankeyPng() {
-  const svgEl    = document.getElementById('sankey-svg');
-  const sumSvgEl = document.getElementById('flow-summary')?.querySelector('svg');
-  if (!svgEl || !_lastState) return;
-  const dk   = _lastState.theme === 'dark';
-  const font = 'Inter, system-ui, sans-serif';
-  const bgCol  = dk ? '#0a0e17' : '#f6f3eb';
-  const ruleCol = dk ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.15)';
-
-  const vars = {
-    '--inflow':    dk ? '#5aa6a7' : '#1e6f6f',
-    '--inflow-2':  dk ? '#408687' : '#155656',
-    '--outflow':   dk ? '#e4895a' : '#cc683a',
-    '--outflow-2': dk ? '#c5703f' : '#b35828',
-    '--ink':       dk ? '#e8e5dc' : '#121726',
-    '--ink-2':     dk ? '#c4c1b8' : '#2a2f40',
-    '--ink-3':     dk ? '#92929a' : '#5b6071',
-    '--ink-4':     dk ? '#696a73' : '#898d9c',
-  };
-
-  function resolveVarFills(el) {
-    el.querySelectorAll('[fill]').forEach(n => {
-      const m = n.getAttribute('fill').match(/var\((--[^)]+)\)/);
-      if (m && vars[m[1]]) n.setAttribute('fill', vars[m[1]]);
-    });
-  }
-
-  function svgToImage(clone) {
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    const xml  = new XMLSerializer().serializeToString(clone);
-    const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-      img.src = url;
-    });
-  }
-
-  // ── Sankey clone ──────────────────────────────────────────────
-  const sankeyClone = svgEl.cloneNode(true);
-  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bgRect.setAttribute('width', '460'); bgRect.setAttribute('height', '280');
-  bgRect.setAttribute('fill', bgCol);
-  sankeyClone.insertBefore(bgRect, sankeyClone.firstChild);
-  resolveVarFills(sankeyClone);
-  sankeyClone.querySelectorAll('.sankey-label').forEach(el => {
-    el.setAttribute('font-size', '10.5'); el.setAttribute('font-weight', '600');
-    el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-2']);
-    if (el.classList.contains('in'))     el.setAttribute('fill', vars['--inflow-2']);
-    if (el.classList.contains('out'))    el.setAttribute('fill', vars['--outflow-2']);
-    if (el.classList.contains('center')) { el.setAttribute('fill', vars['--ink']); el.setAttribute('font-weight', '700'); el.setAttribute('font-size', '12'); }
-  });
-  sankeyClone.querySelectorAll('.sankey-num').forEach(el => {
-    el.setAttribute('font-size', '9.5'); el.setAttribute('font-weight', '500');
-    el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-4']);
-  });
-
-  // ── Flow summary clone ────────────────────────────────────────
-  const SUM_H = 92;
-  let sumPromise = Promise.resolve(null);
-  if (sumSvgEl) {
-    const sumClone = sumSvgEl.cloneNode(true);
-    resolveVarFills(sumClone);
-    sumClone.querySelectorAll('.fs-val').forEach(el => {
-      el.setAttribute('font-size', '11.5'); el.setAttribute('font-weight', '700');
-      el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-3']);
-      if (el.classList.contains('in'))  el.setAttribute('fill', vars['--inflow-2']);
-      if (el.classList.contains('out')) el.setAttribute('fill', vars['--outflow-2']);
-    });
-    sumClone.querySelectorAll('.fs-lbl').forEach(el => {
-      el.setAttribute('font-size', '9'); el.setAttribute('font-weight', '400');
-      el.setAttribute('font-family', font); el.setAttribute('fill', vars['--ink-4']);
-    });
-    sumPromise = svgToImage(sumClone);
-  }
-
-  Promise.all([svgToImage(sankeyClone), sumPromise]).then(([sankeyImg, sumImg]) => {
-    const TOTAL_H = 280 + (sumImg ? 1 + SUM_H : 0);
-    const canvas  = document.createElement('canvas');
-    canvas.width  = 920; canvas.height = TOTAL_H * 2;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
-    ctx.fillStyle = bgCol;
-    ctx.fillRect(0, 0, 460, TOTAL_H);
-    ctx.drawImage(sankeyImg, 0, 0, 460, 280);
-    if (sumImg) {
-      ctx.fillStyle = ruleCol;
-      ctx.fillRect(0, 280, 460, 1);
-      ctx.drawImage(sumImg, 0, 281, 460, SUM_H);
-    }
-    _dlUrl(canvas.toDataURL('image/png'), `commute-flow-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}.png`);
-  });
+  if (!_lastState) return;
+  const area      = _lastState.selectedArea ?? 'chart';
+  const year      = _lastState.year ?? '';
+  const activeTab = document.querySelector('#flow-tab-toggle .mini-toggle-btn.active')?.dataset.tab;
+  const svgEl     = activeTab === 'overview'
+    ? document.getElementById('flow-wheel')?.querySelector('svg')
+    : document.getElementById('flow-summary')?.querySelector('svg');
+  _svgToPng(svgEl, `commute-flow-${area}-${year}.png`);
 }
 export function exportDemoPng() {
   _pngDownload(_demoChart, `worker-demographics-${_lastState?.selectedArea ?? 'chart'}-${_lastState?.year ?? ''}`);
@@ -405,7 +427,10 @@ export function exportReachPng() {
 
 export function exportBarCsv() {
   if (!_lastState) return;
-  const { rows } = _mergeFlows(_lastOutflows, _lastInflows, 9);
+  const { rows: allRows } = _mergeFlows(_lastOutflows, _lastInflows, 15);
+  const rows = allRows
+    .filter(r => !r.isOthers)
+    .sort((a, b) => (_balanceSort === 'outflow' ? b.out - a.out : b.in - a.in));
   const header = ['Area', 'Inflow (Workers In)', 'Inflow %', 'Outflow (Residents Out)', 'Outflow %'];
   const data = rows.map(d => [
     d.name,
@@ -685,8 +710,9 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
   const axisR  = document.getElementById('balance-axis-r');
   if (!rowsEl) return;
 
-  const { rows: allRows } = _mergeFlows(outflows, inflows, 10);
-  const rows = allRows.filter(r => !r.isOthers);
+  const { rows: allRows } = _mergeFlows(outflows, inflows, 15);
+  const rows = allRows.filter(r => !r.isOthers)
+    .sort((a, b) => (_balanceSort === 'outflow' ? b.out - a.out : b.in - a.in));
   if (!rows.length) { rowsEl.innerHTML = ''; return; }
 
   const max     = Math.max(...rows.flatMap(r => [r.out, r.in]));
@@ -697,21 +723,57 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
   if (axisL) axisL.textContent = axisMax.toLocaleString();
   if (axisR) axisR.textContent = axisMax.toLocaleString();
 
-  rowsEl.innerHTML = rows.map(r => `
+  const VISIBLE = 8;
+  const rowHTML = r => `
     <div class="balance-row" data-peer="${r.name}">
       <div class="b-num left">${r.in.toLocaleString()}</div>
       <div class="b-side left"><div class="b-bar in" style="width:${bw(r.in)}%"></div></div>
       <div class="b-name">${r.name}</div>
       <div class="b-side right"><div class="b-bar" style="width:${bw(r.out)}%"></div></div>
       <div class="b-num right">${r.out.toLocaleString()}</div>
-    </div>
-  `).join('');
+    </div>`;
+
+  const top  = rows.slice(0, VISIBLE);
+  const rest = rows.slice(VISIBLE);
+
+  rowsEl.innerHTML =
+    top.map(rowHTML).join('') +
+    (rest.length ? `
+      <div class="balance-overflow" id="balance-overflow" style="display:none;">
+        ${rest.map(rowHTML).join('')}
+      </div>
+      <div class="balance-expand-row">
+        <button class="balance-expand-btn" id="balance-expand-btn">
+          <span class="balance-expand-label">Expand</span>
+          <span class="balance-expand-icon">&#9660;</span>
+        </button>
+      </div>` : '');
 
   rowsEl.querySelectorAll('.balance-row').forEach(el => {
     el.addEventListener('click', () => {
       _onAreaSelect?.(el.dataset.peer, state.aggregation);
     });
   });
+
+  const expandBtn = document.getElementById('balance-expand-btn');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      const overflow = document.getElementById('balance-overflow');
+      const label    = expandBtn.querySelector('.balance-expand-label');
+      const icon     = expandBtn.querySelector('.balance-expand-icon');
+      const expanded = overflow.style.display !== 'none';
+      overflow.style.display = expanded ? 'none' : '';
+      label.textContent = expanded ? 'Expand' : 'Collapse';
+      icon.style.transform = expanded ? '' : 'rotate(180deg)';
+      if (!expanded) {
+        overflow.querySelectorAll('.balance-row').forEach(el => {
+          el.addEventListener('click', () => {
+            _onAreaSelect?.(el.dataset.peer, state.aggregation);
+          });
+        });
+      }
+    });
+  }
 }
 
 // ── Shared ribbon path (used by Sankey + flow summary) ───────────────────────
@@ -766,7 +828,7 @@ function _renderSankey(outflows, inflows, state) {
 
   const nShown = Math.max(inSide.filter(d => !d.isOthers).length, outSide.filter(d => !d.isOthers).length);
   const subEl  = document.getElementById('sankey-sub');
-  if (subEl) subEl.textContent = `02 · Top ${nShown} by volume`;
+  if (subEl) subEl.textContent = `01 · Summary`;
 
   const W = 460, H = 280, PAD = 10;
   const LABEL_PAD = 90, CENTER_W = 120, SIDE_W = 14;
@@ -875,7 +937,142 @@ function _renderSankey(outflows, inflows, state) {
   });
 }
 
-// ── 2b. Flow Summary — total inflow / self-flow / total outflow bars ──────────
+// ── 2b. Flow Venn — proportional overlapping circles ─────────────────────────
+
+function _renderFlowWheel(totalIn, totalOut, selfFlow, state) {
+  const el = document.getElementById('flow-wheel');
+  if (!el) return;
+
+  function fmt(n) {
+    if (n >= 10000) return `${Math.round(n / 1000)}k`;
+    if (n >= 1000)  return `${parseFloat((n / 1000).toFixed(1))}k`;
+    return n ? n.toLocaleString() : '—';
+  }
+
+  if (!totalIn && !totalOut && !selfFlow) { el.innerHTML = ''; return; }
+
+  const font = 'Inter, system-ui, sans-serif';
+  const W = 460, H = 188;
+  const cx = W / 2, cy = H / 2;  // 230, 94
+  const R  = 66;
+
+  const hasSelf = selfFlow > 0;
+  const selfPct = (totalOut + selfFlow) > 0
+    ? Math.round(selfFlow / (totalOut + selfFlow) * 100) : 0;
+
+  // Same overlap color as the Venn diagram's LIVE & WORK lens
+  const overlapColor = state.theme === 'dark' ? '#b78564' : '#ac7453';
+
+  // Rotation arc geometry — two CW 150° arcs, 30° gaps at top/bottom
+  const topY = cy - R;
+  const botY = cy + R;
+  const sw   = 12;
+  const ahW  = 8;
+  const ahL  = 11;
+  const a1sx = (cx + R * 0.5).toFixed(1);
+  const a1sy = (cy - R * 0.866).toFixed(1);
+  const a2sx = (cx - R * 0.5).toFixed(1);
+  const a2sy = (cy + R * 0.866).toFixed(1);
+  const topAH = `${cx + ahL},${topY} ${cx - 2},${topY - ahW} ${cx - 2},${topY + ahW}`;
+  const botAH = `${cx - ahL},${botY} ${cx + 2},${botY - ahW} ${cx + 2},${botY + ahW}`;
+
+  // Ribbon sizing ∝ sqrt(flow/max) — same scale as Venn radii
+  const RW_MAX = 78, RW_MIN = 22, W_TIP = 10;
+  const tipLen = 22, overlap = 12;
+  const maxFlow = Math.max(totalIn, totalOut, 1);
+  const rw_in  = Math.max(RW_MAX * (totalIn  / maxFlow), RW_MIN);
+  const rw_out = Math.max(RW_MAX * (totalOut / maxFlow), RW_MIN);
+
+  // Left ribbon: wide at x=0, tapers via bezier to W_TIP at circle,
+  // arrowhead tip overlaps ring by `overlap` px
+  const lTipX  = cx - R + overlap;     // tip point (inside ring stroke)
+  const lBodyX = lTipX - tipLen;       // arrowhead base / ribbon right end
+  const lCP1   = lBodyX * 0.38;
+  const lCP2   = lBodyX * 0.78;
+  const ltx    = lBodyX / 2;
+  const lAhW   = W_TIP / 2 + 10;
+
+  const lRibbon = `M 0,${cy - rw_in/2} `
+    + `C ${lCP1},${cy - rw_in/2} ${lCP2},${cy - W_TIP/2} ${lBodyX},${cy - W_TIP/2} `
+    + `L ${lBodyX},${cy + W_TIP/2} `
+    + `C ${lCP2},${cy + rw_in/2} ${lCP1},${cy + rw_in/2} 0,${cy + rw_in/2} Z`;
+
+  // Right ribbon: narrow at circle, widens to full width, proper → arrowhead at far right
+  const rTipX   = cx + R - overlap;
+  const rBodyEnd = W - tipLen;
+  const rCP1    = rTipX + (rBodyEnd - rTipX) * 0.22;
+  const rCP2    = rTipX + (rBodyEnd - rTipX) * 0.62;
+  const rtx     = rTipX + (rBodyEnd - rTipX) / 2;
+  const rAhW    = rw_out / 2 + 8;
+
+  const rRibbon = `M ${rTipX},${cy - W_TIP/2} `
+    + `C ${rCP1},${cy - W_TIP/2} ${rCP2},${cy - rw_out/2} ${rBodyEnd},${cy - rw_out/2} `
+    + `L ${rBodyEnd},${cy + rw_out/2} `
+    + `C ${rCP2},${cy + rw_out/2} ${rCP1},${cy + W_TIP/2} ${rTipX},${cy + W_TIP/2} Z`;
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">
+
+      <!-- Flow ribbons (drawn first; track ring masks overlap zone) -->
+      <path d="${lRibbon}" fill="var(--inflow)"  opacity="0.16"/>
+      <path d="${lRibbon}" fill="none" stroke="var(--inflow)"  stroke-width="1" opacity="0.32"/>
+      <path d="${rRibbon}" fill="var(--outflow)" opacity="0.16"/>
+      <path d="${rRibbon}" fill="none" stroke="var(--outflow)" stroke-width="1" opacity="0.32"/>
+
+      <!-- Track ring — masks ribbon tips where they overlap, anchors the arcs -->
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none"
+              stroke="var(--rule)" stroke-width="${sw + 2}" opacity="1"/>
+
+      <!-- Labels inside ribbon bodies -->
+      <text x="${ltx.toFixed(1)}" y="${cy - 7}" text-anchor="middle"
+            font-size="22" font-weight="700" font-family="${font}"
+            fill="var(--inflow)">${fmt(totalIn)}</text>
+      <text x="${ltx.toFixed(1)}" y="${cy + 11}" text-anchor="middle"
+            font-size="9" font-family="${font}" fill="var(--inflow)"
+            opacity="0.70" letter-spacing="0.09em">WORKERS IN</text>
+
+      <text x="${rtx.toFixed(1)}" y="${cy - 7}" text-anchor="middle"
+            font-size="22" font-weight="700" font-family="${font}"
+            fill="var(--outflow)">${fmt(totalOut)}</text>
+      <text x="${rtx.toFixed(1)}" y="${cy + 11}" text-anchor="middle"
+            font-size="9" font-family="${font}" fill="var(--outflow)"
+            opacity="0.70" letter-spacing="0.09em">RESIDENTS OUT</text>
+
+      <!-- Arrowheads: left → tip at circle, right → tip at right edge -->
+      <polygon points="${lTipX},${cy} ${lBodyX},${cy - lAhW} ${lBodyX},${cy + lAhW}"
+               fill="var(--inflow)" opacity="0.75"/>
+      <polygon points="${W},${cy} ${rBodyEnd},${cy - rAhW} ${rBodyEnd},${cy + rAhW}"
+               fill="var(--outflow)" opacity="0.75"/>
+
+      <!-- Rotation arcs — same color as Venn LIVE & WORK lens -->
+      <path d="M ${a1sx},${a1sy} A ${R},${R} 0 0,1 ${cx},${botY}"
+            fill="none" stroke="${overlapColor}" stroke-width="${sw}"
+            opacity="0.60" stroke-linecap="round"/>
+      <polygon points="${botAH}" fill="${overlapColor}" opacity="0.80"/>
+      <path d="M ${a2sx},${a2sy} A ${R},${R} 0 0,1 ${cx},${topY}"
+            fill="none" stroke="${overlapColor}" stroke-width="${sw}"
+            opacity="0.60" stroke-linecap="round"/>
+      <polygon points="${topAH}" fill="${overlapColor}" opacity="0.80"/>
+
+      <!-- Center text: label → number → pct -->
+      ${hasSelf ? `
+        <text x="${cx}" y="${cy - 19}" text-anchor="middle"
+              font-size="10" font-family="${font}" fill="${overlapColor}"
+              letter-spacing="0.06em">LIVE &amp; WORK</text>
+        <text x="${cx}" y="${cy + 7}" text-anchor="middle"
+              font-size="26" font-weight="700" font-family="${font}"
+              fill="var(--ink)">${fmt(selfFlow)}</text>
+        <text x="${cx}" y="${cy + 26}" text-anchor="middle"
+              font-size="13" font-weight="600" font-family="${font}"
+              fill="${overlapColor}">${selfPct}%</text>
+      ` : `
+        <text x="${cx}" y="${cy + 4}" text-anchor="middle"
+              font-size="9" font-family="${font}" fill="var(--ink-4)"
+              letter-spacing="0.06em">NO LOCAL DATA</text>
+      `}
+
+    </svg>`;
+}
 
 function _renderFlowSummary(totalIn, totalOut, selfFlow, state) {
   const el = document.getElementById('flow-summary');
@@ -887,46 +1084,98 @@ function _renderFlowSummary(totalIn, totalOut, selfFlow, state) {
     return n ? n.toLocaleString() : '—';
   }
 
-  const W = 460, H = 92;
-  const TOP_PAD = 22, BAR_H = 50, BOTTOM_PAD = 20;
-  const BASE_Y  = TOP_PAD + BAR_H;   // y=72, bottom of bars
-  const COLW = 88, GUTTER = 38;
-  const START_X = (W - (3 * COLW + 2 * GUTTER)) / 2; // ≈ 57
+  if (!totalIn && !totalOut && !selfFlow) { el.innerHTML = ''; return; }
 
-  const inX   = START_X;
-  const selfX = START_X + COLW + GUTTER;
-  const outX  = START_X + 2 * (COLW + GUTTER);
+  // ── Lens-area solver ─────────────────────────────────────────
+  function lensArea(r1, r2, d) {
+    if (d >= r1 + r2) return 0;
+    if (d <= Math.abs(r1 - r2)) return Math.PI * Math.min(r1, r2) ** 2;
+    const clamp = (v) => Math.max(-1, Math.min(1, v));
+    const a = Math.acos(clamp((d*d + r1*r1 - r2*r2) / (2*d*r1)));
+    const b = Math.acos(clamp((d*d + r2*r2 - r1*r1) / (2*d*r2)));
+    return r1*r1*a + r2*r2*b
+      - 0.5 * Math.sqrt(Math.max(0, (-d+r1+r2)*(d+r1-r2)*(d-r1+r2)*(d+r1+r2)));
+  }
 
-  const maxVal = Math.max(totalIn, totalOut, selfFlow, 1);
-  const inH    = Math.max((totalIn  / maxVal) * BAR_H, 4);
-  const selfH  = Math.max((selfFlow / maxVal) * BAR_H, 4);
-  const outH   = Math.max((totalOut / maxVal) * BAR_H, 4);
+  function solveD(r1, r2, target) {
+    if (target <= 0) return r1 + r2;
+    if (target >= Math.PI * Math.min(r1, r2) ** 2) return Math.abs(r1 - r2);
+    let lo = Math.abs(r1 - r2), hi = r1 + r2;
+    for (let i = 0; i < 64; i++) {
+      const mid = (lo + hi) / 2;
+      lensArea(r1, r2, mid) > target ? lo = mid : hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
 
-  const inY   = BASE_Y - inH;
-  const selfY = BASE_Y - selfH;
-  const outY  = BASE_Y - outH;
+  const W = 460;
+  const cy = 112;
+  const R_MAX = 112, MIN_R = 26;
+  const font = 'Inter, system-ui, sans-serif';
 
-  const ribIn  = _ribbonPath(inX + COLW, inY,   inH,   selfX,        selfY, selfH);
-  const ribOut = _ribbonPath(selfX + COLW, selfY, selfH, outX,        outY,  outH);
+  // Circles sized by exclusive flows; overlap area ∝ selfFlow on the same scale
+  const maxVal = Math.max(totalIn, totalOut, 1);
 
-  const selfPct = totalOut > 0 ? Math.round(selfFlow / (totalOut + selfFlow) * 100) : 0;
+  const r_in  = Math.max(R_MAX * Math.sqrt(totalIn  / maxVal), MIN_R);
+  const r_out = Math.max(R_MAX * Math.sqrt(totalOut / maxVal), MIN_R);
+
+  // Find d so lens area ∝ selfFlow
+  const targetArea = Math.PI * R_MAX * R_MAX * (selfFlow / maxVal);
+  const d   = solveD(r_in, r_out, targetArea);
+  const cx1 = W / 2 - d / 2;
+  const cx2 = W / 2 + d / 2;
+
+  // chordX: x where the two circle edges intersect (right boundary of exclusive left cap)
+  const chordX     = d > 0 ? cx1 + (d*d + r_in*r_in - r_out*r_out) / (2*d) : W / 2;
+  // lensCenterX: x-midpoint of the lens bounding box [(cx2-r_out) to (cx1+r_in)]
+  const lensCenterX = (W + r_in - r_out) / 2;
+  // Use each circle's center for the label, clamped to stay clear of the chord
+  const numInX  = Math.min(cx1, chordX - 30);
+  const numOutX = Math.max(cx2, chordX + 30);
+
+  const selfPct = (totalOut + selfFlow) > 0
+    ? Math.round(selfFlow / (totalOut + selfFlow) * 100) : 0;
+
+  // Legend below circles
+  const legendY = cy + Math.max(r_in, r_out) + 18;
+  const H = legendY + 28;
+  const dotR = 5, textOff = dotR * 2 + 6;
+  const hasSelf = selfFlow > 0;
+  const overlapColor = state.theme === 'dark' ? '#b78564' : '#ac7453';
+  // Distribute legend items: 2 or 3 items centered in W
+  const leg1X = hasSelf ? 38  : 110;
+  const leg2X = 175;
+  const leg3X = hasSelf ? 330 : 278;
 
   el.innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">
-      <path d="${ribIn}"  fill="var(--inflow)"  opacity="0.15"/>
-      <path d="${ribOut}" fill="var(--outflow)" opacity="0.15"/>
+      <circle cx="${cx1.toFixed(1)}" cy="${cy}" r="${r_in.toFixed(1)}"  fill="var(--inflow)"  opacity="0.72"/>
+      <circle cx="${cx2.toFixed(1)}" cy="${cy}" r="${r_out.toFixed(1)}" fill="var(--outflow)" opacity="0.72"/>
 
-      <rect x="${inX}"   y="${inY}"   width="${COLW}" height="${inH}"   fill="var(--inflow)"  opacity="0.72" rx="2"/>
-      <rect x="${selfX}" y="${selfY}" width="${COLW}" height="${selfH}" fill="var(--ink-3)"   opacity="0.45" rx="2"/>
-      <rect x="${outX}"  y="${outY}"  width="${COLW}" height="${outH}"  fill="var(--outflow)" opacity="0.72" rx="2"/>
+      <text x="${numInX.toFixed(1)}" y="${cy + 6}" text-anchor="middle"
+            font-size="18" font-weight="700" font-family="${font}" fill="white" opacity="0.95">${fmt(totalIn)}</text>
 
-      <text x="${inX   + COLW/2}" y="${inY   - 5}" text-anchor="middle" class="fs-val in">${fmt(totalIn)}</text>
-      <text x="${selfX + COLW/2}" y="${selfY - 5}" text-anchor="middle" class="fs-val">${fmt(selfFlow)}</text>
-      <text x="${outX  + COLW/2}" y="${outY  - 5}" text-anchor="middle" class="fs-val out">${fmt(totalOut)}</text>
+      <text x="${numOutX.toFixed(1)}" y="${cy + 6}" text-anchor="middle"
+            font-size="18" font-weight="700" font-family="${font}" fill="white" opacity="0.95">${fmt(totalOut)}</text>
 
-      <text x="${inX   + COLW/2}" y="${BASE_Y + 14}" text-anchor="middle" class="fs-lbl">workers in</text>
-      <text x="${selfX + COLW/2}" y="${BASE_Y + 14}" text-anchor="middle" class="fs-lbl">live &amp; work · ${selfPct}%</text>
-      <text x="${outX  + COLW/2}" y="${BASE_Y + 14}" text-anchor="middle" class="fs-lbl">residents out</text>
+      ${hasSelf ? `
+      <text x="${lensCenterX.toFixed(1)}" y="${cy + 6}" text-anchor="middle"
+            font-size="15" font-weight="700" font-family="${font}" fill="white" opacity="0.95">${fmt(selfFlow)}</text>
+      ` : ''}
+
+      <circle cx="${leg1X + dotR}" cy="${legendY + 6}" r="${dotR}" fill="var(--inflow)" opacity="0.72"/>
+      <text x="${leg1X + textOff}" y="${legendY + 10}" font-size="12" font-family="${font}"
+            fill="var(--ink-3)" letter-spacing="0.03em">WORKERS IN</text>
+
+      ${hasSelf ? `
+      <circle cx="${leg2X + dotR}" cy="${legendY + 6}" r="${dotR}" fill="${overlapColor}"/>
+      <text x="${leg2X + textOff}" y="${legendY + 10}" font-size="12" font-family="${font}"
+            fill="var(--ink-3)" letter-spacing="0.03em">LIVE &amp; WORK · ${selfPct}%</text>
+      ` : ''}
+
+      <circle cx="${leg3X + dotR}" cy="${legendY + 6}" r="${dotR}" fill="var(--outflow)" opacity="0.72"/>
+      <text x="${leg3X + textOff}" y="${legendY + 10}" font-size="12" font-family="${font}"
+            fill="var(--ink-3)" letter-spacing="0.03em">RESIDENTS OUT</text>
     </svg>`;
 }
 
