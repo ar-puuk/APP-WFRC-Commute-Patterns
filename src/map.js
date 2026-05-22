@@ -610,7 +610,7 @@ function _addInfoLayers() {
       .setLngLat(e.lngLat)
       .setHTML(`
         <div class="ci-name">${p.name}</div>
-        ${p.employees_approx ? `<div class="ci-employees">${p.employees_approx} employees (est.)</div>` : ''}
+        ${p.employees_approx ? `<div class="ci-employees">${p.employees_approx} employees</div>` : ''}
         <div class="ci-note">${p.note}</div>
       `)
       .addTo(map);
