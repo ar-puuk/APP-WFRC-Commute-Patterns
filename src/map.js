@@ -234,6 +234,15 @@ export function switchTheme(theme, onReady) {
           return { ...l, paint };
         });
 
+      // Insert preserved layers before the first kept place-label layer so our
+      // fills stay below city/town/state labels after a theme swap.
+      const labelIdx = nextStyle.layers.findIndex(
+        l => l.type === 'symbol' && _KEEP_LABEL_RE.test(l.id)
+      );
+      const mergedLayers = labelIdx >= 0
+        ? [...nextStyle.layers.slice(0, labelIdx), ...preservedLayers, ...nextStyle.layers.slice(labelIdx)]
+        : [...nextStyle.layers, ...preservedLayers];
+
       return {
         ...nextStyle,
         sources: {
@@ -242,7 +251,7 @@ export function switchTheme(theme, onReady) {
             Object.entries(prevStyle.sources ?? {}).filter(([k]) => !styleSrcIds.has(k))
           ),
         },
-        layers: [...nextStyle.layers, ...preservedLayers],
+        layers: mergedLayers,
       };
     },
   });
@@ -589,6 +598,7 @@ function _addInfoLayers() {
     id: 'custom-info-line', type: 'line', source: 'custom-info',
     paint: { 'line-color': lineColor, 'line-width': 1.5, 'line-dasharray': [3, 2] },
   }, before);
+  _ensureLabelsOnTop();
 
   map.on('mouseenter', 'custom-info-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', 'custom-info-fill', () => { map.getCanvas().style.cursor = ''; });
@@ -630,6 +640,16 @@ function _fillInsertionLayer() {
     if (i >= 0 && i + 1 < layers.length) return layers[i + 1].id;
   }
   return undefined;
+}
+
+// Moves all kept place-label layers to the very top of the layer stack so they
+// always render above our choropleth fills, regardless of how layers were added.
+function _ensureLabelsOnTop() {
+  if (!map) return;
+  const layers = map.getStyle()?.layers ?? [];
+  layers.forEach(l => {
+    if (l.type === 'symbol' && _KEEP_LABEL_RE.test(l.id)) map.moveLayer(l.id);
+  });
 }
 
 // Moves all non-kept symbol layers (road labels, POIs, water names, hamlets,
@@ -693,4 +713,6 @@ function _addBoundaryLayers() {
     const { flows, selectedArea, aggregation, direction } = _pendingChoropleth;
     updateChoropleth(flows, selectedArea, aggregation, _theme, direction);
   }
+
+  _ensureLabelsOnTop();
 }
