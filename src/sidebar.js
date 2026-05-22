@@ -268,7 +268,7 @@ function _updateInfoNote(state) {
   note.id        = 'cp-info-note';
   note.className = 'cp-info-note';
   note.innerHTML =
-    `<strong>${p.name}</strong>${p.employees_approx ? ` (${p.employees_approx} employees)` : ''} ` +
+    `<strong>${p.name}</strong>${p.employees_approx ? ` &mdash; ${p.employees_approx} employees` : ''} ` +
     `is this county's largest employer but falls outside LEHD coverage &mdash; ` +
     `federal and military positions are not UI-insured. ` +
     `Commute flows to/from this site are not reflected in these figures.`;

@@ -2,7 +2,7 @@
   "Hill Air Force Base": {
     "county": "Davis County",
     "county_fips": "49011",
-    "employees_approx": "~27,000",
+    "employees_approx": "~27,000 (est. 2024)",
     "enable": false,
     "note": "Federal civilian and military positions are excluded from LEHD wage records (not UI-covered employment). Only private contractor jobs appear in this dataset, significantly underrepresenting actual commute volumes to this site."
   }
