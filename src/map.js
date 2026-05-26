@@ -368,7 +368,12 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
         const destTotal = flowTotals.get(`${originId}||${destId}`) ?? 0;
         const isOutflow = state.direction === 'outflow';
 
-        const selPct = total     > 0 ? parseFloat((count / total     * 100).toFixed(1)) : null;
+        // selPct: what % of the subject area's residents (outflow) or workforce (inflow)
+        // does this line represent — always gross total, self-flow included.
+        // dstPct: what % of the other zone's workforce (outflow) or residents (inflow)
+        // does this line represent — destTotal from the query JOIN, already gross.
+        const selDenom = isOutflow ? _selfOutTotal : _selfInTotal;
+        const selPct = selDenom  > 0 ? parseFloat((count / selDenom  * 100).toFixed(1)) : null;
         const dstPct = destTotal > 0 ? parseFloat((count / destTotal * 100).toFixed(1)) : null;
 
         const selDonut = selPct != null ? _donutSvg(selPct, isOutflow ? 'var(--outflow)' : 'var(--inflow)')  : '';

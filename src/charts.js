@@ -929,8 +929,14 @@ function _renderSankey(outflows, inflows, state) {
     });
 
     path.addEventListener('mousemove', (e) => {
-      const tt  = _ensureSankeyTooltip();
-      const pct = rd.sideTotal > 0 ? Math.round(rd.n / rd.sideTotal * 100) : 0;
+      const tt        = _ensureSankeyTooltip();
+      // Always use gross totals (self-flow included) so the % reads:
+      // inflow ribbon  → "X% of subject area's workforce lives here"
+      // outflow ribbon → "X% of subject area's residents work here"
+      const grossOut = _lastTotalOut + _lastSelfFlow;
+      const grossIn  = _lastTotalIn  + _lastSelfFlow;
+      const denom = rd.color === 'var(--inflow)' ? grossIn : grossOut;
+      const pct = denom > 0 ? Math.round(rd.n / denom * 100) : 0;
       tt.innerHTML = `<strong>${rd.name}</strong><br>${rd.n.toLocaleString()} commuters · ${pct}%`;
       tt.style.display = 'block';
       tt.style.left    = `${e.clientX + 14}px`;
