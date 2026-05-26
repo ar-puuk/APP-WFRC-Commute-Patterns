@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Apply theme before first paint to avoid flash -->
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <title>Utah Commuter Flow Patterns</title>
   <meta name="description" content="Explore commute flow patterns across Utah using LEHD Census data." />
   <link rel="icon" href="favicon-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)" />

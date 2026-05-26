@@ -9,7 +9,7 @@ import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, 
 
 // ── Global app state ─────────────────────────────────────────────────────────
 const state = {
-  theme:            'light',
+  theme:            document.documentElement.getAttribute('data-theme') || 'light',
   aggregation:      'city',
   direction:        'inflow',
   selectedArea:     'Salt Lake City',
@@ -163,8 +163,9 @@ async function main() {
   // 8. Build sidebar
   const cityNames   = cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort();
   const countyNames = countyMetaArr.map(d => d.name).sort();
-  const houseNames  = houseMetaArr.map(d => d.name).sort();
-  const senateNames = senateMetaArr.map(d => d.name).sort();
+  const _numSort = (a, b) => a.localeCompare(b, undefined, { numeric: true });
+  const houseNames  = houseMetaArr.map(d => d.name).sort(_numSort);
+  const senateNames = senateMetaArr.map(d => d.name).sort(_numSort);
 
   initSidebar({
     cityNames, countyNames, houseNames, senateNames,
@@ -205,11 +206,21 @@ async function main() {
   _initLayerToolbar();
   _initRightPanelResize();
 
-  // 12. Wire theme toggle
+  // 12. Wire theme toggle — persist explicit user choice
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('theme', state.theme);
     switchTheme(state.theme, () => _applyFilter());
+  });
+
+  // Follow system preference changes when the user hasn't overridden manually
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (!localStorage.getItem('theme')) {
+      state.theme = e.matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', state.theme);
+      switchTheme(state.theme, () => _applyFilter());
+    }
   });
 
   setProgress(94);
@@ -451,8 +462,8 @@ async function _changeYear(newYear, base) {
     initSidebar({
       cityNames:   cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort(),
       countyNames: countyMetaArr.map(d => d.name).sort(),
-      houseNames:  houseMetaArr.map(d => d.name).sort(),
-      senateNames: senateMetaArr.map(d => d.name).sort(),
+      houseNames:  houseMetaArr.map(d => d.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+      senateNames: senateMetaArr.map(d => d.name).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
       cityMeta, houseMeta, senateMeta,
       state,
       onSelectionChange: () => refreshVisualization(),
