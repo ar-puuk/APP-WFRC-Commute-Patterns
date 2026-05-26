@@ -9,7 +9,7 @@ ACS 5-year commute data fetcher.
 
 Downloads Means of Transportation (B08301/B08601) and Travel Time to Work
 (B08303/B08603) from the Census ACS 5-year API for all Utah places and
-WFRC region counties.
+all Utah counties.
 
 Output per year:
   data/acs/{year}/acs_city.json    — keyed by 7-digit place FIPS ("4967000")
@@ -45,10 +45,6 @@ if _ENV_FILE.exists():
 if not _CENSUS_KEY:
     _CENSUS_KEY = os.environ.get("CENSUS_API_KEY")
 
-WFRC_COUNTY_CODES = frozenset({
-    "003", "005", "011", "023", "029",
-    "035", "043", "045", "049", "051", "057",
-})
 
 # Residence transportation + travel time (B08301 + B08303)
 RES_VARS = [
@@ -243,7 +239,6 @@ def fetch_acs_year(year: int, data_dir: Path, force: bool = False) -> None:
 
     county_data = _build_geo_data(
         year, "county:*", f"state:{STATE}", "county", STATE,
-        filter_set=WFRC_COUNTY_CODES,
     )
     county_path.write_text(json.dumps(county_data))
     print(f"    acs_county.json: {len(county_data)} counties")

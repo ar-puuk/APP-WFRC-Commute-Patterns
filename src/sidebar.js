@@ -10,7 +10,7 @@ export function setInfoOnlyPlaces(features) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export function initSidebar({ cityNames, countyNames, state, onSelectionChange, onAreaFly }) {
+export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelectionChange, onAreaFly }) {
   _state             = state;
   _onSelectionChange = onSelectionChange;
   _onAreaFly         = onAreaFly;
@@ -154,7 +154,7 @@ export function initSidebar({ cityNames, countyNames, state, onSelectionChange, 
   });
 
   // Wire search dropdown
-  _initDropdown(cityNames, countyNames);
+  _initDropdown(cityNames, countyNames, cityMeta);
 
   // Credits modal
   _initCreditsModal();
@@ -325,14 +325,14 @@ function _setActiveToggle(groupId, value) {
   });
 }
 
-function _initDropdown(cityNames, countyNames) {
+function _initDropdown(cityNames, countyNames, cityMeta) {
   const input    = document.getElementById('area-search');
   const dropdown = document.getElementById('area-dropdown');
   if (!input || !dropdown) return;
 
   const allAreas = [
     ...countyNames.map(n => ({ label: n, type: 'county' })),
-    ...cityNames.map(n => ({ label: n, type: 'city' })),
+    ...cityNames.map(n => ({ label: n, type: cityMeta?.[n]?.place_type ?? 'city' })),
   ];
 
   let activeIdx = -1;
@@ -358,16 +358,17 @@ function _initDropdown(cityNames, countyNames) {
   }
 
   function selectItem(label, type) {
+    const effectiveType = type === 'cdp' ? 'city' : type;
     _state.selectedArea     = label;
-    _state.selectedAreaType = type;
+    _state.selectedAreaType = effectiveType;
     input.value = label;
-    if (type !== _state.aggregation) {
-      _state.aggregation = type;
-      _setActiveToggle('aggregation-toggle', type);
+    if (effectiveType !== _state.aggregation) {
+      _state.aggregation = effectiveType;
+      _setActiveToggle('aggregation-toggle', effectiveType);
       _updateSearchContext();
     }
     hide();
-    _onAreaFly?.(label, type);
+    _onAreaFly?.(label, effectiveType);
     _onSelectionChange();
   }
 

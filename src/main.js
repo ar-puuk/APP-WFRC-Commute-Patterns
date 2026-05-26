@@ -58,7 +58,7 @@ function _haversineMiles(lat1, lon1, lat2, lon2) {
 
 function _distanceToZoom(avgMiles) {
   // At zoom 8, ~230 miles visible; each level halves that.
-  // Constant 46 ≈ 2× the avg WFRC commute, giving good regional context.
+  // Constant 46 ≈ 2× the avg Utah commute, giving good regional context.
   const zoom = 8 + Math.log2(46 / Math.max(avgMiles, 1));
   return Math.min(Math.max(zoom, 7.5), 11.5);
 }
@@ -150,7 +150,7 @@ async function main() {
   const countyNames = countyMetaArr.map(d => d.name).sort();
 
   initSidebar({
-    cityNames, countyNames, state,
+    cityNames, countyNames, cityMeta, state,
     onSelectionChange: () => refreshVisualization(),
     onAreaFly: () => {},
   });
@@ -429,6 +429,7 @@ async function _changeYear(newYear, base) {
     initSidebar({
       cityNames:   cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort(),
       countyNames: countyMetaArr.map(d => d.name).sort(),
+      cityMeta,
       state,
       onSelectionChange: () => refreshVisualization(),
       onAreaFly: () => {},

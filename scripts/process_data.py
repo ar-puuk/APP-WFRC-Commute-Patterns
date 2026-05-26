@@ -9,20 +9,21 @@
 # ]
 # ///
 """
-WFRC Commute Patterns — Offline Data Pipeline
+Utah Commute Patterns — Offline Data Pipeline
 
 Downloads LEHD LODES8 OD data for Utah, joins with the LEHD crosswalk to
-get city/county names, filters to the WFRC 9-county region, computes
-block-centroid haversine distances and buckets them into 4 distance bands,
-aggregates to city->city and county->county flow pairs (with band counts),
-computes geographic centroids from Census TIGER shapefiles, and exports
-Parquet + JSON files to ../data/lehd/{year}/.
+get city/county names, computes block-centroid haversine distances and
+buckets them into 4 distance bands, aggregates to city->city and
+county->county flow pairs (with band counts), computes geographic centroids
+from Census TIGER shapefiles, and exports Parquet + JSON files to
+../data/lehd/{year}/.
 
 Run once locally before committing data files:
     uv run scripts/process_data.py            # auto-detects latest available year
     uv run scripts/process_data.py --year 2021  # specific year
 """
 
+import re
 import sys
 import json
 import argparse
@@ -61,18 +62,36 @@ def download_cached(url, filename):
     print(f"  Saved {filename} ({size_mb:.1f} MB)")
     return cache_path
 
-# ── WFRC region county FIPS codes ────────────────────────────────────────────
-WFRC_COUNTIES = {
+# ── All Utah county FIPS codes ───────────────────────────────────────────────
+UTAH_COUNTIES = {
+    "49001": "Beaver County",
     "49003": "Box Elder County",
     "49005": "Cache County",
+    "49007": "Carbon County",
+    "49009": "Daggett County",
     "49011": "Davis County",
+    "49013": "Duchesne County",
+    "49015": "Emery County",
+    "49017": "Garfield County",
+    "49019": "Grand County",
+    "49021": "Iron County",
     "49023": "Juab County",
+    "49025": "Kane County",
+    "49027": "Millard County",
     "49029": "Morgan County",
+    "49031": "Piute County",
+    "49033": "Rich County",
     "49035": "Salt Lake County",
+    "49037": "San Juan County",
+    "49039": "Sanpete County",
+    "49041": "Sevier County",
     "49043": "Summit County",
     "49045": "Tooele County",
+    "49047": "Uintah County",
     "49049": "Utah County",
     "49051": "Wasatch County",
+    "49053": "Washington County",
+    "49055": "Wayne County",
     "49057": "Weber County",
 }
 
@@ -152,18 +171,57 @@ def load_xwalk():
     return xw
 
 
-def build_lookup(xw):
+def _get_type_label(stplcname):
+    """Extract place type label from raw Census stplcname. Returns 'CDP', 'City', 'Town', etc."""
+    if not pd.notna(stplcname) or not stplcname:
+        return "City"
+    s = stplcname.split(",")[0].strip()
+    parts = s.rsplit(" ", 1)
+    if len(parts) == 2:
+        t = parts[1].lower()
+        if t == "cdp":
+            return "CDP"
+        if t in ("city", "town", "village", "borough", "township", "municipality"):
+            return t.capitalize()
+    return "City"
+
+
+def _detect_name_collisions(xw):
+    """Return {place_fips: disambiguated_name} for Census places whose cleaned name
+    collides with another place in a different county.
+
+    e.g. "Enterprise CDP" (Morgan Co.) and "Enterprise city" (Washington Co.) both
+    clean to "Enterprise" — this returns:
+      {"4923310": "Enterprise (CDP)", "4923420": "Enterprise (City)"}
+    """
+    xw_valid = xw[xw["stplcname"].notna() & xw["stplc"].notna()].copy()
+    xw_valid["clean_name"] = xw_valid["stplcname"].apply(_clean_stplcname)
+    # One row per (clean_name, place_fips) pair; keep stplcname for type label
+    pairs = xw_valid.drop_duplicates(["clean_name", "stplc"])[["clean_name", "stplc", "cty", "stplcname"]]
+    # Names that map to more than one place FIPS are ambiguous
+    ambiguous = pairs.groupby("clean_name")["stplc"].nunique()
+    ambiguous = set(ambiguous[ambiguous > 1].index)
+    if not ambiguous:
+        return {}
+    result = {}
+    for _, row in pairs[pairs["clean_name"].isin(ambiguous)].iterrows():
+        type_label = _get_type_label(row["stplcname"])
+        result[row["stplc"]] = f"{row['clean_name']} ({type_label})"
+    print(f"  Name collisions resolved: {sorted(ambiguous)}")
+    return result
+
+
+def build_lookup(xw, disambig=None):
     """Return a dict: block_fips -> {city_name, county_name, county_fips, place_fips, lat, lon}"""
     lookup = {}
     for row in xw.itertuples(index=False):
         # Unincorporated blocks have no place; use county label
         city = row.stplcname if pd.notna(row.stplcname) and row.stplcname else None
         if city:
-            city = _clean_stplcname(city)
-        # Use canonical WFRC county name (e.g. "Salt Lake County") if available,
-        # otherwise fall back to the raw xwalk ctyname (e.g. "Salt Lake County, UT")
+            city = disambig.get(row.stplc) or _clean_stplcname(city)
+        # Use canonical Utah county name if available, otherwise fall back to raw xwalk ctyname
         raw_county = row.ctyname if pd.notna(row.ctyname) else None
-        county = WFRC_COUNTIES.get(row.cty, raw_county)
+        county = UTAH_COUNTIES.get(row.cty, raw_county)
         lookup[row.tabblk2020] = {
             "city_name": city,
             "county_name": county,
@@ -221,18 +279,11 @@ def mark_out_of_state(od):
     return od
 
 
-def filter_wfrc(od):
-    """Keep rows where at least one of home or work is in a WFRC county.
-
-    Using OR (not AND) ensures that flows between a WFRC county and a non-WFRC
-    Utah county are included, so inflow/outflow totals match Census OnTheMap.
-    The previous AND filter silently dropped e.g. SL County residents working
-    in Washington County, causing totals to undercount vs Census by ~15-33k.
-    """
-    mask = od["h_cty"].isin(WFRC_COUNTIES) | od["w_cty"].isin(WFRC_COUNTIES)
-    filtered = od[mask].copy()
-    print(f"  WFRC OD rows: {len(filtered):,} (of {len(od):,})")
-    return filtered
+def filter_utah(od):
+    """Keep all rows — LODES files are already Utah-specific (main: both sides Utah;
+    aux: work in Utah, home out-of-state), so no county-level filtering is needed."""
+    print(f"  Utah OD rows: {len(od):,}")
+    return od
 
 
 def fill_unincorporated(od):
@@ -372,14 +423,32 @@ def build_city_meta(city_flows, xw, places):
     # xwalk stplc is already 7 chars (state+place); TIGER FULL_PLACEFP matches this
     xw_clean = xw[xw["stplcname"].notna() & xw["stplc"].notna()].copy()
     xw_clean["clean_name"] = xw_clean["stplcname"].apply(_clean_stplcname)
+    # Primary lookup keyed by (name, county_fips) — handles same name in different
+    # counties (e.g. "Enterprise CDP" in Morgan Co. vs "Enterprise city" in Washington Co.)
+    name_county_to_plc = (
+        xw_clean.drop_duplicates(["clean_name", "cty"])
+        .set_index(["clean_name", "cty"])["stplc"]
+        .to_dict()
+    )
+    # Fallback: name-only for places with no county ambiguity
     name_to_plc = (
         xw_clean.drop_duplicates("clean_name")
         .set_index("clean_name")["stplc"]
         .to_dict()
     )
 
-    cty_name_to_fips = {v: k for k, v in WFRC_COUNTIES.items()}
+    cty_name_to_fips = {v: k for k, v in UTAH_COUNTIES.items()}
     places_idx = places.set_index("FULL_PLACEFP")
+
+    # Build place_fips → place_type mapping ("cdp" or "city")
+    plc_to_type = (
+        xw_clean.drop_duplicates("stplc")
+        .assign(type_label=lambda df: df["stplcname"].apply(
+            lambda s: "cdp" if _get_type_label(s) == "CDP" else "city"
+        ))
+        .set_index("stplc")["type_label"]
+        .to_dict()
+    )
 
     meta = []
     unmatched = []
@@ -387,7 +456,11 @@ def build_city_meta(city_flows, xw, places):
     for city_name, county_name in sorted(city_county_pairs):
         if city_name == "Out of State":
             continue
-        place_fips = name_to_plc.get(city_name)
+        county_fips = cty_name_to_fips.get(county_name, "")
+        # Strip any parenthetical disambiguation suffix before FIPS lookup
+        # e.g. "Enterprise (CDP)" -> "Enterprise", "Enterprise (City)" -> "Enterprise"
+        base_name = re.sub(r'\s*\([^)]+\)\s*$', '', city_name)
+        place_fips = name_county_to_plc.get((base_name, county_fips)) or name_to_plc.get(base_name)
         lat, lon = None, None
 
         if city_name in CENTROID_OVERRIDES:
@@ -401,8 +474,6 @@ def build_city_meta(city_flows, xw, places):
         else:
             unmatched.append(city_name)
 
-        county_fips = cty_name_to_fips.get(county_name, "")
-
         meta.append({
             "name": city_name,
             "county": county_name,
@@ -410,6 +481,7 @@ def build_city_meta(city_flows, xw, places):
             "lat": lat,
             "lon": lon,
             "place_fips": place_fips or "",
+            "place_type": plc_to_type.get(place_fips, "city") if place_fips else "city",
         })
 
     if unmatched:
@@ -419,10 +491,10 @@ def build_city_meta(city_flows, xw, places):
 
 
 def build_county_meta(counties):
-    """Build county metadata for the 9 WFRC counties."""
+    """Build county metadata for all 29 Utah counties."""
     counties_idx = counties.set_index("COUNTYFP_full")
     meta = []
-    for fips, name in WFRC_COUNTIES.items():
+    for fips, name in UTAH_COUNTIES.items():
         if fips in counties_idx.index:
             row = counties_idx.loc[fips]
             # loc returns a Series for a single match, DataFrame for multiple
@@ -450,11 +522,12 @@ def export_parquet(df, path, int_cols):
     print(f"  Wrote {path.name} ({len(df):,} rows, {size_kb:.1f} KB)")
 
 
-def generate_boundaries(places=None, counties=None, force=False):
+def generate_boundaries(places=None, counties=None, force=False, disambig=None):
     """Generate static county and city boundary GeoJSON files (year-independent).
 
     Writes to data/county_boundaries.geojson and data/city_boundaries.geojson.
     Skips if files already exist unless force=True.
+    disambig: optional {place_fips: disambiguated_name} from _detect_name_collisions.
     """
     county_out = DATA_DIR / "county_boundaries.geojson"
     city_out   = DATA_DIR / "city_boundaries.geojson"
@@ -470,10 +543,10 @@ def generate_boundaries(places=None, counties=None, force=False):
         print("  Loading TIGER counties for boundaries...")
         counties = load_tiger_counties()
 
-    # ── County boundaries: filter to WFRC, simplify, export ──────────────────
-    wfrc_gdf = counties[counties["COUNTYFP_full"].isin(WFRC_COUNTIES)].copy()
-    wfrc_gdf["name"] = wfrc_gdf["COUNTYFP_full"].map(WFRC_COUNTIES)
-    county_gdf = wfrc_gdf[["name", "geometry"]].copy()
+    # ── County boundaries: all Utah counties, simplify, export ───────────────
+    ut_gdf = counties[counties["COUNTYFP_full"].isin(UTAH_COUNTIES)].copy()
+    ut_gdf["name"] = ut_gdf["COUNTYFP_full"].map(UTAH_COUNTIES)
+    county_gdf = ut_gdf[["name", "geometry"]].copy()
     # Simplify in projected CRS (200 m tolerance) then convert back
     county_gdf = county_gdf.to_crs(epsg=26912)
     county_gdf["geometry"] = county_gdf["geometry"].simplify(200, preserve_topology=True)
@@ -481,10 +554,16 @@ def generate_boundaries(places=None, counties=None, force=False):
     county_gdf.to_file(county_out, driver="GeoJSON")
     print(f"  Wrote {county_out.name} ({len(county_gdf)} county polygons)")
 
-    # ── City/place boundaries: filter to WFRC region, simplify, export ───────
-    wfrc_union = wfrc_gdf.geometry.union_all()
-    places_in = places[places.geometry.intersects(wfrc_union)].copy()
-    places_in["name"] = places_in["NAMELSAD"].apply(_clean_stplcname)
+    # ── City/place boundaries: all Utah places, simplify, export ─────────────
+    # TIGER places file is already Utah-only (tl_2024_49_place.zip)
+    places_in = places.copy()
+    if disambig:
+        places_in["name"] = places_in.apply(
+            lambda r: disambig.get(r["FULL_PLACEFP"]) or _clean_stplcname(r["NAMELSAD"]),
+            axis=1,
+        )
+    else:
+        places_in["name"] = places_in["NAMELSAD"].apply(_clean_stplcname)
     city_gdf = places_in[["name", "geometry"]].copy()
     city_gdf = city_gdf.to_crs(epsg=26912)
     city_gdf["geometry"] = city_gdf["geometry"].simplify(100, preserve_topology=True)
@@ -512,7 +591,7 @@ def update_manifest(year_int):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="WFRC Commute Patterns Data Pipeline")
+    parser = argparse.ArgumentParser(description="Utah Commute Patterns Data Pipeline")
     parser.add_argument(
         "--year", type=int, metavar="YYYY",
         help="LODES year to process (default: auto-detect latest available, 2002-2023)"
@@ -529,12 +608,14 @@ def main():
 
     if args.boundaries:
         print("=== Generating Boundary Files ===\n")
-        generate_boundaries(force=True)
+        xw = load_xwalk()
+        disambig = _detect_name_collisions(xw)
+        generate_boundaries(force=True, disambig=disambig)
         custom_places.export_for_app(DATA_DIR)
         print("\nDone!")
         return
 
-    print("=== WFRC Commute Patterns Data Pipeline ===\n")
+    print("=== Utah Commute Patterns Data Pipeline ===\n")
 
     # 1. Load OD data
     print("1. Loading LEHD OD data...")
@@ -550,9 +631,10 @@ def main():
     print("\n2. Loading LEHD crosswalk...")
     xw = load_xwalk()
 
-    # 4. Build block-level lookup
+    # 4. Build block-level lookup (compute name collision map once; reused by boundaries)
     print("\n3. Building block -> city/county lookup...")
-    lookup = build_lookup(xw)
+    disambig = _detect_name_collisions(xw)
+    lookup = build_lookup(xw, disambig)
     block_map = custom_places.get_custom_block_map(xw)
     lookup = custom_places.apply_custom_places(lookup, block_map)
     print(f"  Lookup entries: {len(lookup):,}")
@@ -562,9 +644,9 @@ def main():
     od = join_od_with_lookup(od, lookup)
     od = mark_out_of_state(od)
 
-    # 6. Filter to WFRC region
-    print("\n5. Filtering to WFRC 9-county region...")
-    od_wfrc = filter_wfrc(od)
+    # 6. Use all Utah rows (LODES files are already Utah-specific)
+    print("\n5. Using statewide Utah OD data...")
+    od_wfrc = filter_utah(od)
 
     # 7. Fill unincorporated areas
     print("\n6. Filling unincorporated area names...")
@@ -585,7 +667,7 @@ def main():
 
     # 10. Generate boundary GeoJSON files if needed (uses already-loaded TIGER data)
     print("\n9b. Generating boundary files (if needed)...")
-    generate_boundaries(places, counties)
+    generate_boundaries(places, counties, disambig=disambig)
     print("\n9c. Exporting custom place info for app display...")
     custom_places.export_for_app(DATA_DIR)
 
