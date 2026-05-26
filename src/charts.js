@@ -228,7 +228,7 @@ export function exportBarPng() {
   ctx.fillRect(0, 0, W, H);
 
   const max     = Math.max(...rows.flatMap(r => [r.out, r.in]));
-  const step    = max <= 6000 ? 2000 : max <= 12000 ? 4000 : 8000;
+  const step    = _niceStep(max);
   const axisMax = Math.ceil(max / step) * step || 1;
   const bw      = n => (n / axisMax) * SIDE_W;
 
@@ -702,6 +702,18 @@ function _tc(theme) {
   };
 }
 
+// Returns the smallest "nice" step so that ceil(max/step)*step gives a round axis ceiling.
+function _niceStep(max) {
+  if (max <= 0) return 1;
+  const raw  = max / 3;
+  const mag  = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  if (norm < 1.5) return mag;
+  if (norm < 3.5) return 2 * mag;
+  if (norm < 7.5) return 5 * mag;
+  return 10 * mag;
+}
+
 // ── 1. Commute Balance — hand-built diverging bar (design-spec HTML) ──────────
 
 function _renderBar(outflows, inflows, totalOut, totalIn, state) {
@@ -716,7 +728,7 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
   if (!rows.length) { rowsEl.innerHTML = ''; return; }
 
   const max     = Math.max(...rows.flatMap(r => [r.out, r.in]));
-  const step    = max <= 6000 ? 2000 : max <= 12000 ? 4000 : 8000;
+  const step    = _niceStep(max);
   const axisMax = Math.ceil(max / step) * step || 1;
   const bw      = n => ((n / axisMax) * 100).toFixed(2);
 
