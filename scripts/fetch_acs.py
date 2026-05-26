@@ -204,24 +204,134 @@ def _build_geo_data(year, geo_for, geo_in, fips_col, fips_prefix, filter_set=Non
     return out
 
 
-def fetch_acs_year(year: int, data_dir: Path, force: bool = False) -> None:
+def _build_district_data(year, xw):
+    """Aggregate tract-level ACS to house and senate districts via block-count weights.
+
+    Tracts do not nest cleanly within legislative districts (~40% split for house).
+    Each tract's ACS values are split proportionally by the number of crosswalk
+    blocks that fall in each (tract, district) intersection.
+
+    Returns:
+        house_data:  {house_fips: {"res": {...}, "wrk": None}}
+        senate_data: {senate_fips: {"res": {...}, "wrk": None}}
+    """
+    import pandas as pd
+
+    # ── Fetch tract-level residence data ──────────────────────────────────────
+    rh, rr = _fetch(year, RES_VARS, "tract:*", f"state:{STATE}")
+    if not rh or not rr:
+        return {}, {}
+
+    try:
+        state_i  = rh.index("state")
+        county_i = rh.index("county")
+        tract_i  = rh.index("tract")
+    except ValueError:
+        return {}, {}
+
+    # Build {tract_fips: parsed_row} where tract_fips = state+county+tract (11 chars)
+    tract_res = {}
+    for row in rr:
+        fips = row[state_i] + row[county_i] + row[tract_i]
+        trans = _parse_trans(row, rh, "B08301")
+        ttime = _parse_time(row, rh, "B08303")
+        if trans or ttime:
+            tract_res[fips] = {"trans": trans, "time": ttime}
+
+    if not tract_res:
+        return {}, {}
+
+    time.sleep(0.25)
+
+    # ── Build block-count weights: (tract_fips, dist_fips) -> block_count ─────
+    # crosswalk trct column is the full 11-char tract FIPS
+    xw_valid = xw[xw["trct"].notna() & xw["stsldl"].notna() & xw["stsldu"].notna()].copy()
+
+    # house: group by (tract, house_district)
+    house_weights = (
+        xw_valid.groupby(["trct", "stsldl"])["tabblk2020"]
+        .count()
+        .reset_index(name="blocks")
+    )
+    tract_totals_h = house_weights.groupby("trct")["blocks"].sum().rename("total")
+    house_weights = house_weights.join(tract_totals_h, on="trct")
+    house_weights["weight"] = house_weights["blocks"] / house_weights["total"]
+
+    # senate: group by (tract, senate_district)
+    senate_weights = (
+        xw_valid.groupby(["trct", "stsldu"])["tabblk2020"]
+        .count()
+        .reset_index(name="blocks")
+    )
+    tract_totals_s = senate_weights.groupby("trct")["blocks"].sum().rename("total")
+    senate_weights = senate_weights.join(tract_totals_s, on="trct")
+    senate_weights["weight"] = senate_weights["blocks"] / senate_weights["total"]
+
+    def _weighted_sum(weights_df, dist_col, tract_res):
+        """Aggregate tract ACS to districts using precomputed weights."""
+        dist_data = {}
+        for _, w_row in weights_df.iterrows():
+            tfips = w_row["trct"]
+            dfips = w_row[dist_col]
+            wt    = float(w_row["weight"])
+            if tfips not in tract_res:
+                continue
+            src = tract_res[tfips]
+            if dfips not in dist_data:
+                dist_data[dfips] = {"trans": {}, "time": {}}
+
+            # Accumulate transportation mode counts
+            if src["trans"]:
+                for k, v in src["trans"].items():
+                    if v is not None:
+                        dist_data[dfips]["trans"][k] = (
+                            dist_data[dfips]["trans"].get(k, 0) + round(v * wt)
+                        )
+            # Accumulate travel time counts
+            if src["time"]:
+                for k, v in src["time"].items():
+                    if v is not None:
+                        dist_data[dfips]["time"][k] = (
+                            dist_data[dfips]["time"].get(k, 0) + round(v * wt)
+                        )
+
+        # Wrap in res/wrk schema; drop districts with no usable data
+        out = {}
+        for dfips, d in dist_data.items():
+            trans = d["trans"] if d["trans"].get("total", 0) > 0 else None
+            ttime = d["time"]  if d["time"].get("total", 0)  > 0 else None
+            if trans or ttime:
+                out[dfips] = {"res": {"trans": trans, "time": ttime}, "wrk": None}
+        return out
+
+    house_data  = _weighted_sum(house_weights,  "stsldl", tract_res)
+    senate_data = _weighted_sum(senate_weights, "stsldu", tract_res)
+    return house_data, senate_data
+
+
+def fetch_acs_year(year: int, data_dir: Path, force: bool = False, xw=None) -> None:
     """Fetch and save ACS commute data for one year.
 
     Writes:
       data_dir/acs/{year}/acs_city.json
       data_dir/acs/{year}/acs_county.json
+      data_dir/acs/{year}/acs_house.json   (tract-aggregated to house districts)
+      data_dir/acs/{year}/acs_senate.json  (tract-aggregated to senate districts)
 
-    Skips if both files already exist (pass force=True to re-fetch).
+    Skips if all four files already exist (pass force=True to re-fetch).
+    xw: optional pre-loaded crosswalk DataFrame (avoids re-reading from disk).
     """
     if year < ACS_START_YEAR:
         print(f"  ACS data not available before {ACS_START_YEAR}, skipping {year}.")
         return
 
-    out_dir = data_dir / "acs" / str(year)
+    out_dir     = data_dir / "acs" / str(year)
     city_path   = out_dir / "acs_city.json"
     county_path = out_dir / "acs_county.json"
+    house_path  = out_dir / "acs_house.json"
+    senate_path = out_dir / "acs_senate.json"
 
-    if not force and city_path.exists() and county_path.exists():
+    if not force and all(p.exists() for p in [city_path, county_path, house_path, senate_path]):
         print(f"  {year}: ACS already cached, skipping.")
         return
 
@@ -242,6 +352,32 @@ def fetch_acs_year(year: int, data_dir: Path, force: bool = False) -> None:
     )
     county_path.write_text(json.dumps(county_data))
     print(f"    acs_county.json: {len(county_data)} counties")
+
+    time.sleep(0.5)
+
+    # District ACS: aggregate tract-level data using block-count weights
+    if xw is None:
+        import pandas as pd
+        cache_path = data_dir / "cache" / "ut_xwalk.csv.gz"
+        if cache_path.exists():
+            xw = pd.read_csv(
+                cache_path,
+                dtype={"tabblk2020": str, "trct": str, "stsldl": str, "stsldu": str},
+                usecols=["tabblk2020", "trct", "stsldl", "stsldu"],
+            )
+            xw["stsldl"] = xw["stsldl"].str.zfill(5)
+            xw["stsldu"] = xw["stsldu"].str.zfill(5)
+
+    if xw is not None:
+        house_data, senate_data = _build_district_data(year, xw)
+        house_path.write_text(json.dumps(house_data))
+        senate_path.write_text(json.dumps(senate_data))
+        print(f"    acs_house.json: {len(house_data)} house districts")
+        print(f"    acs_senate.json: {len(senate_data)} senate districts")
+    else:
+        house_path.write_text("{}")
+        senate_path.write_text("{}")
+        print("    District ACS skipped (crosswalk not available)")
 
 
 if __name__ == "__main__":

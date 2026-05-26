@@ -9,6 +9,7 @@ dependencies = [
     "geopandas>=0.14",
     "requests>=2.31",
     "shapely>=2.0",
+    "topojson>=1.10",
 ]
 
 [tool.uv]

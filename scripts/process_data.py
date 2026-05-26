@@ -6,6 +6,7 @@
 #   "geopandas>=0.14",
 #   "requests>=2.31",
 #   "shapely>=2.0",
+#   "topojson>=1.10",
 # ]
 # ///
 """
@@ -105,8 +106,10 @@ XWALK_URL = LODES_BASE + "/ut_xwalk.csv.gz"
 
 # ── Census TIGER 2024 URLs (Utah state FIPS = 49) ────────────────────────────
 TIGER_BASE = "https://www2.census.gov/geo/tiger/TIGER2024"
-PLACES_URL = f"{TIGER_BASE}/PLACE/tl_2024_49_place.zip"
+PLACES_URL   = f"{TIGER_BASE}/PLACE/tl_2024_49_place.zip"
 COUNTIES_URL = f"{TIGER_BASE}/COUNTY/tl_2024_us_county.zip"  # counties file is national
+SLDL_URL     = f"{TIGER_BASE}/SLDL/tl_2024_49_sldl.zip"    # state house districts
+SLDU_URL     = f"{TIGER_BASE}/SLDU/tl_2024_49_sldu.zip"    # state senate districts
 
 # ── LEHD OD columns to aggregate ─────────────────────────────────────────────
 AGG_COLS  = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
@@ -161,12 +164,17 @@ def load_xwalk():
     local = download_cached(XWALK_URL, "ut_xwalk.csv.gz")
     xw = pd.read_csv(
         local,
-        dtype={"tabblk2020": str, "stplc": str, "cty": str},
-        usecols=["tabblk2020", "stplc", "stplcname", "cty", "ctyname", "blklatdd", "blklondd"],
+        dtype={"tabblk2020": str, "stplc": str, "cty": str,
+               "stsldl": str, "stsldu": str, "trct": str},
+        usecols=["tabblk2020", "stplc", "stplcname", "cty", "ctyname",
+                 "stsldl", "stsldlname", "stsldu", "stslduname", "trct",
+                 "blklatdd", "blklondd"],
     )
     # County FIPS is 5 chars (state+county); place FIPS is 7 chars (state+place)
-    xw["cty"] = xw["cty"].str.zfill(5)
-    xw["stplc"] = xw["stplc"].str.zfill(7)
+    xw["cty"]    = xw["cty"].str.zfill(5)
+    xw["stplc"]  = xw["stplc"].str.zfill(7)
+    xw["stsldl"] = xw["stsldl"].str.zfill(5)
+    xw["stsldu"] = xw["stsldu"].str.zfill(5)
     print(f"  Crosswalk rows: {len(xw):,}")
     return xw
 
@@ -184,6 +192,14 @@ def _get_type_label(stplcname):
         if t in ("city", "town", "village", "borough", "township", "municipality"):
             return t.capitalize()
     return "City"
+
+
+def _clean_distname(s):
+    """'State House District 1, UT' -> 'House District 1'
+       'State Senate District 28, UT' -> 'Senate District 28'"""
+    if not pd.notna(s) or not s:
+        return s
+    return s.split(",")[0].strip().replace("State ", "", 1)
 
 
 def _detect_name_collisions(xw):
@@ -222,11 +238,17 @@ def build_lookup(xw, disambig=None):
         # Use canonical Utah county name if available, otherwise fall back to raw xwalk ctyname
         raw_county = row.ctyname if pd.notna(row.ctyname) else None
         county = UTAH_COUNTIES.get(row.cty, raw_county)
+        house  = _clean_distname(row.stsldlname) if pd.notna(row.stsldlname) else None
+        senate = _clean_distname(row.stslduname) if pd.notna(row.stslduname) else None
         lookup[row.tabblk2020] = {
-            "city_name": city,
-            "county_name": county,
-            "county_fips": row.cty,
-            "place_fips": row.stplc,
+            "city_name":    city,
+            "county_name":  county,
+            "county_fips":  row.cty,
+            "place_fips":   row.stplc,
+            "house_name":   house,
+            "house_fips":   row.stsldl if pd.notna(row.stsldl) else None,
+            "senate_name":  senate,
+            "senate_fips":  row.stsldu if pd.notna(row.stsldu) else None,
             "lat": float(row.blklatdd) if pd.notna(row.blklatdd) else None,
             "lon": float(row.blklondd) if pd.notna(row.blklondd) else None,
         }
@@ -249,6 +271,11 @@ def join_od_with_lookup(od, lookup):
     od["w_blk_lat"]  = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("lat"))
     od["w_blk_lon"]  = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("lon"))
 
+    od["h_house"]    = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("house_name"))
+    od["w_house"]    = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("house_name"))
+    od["h_senate"]   = od["h_geocode"].map(lambda g: lookup.get(g, {}).get("senate_name"))
+    od["w_senate"]   = od["w_geocode"].map(lambda g: lookup.get(g, {}).get("senate_name"))
+
     return od
 
 
@@ -266,6 +293,8 @@ def mark_out_of_state(od):
         od.loc[oos_home, "h_city"]   = "Out of State"
         od.loc[oos_home, "h_county"] = "Out of State"
         od.loc[oos_home, "h_cty"]    = "00000"
+        od.loc[oos_home, "h_house"]  = "Out of State"
+        od.loc[oos_home, "h_senate"] = "Out of State"
         print(f"  Out-of-state home records: {nh:,}")
 
     oos_work = ~od["w_geocode"].str.startswith("49")
@@ -274,6 +303,8 @@ def mark_out_of_state(od):
         od.loc[oos_work, "w_city"]   = "Out of State"
         od.loc[oos_work, "w_county"] = "Out of State"
         od.loc[oos_work, "w_cty"]    = "00000"
+        od.loc[oos_work, "w_house"]  = "Out of State"
+        od.loc[oos_work, "w_senate"] = "Out of State"
         print(f"  Out-of-state work records: {nw:,}")
 
     return od
@@ -362,6 +393,33 @@ def aggregate_county_flows(od):
     return grouped
 
 
+def aggregate_district_flows(od):
+    """Aggregate OD flows by all geographic levels (house, senate, city, county).
+
+    A single parquet supports every cross-level district query:
+    house↔house, house↔senate, senate↔senate, house↔city, house↔county,
+    senate↔city, senate↔county, and the city/county↔district reverses.
+    Rows with null district assignments (rare) are kept via dropna=False.
+    """
+    cols = AGG_COLS + BAND_COLS
+    grouped = (
+        od.groupby(
+            ["h_house", "w_house", "h_senate", "w_senate",
+             "h_city",  "w_city",  "h_county", "w_county"],
+            dropna=False,
+        )[cols]
+        .sum()
+        .reset_index()
+    )
+    grouped.columns = [
+        "home_house", "work_house", "home_senate", "work_senate",
+        "home_name",  "work_name",  "home_county", "work_county",
+    ] + cols
+    grouped = grouped[grouped["S000"] > 0]
+    print(f"  District flow pairs: {len(grouped):,}")
+    return grouped
+
+
 def load_tiger_places():
     local = download_cached(PLACES_URL, "tl_2024_49_place.zip")
     places = gpd.read_file(local)
@@ -409,6 +467,55 @@ CENTROID_OVERRIDES = {
     # center is ~15 mi east of the TIGER internal point.
     "Hooper": (41.178632, -112.142319),
 }
+
+
+def load_tiger_sldl():
+    """Download (cached) Utah State House (Lower) district TIGER shapefile."""
+    local = download_cached(SLDL_URL, "tl_2024_49_sldl.zip")
+    sldl = gpd.read_file(local).to_crs(epsg=4326)
+    sldl["lat"] = sldl["INTPTLAT"].astype(float)
+    sldl["lon"] = sldl["INTPTLON"].astype(float)
+    # 5-char FIPS = state(2) + district(3), matches crosswalk stsldl after zfill(5)
+    sldl["FULL_SLDLFP"] = sldl["STATEFP"] + sldl["SLDLST"].str.zfill(3)
+    return sldl
+
+
+def load_tiger_sldu():
+    """Download (cached) Utah State Senate (Upper) district TIGER shapefile."""
+    local = download_cached(SLDU_URL, "tl_2024_49_sldu.zip")
+    sldu = gpd.read_file(local).to_crs(epsg=4326)
+    sldu["lat"] = sldu["INTPTLAT"].astype(float)
+    sldu["lon"] = sldu["INTPTLON"].astype(float)
+    sldu["FULL_SLDUFP"] = sldu["STATEFP"] + sldu["SLDUST"].str.zfill(3)
+    return sldu
+
+
+def build_house_meta(sldl):
+    """Build metadata list for all 75 Utah House districts from TIGER SLDL."""
+    meta = []
+    for _, row in sldl.iterrows():
+        name = _clean_distname(row["NAMELSAD"])
+        meta.append({
+            "name":       name,
+            "house_fips": row["FULL_SLDLFP"],
+            "lat":        float(row["lat"]),
+            "lon":        float(row["lon"]),
+        })
+    return sorted(meta, key=lambda x: x["name"])
+
+
+def build_senate_meta(sldu):
+    """Build metadata list for all 29 Utah Senate districts from TIGER SLDU."""
+    meta = []
+    for _, row in sldu.iterrows():
+        name = _clean_distname(row["NAMELSAD"])
+        meta.append({
+            "name":        name,
+            "senate_fips": row["FULL_SLDUFP"],
+            "lat":         float(row["lat"]),
+            "lon":         float(row["lon"]),
+        })
+    return sorted(meta, key=lambda x: x["name"])
 
 
 def build_city_meta(city_flows, xw, places):
@@ -522,17 +629,39 @@ def export_parquet(df, path, int_cols):
     print(f"  Wrote {path.name} ({len(df):,} rows, {size_kb:.1f} KB)")
 
 
-def generate_boundaries(places=None, counties=None, force=False, disambig=None):
-    """Generate static county and city boundary GeoJSON files (year-independent).
+def _topo_simplify(gdf, tolerance):
+    """Topology-preserving simplification via the topojson library.
 
-    Writes to data/county_boundaries.geojson and data/city_boundaries.geojson.
-    Skips if files already exist unless force=True.
+    Unlike geopandas .simplify() (which simplifies each polygon independently),
+    this method encodes shared boundaries once and simplifies them consistently,
+    so adjacent polygons never develop gaps after simplification.
+
+    gdf must already be in a projected CRS; tolerance is in those units (metres).
+    Returns a new GeoDataFrame with the same columns and CRS.
+    """
+    import topojson
+    topo = topojson.Topology(gdf, prequantize=False)
+    simplified = topo.toposimplify(tolerance).to_gdf()
+    # toposimplify returns a GeoDataFrame; restore index and column order
+    simplified = simplified.set_index(gdf.index)
+    simplified.crs = gdf.crs
+    return simplified[gdf.columns]
+
+
+def generate_boundaries(places=None, counties=None, sldl=None, sldu=None,
+                        force=False, disambig=None):
+    """Generate static boundary GeoJSON files for county, city, house, and senate districts.
+
+    Writes to data/{county,city,house,senate}_boundaries.geojson.
+    Skips if all four files already exist unless force=True.
     disambig: optional {place_fips: disambiguated_name} from _detect_name_collisions.
     """
     county_out = DATA_DIR / "county_boundaries.geojson"
     city_out   = DATA_DIR / "city_boundaries.geojson"
+    house_out  = DATA_DIR / "house_boundaries.geojson"
+    senate_out = DATA_DIR / "senate_boundaries.geojson"
 
-    if not force and county_out.exists() and city_out.exists():
+    if not force and all(p.exists() for p in [county_out, city_out, house_out, senate_out]):
         print("  Boundary files already exist, skipping.")
         return
 
@@ -542,20 +671,24 @@ def generate_boundaries(places=None, counties=None, force=False, disambig=None):
     if counties is None:
         print("  Loading TIGER counties for boundaries...")
         counties = load_tiger_counties()
+    if sldl is None:
+        print("  Loading TIGER SLDL for boundaries...")
+        sldl = load_tiger_sldl()
+    if sldu is None:
+        print("  Loading TIGER SLDU for boundaries...")
+        sldu = load_tiger_sldu()
 
-    # ── County boundaries: all Utah counties, simplify, export ───────────────
+    # ── County boundaries ─────────────────────────────────────────────────────
     ut_gdf = counties[counties["COUNTYFP_full"].isin(UTAH_COUNTIES)].copy()
     ut_gdf["name"] = ut_gdf["COUNTYFP_full"].map(UTAH_COUNTIES)
     county_gdf = ut_gdf[["name", "geometry"]].copy()
-    # Simplify in projected CRS (200 m tolerance) then convert back
     county_gdf = county_gdf.to_crs(epsg=26912)
-    county_gdf["geometry"] = county_gdf["geometry"].simplify(200, preserve_topology=True)
+    county_gdf = _topo_simplify(county_gdf, tolerance=150)
     county_gdf = county_gdf.to_crs(epsg=4326)
     county_gdf.to_file(county_out, driver="GeoJSON")
     print(f"  Wrote {county_out.name} ({len(county_gdf)} county polygons)")
 
-    # ── City/place boundaries: all Utah places, simplify, export ─────────────
-    # TIGER places file is already Utah-only (tl_2024_49_place.zip)
+    # ── City/place boundaries ─────────────────────────────────────────────────
     places_in = places.copy()
     if disambig:
         places_in["name"] = places_in.apply(
@@ -566,11 +699,31 @@ def generate_boundaries(places=None, counties=None, force=False, disambig=None):
         places_in["name"] = places_in["NAMELSAD"].apply(_clean_stplcname)
     city_gdf = places_in[["name", "geometry"]].copy()
     city_gdf = city_gdf.to_crs(epsg=26912)
-    city_gdf["geometry"] = city_gdf["geometry"].simplify(100, preserve_topology=True)
+    city_gdf = _topo_simplify(city_gdf, tolerance=80)
     city_gdf = custom_places.append_custom_boundaries(city_gdf)
     city_gdf = city_gdf.to_crs(epsg=4326)
     city_gdf.to_file(city_out, driver="GeoJSON")
     print(f"  Wrote {city_out.name} ({len(city_gdf)} city polygons)")
+
+    # ── House district boundaries ─────────────────────────────────────────────
+    # Use topology-preserving simplification so shared edges between adjacent
+    # districts are simplified identically, preventing gaps/holes.
+    house_gdf = sldl[["NAMELSAD", "geometry"]].copy()
+    house_gdf["name"] = house_gdf["NAMELSAD"].apply(_clean_distname)
+    house_gdf = house_gdf[["name", "geometry"]].to_crs(epsg=26912)
+    house_gdf = _topo_simplify(house_gdf, tolerance=150)
+    house_gdf = house_gdf.to_crs(epsg=4326)
+    house_gdf.to_file(house_out, driver="GeoJSON")
+    print(f"  Wrote {house_out.name} ({len(house_gdf)} house district polygons)")
+
+    # ── Senate district boundaries ────────────────────────────────────────────
+    senate_gdf = sldu[["NAMELSAD", "geometry"]].copy()
+    senate_gdf["name"] = senate_gdf["NAMELSAD"].apply(_clean_distname)
+    senate_gdf = senate_gdf[["name", "geometry"]].to_crs(epsg=26912)
+    senate_gdf = _topo_simplify(senate_gdf, tolerance=150)
+    senate_gdf = senate_gdf.to_crs(epsg=4326)
+    senate_gdf.to_file(senate_out, driver="GeoJSON")
+    print(f"  Wrote {senate_out.name} ({len(senate_gdf)} senate district polygons)")
 
 
 def update_manifest(year_int):
@@ -610,7 +763,9 @@ def main():
         print("=== Generating Boundary Files ===\n")
         xw = load_xwalk()
         disambig = _detect_name_collisions(xw)
-        generate_boundaries(force=True, disambig=disambig)
+        sldl = load_tiger_sldl()
+        sldu = load_tiger_sldu()
+        generate_boundaries(sldl=sldl, sldu=sldu, force=True, disambig=disambig)
         custom_places.export_for_app(DATA_DIR)
         print("\nDone!")
         return
@@ -657,32 +812,40 @@ def main():
     od_wfrc = add_distance_bands(od_wfrc)
 
     print("\n8. Aggregating flows...")
-    city_flows = aggregate_city_flows(od_wfrc)
-    county_flows = aggregate_county_flows(od_wfrc)
+    city_flows    = aggregate_city_flows(od_wfrc)
+    county_flows  = aggregate_county_flows(od_wfrc)
+    district_flows = aggregate_district_flows(od_wfrc)
 
     # 9. Load TIGER shapefiles
-    print("\n8. Loading TIGER shapefiles for centroids...")
-    places = load_tiger_places()
+    print("\n9. Loading TIGER shapefiles for centroids and boundaries...")
+    places   = load_tiger_places()
     counties = load_tiger_counties()
+    sldl     = load_tiger_sldl()
+    sldu     = load_tiger_sldu()
 
     # 10. Generate boundary GeoJSON files if needed (uses already-loaded TIGER data)
-    print("\n9b. Generating boundary files (if needed)...")
-    generate_boundaries(places, counties, disambig=disambig)
-    print("\n9c. Exporting custom place info for app display...")
+    print("\n10. Generating boundary files (if needed)...")
+    generate_boundaries(places, counties, sldl, sldu, disambig=disambig)
+    print("\n10b. Exporting custom place info for app display...")
     custom_places.export_for_app(DATA_DIR)
 
     # 11. Build metadata
-    print("\n10. Building city and county metadata...")
-    city_meta = build_city_meta(city_flows, xw, places)
-    city_meta = custom_places.inject_custom_meta(city_meta)
+    print("\n11. Building metadata...")
+    city_meta   = build_city_meta(city_flows, xw, places)
+    city_meta   = custom_places.inject_custom_meta(city_meta)
     county_meta = build_county_meta(counties)
+    house_meta  = build_house_meta(sldl)
+    senate_meta = build_senate_meta(sldu)
     print(f"  City metadata entries: {len(city_meta)}")
     print(f"  County metadata entries: {len(county_meta)}")
+    print(f"  House district entries: {len(house_meta)}")
+    print(f"  Senate district entries: {len(senate_meta)}")
 
     # 12. Export Parquet files
-    print("\n11. Exporting data files...")
-    export_parquet(city_flows, year_dir / "city_flows.parquet", AGG_COLS + BAND_COLS)
-    export_parquet(county_flows, year_dir / "county_flows.parquet", AGG_COLS + BAND_COLS)
+    print("\n12. Exporting data files...")
+    export_parquet(city_flows,     year_dir / "city_flows.parquet",     AGG_COLS + BAND_COLS)
+    export_parquet(county_flows,   year_dir / "county_flows.parquet",   AGG_COLS + BAND_COLS)
+    export_parquet(district_flows, year_dir / "district_flows.parquet", AGG_COLS + BAND_COLS)
 
     # 13. Export JSON metadata
     with open(year_dir / "city_meta.json", "w") as f:
@@ -693,16 +856,24 @@ def main():
         json.dump(county_meta, f, indent=2)
     print(f"  Wrote county_meta.json ({len(county_meta)} entries)")
 
+    with open(year_dir / "house_meta.json", "w") as f:
+        json.dump(house_meta, f, indent=2)
+    print(f"  Wrote house_meta.json ({len(house_meta)} entries)")
+
+    with open(year_dir / "senate_meta.json", "w") as f:
+        json.dump(senate_meta, f, indent=2)
+    print(f"  Wrote senate_meta.json ({len(senate_meta)} entries)")
+
     # 14. Update manifest
-    print("\n12. Updating manifest...")
+    print("\n13. Updating manifest...")
     update_manifest(int(year))
 
     # 15. Fetch ACS commute data
     if not args.skip_acs:
-        print("\n13. Fetching ACS commute data...")
-        fetch_acs.fetch_acs_year(int(year), DATA_DIR)
+        print("\n14. Fetching ACS commute data...")
+        fetch_acs.fetch_acs_year(int(year), DATA_DIR, xw=xw)
     else:
-        print("\n13. ACS fetch skipped (--skip-acs).")
+        print("\n14. ACS fetch skipped (--skip-acs).")
 
     print(f"\n=== Done! Data year: {year}. Files in {year_dir} ===")
 

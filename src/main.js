@@ -21,10 +21,14 @@ const state = {
 
 let cityMeta   = {};
 let countyMeta = {};
+let houseMeta  = {};
+let senateMeta = {};
 
-// ACS commute data: keyed by FIPS (7-digit for places, 5-digit for counties)
+// ACS commute data: keyed by FIPS (7-digit for places, 5-digit for counties/districts)
 let _acsCity   = {};
 let _acsCounty = {};
+let _acsHouse  = {};
+let _acsSenate = {};
 
 // Cached results for re-rendering without re-querying
 let _lastOutflows  = [];
@@ -44,6 +48,11 @@ let _lastFlewAggregation = null;
 
 // Available years — stored at module level so scrubber can update on year change
 let _availableYears = [];
+
+// ── Meta helpers ─────────────────────────────────────────────────────────────
+function _getMetaFor(type) {
+  return { city: cityMeta, county: countyMeta, house: houseMeta, senate: senateMeta }[type] ?? cityMeta;
+}
 
 // ── Haversine helper ──────────────────────────────────────────────────────────
 function _haversineMiles(lat1, lon1, lat2, lon2) {
@@ -75,9 +84,11 @@ async function _loadAcs(base, year) {
       return JSON.parse(text);
     } catch { return {}; }
   };
-  [_acsCity, _acsCounty] = await Promise.all([
+  [_acsCity, _acsCounty, _acsHouse, _acsSenate] = await Promise.all([
     load(`${base}data/acs/${year}/acs_city.json`),
     load(`${base}data/acs/${year}/acs_county.json`),
+    load(`${base}data/acs/${year}/acs_house.json`),
+    load(`${base}data/acs/${year}/acs_senate.json`),
   ]);
 }
 
@@ -98,13 +109,17 @@ async function main() {
   state.year = urlYear;
 
   // 3. Load year-specific metadata + ACS data
-  const [cityMetaArr, countyMetaArr] = await Promise.all([
+  const [cityMetaArr, countyMetaArr, houseMetaArr, senateMetaArr] = await Promise.all([
     fetch(`${base}data/lehd/${state.year}/city_meta.json`).then(r => r.json()),
     fetch(`${base}data/lehd/${state.year}/county_meta.json`).then(r => r.json()),
+    fetch(`${base}data/lehd/${state.year}/house_meta.json`).then(r => r.json()),
+    fetch(`${base}data/lehd/${state.year}/senate_meta.json`).then(r => r.json()),
     _loadAcs(base, state.year),
   ]);
   cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
   countyMeta = Object.fromEntries(countyMetaArr.map(d => [d.name, d]));
+  houseMeta  = Object.fromEntries(houseMetaArr.map(d => [d.name, d]));
+  senateMeta = Object.fromEntries(senateMetaArr.map(d => [d.name, d]));
 
   setProgress(15);
 
@@ -143,14 +158,18 @@ async function main() {
   setProgress(88);
 
   // 7. Apply URL params (area/dir/agg) now that metadata is available
-  _applyUrlParams(cityMeta, countyMeta);
+  _applyUrlParams();
 
   // 8. Build sidebar
   const cityNames   = cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort();
   const countyNames = countyMetaArr.map(d => d.name).sort();
+  const houseNames  = houseMetaArr.map(d => d.name).sort();
+  const senateNames = senateMetaArr.map(d => d.name).sort();
 
   initSidebar({
-    cityNames, countyNames, cityMeta, state,
+    cityNames, countyNames, houseNames, senateNames,
+    cityMeta, houseMeta, senateMeta,
+    state,
     onSelectionChange: () => refreshVisualization(),
     onAreaFly: () => {},
   });
@@ -405,13 +424,17 @@ async function _changeYear(newYear, base) {
   try {
     setProgress(5);
 
-    const [cityMetaArr, countyMetaArr] = await Promise.all([
+    const [cityMetaArr, countyMetaArr, houseMetaArr, senateMetaArr] = await Promise.all([
       fetch(`${base}data/lehd/${newYear}/city_meta.json`).then(r => r.json()),
       fetch(`${base}data/lehd/${newYear}/county_meta.json`).then(r => r.json()),
+      fetch(`${base}data/lehd/${newYear}/house_meta.json`).then(r => r.json()),
+      fetch(`${base}data/lehd/${newYear}/senate_meta.json`).then(r => r.json()),
       _loadAcs(base, newYear),
     ]);
     cityMeta   = Object.fromEntries(cityMetaArr.map(d => [d.name, d]));
     countyMeta = Object.fromEntries(countyMetaArr.map(d => [d.name, d]));
+    houseMeta  = Object.fromEntries(houseMetaArr.map(d => [d.name, d]));
+    senateMeta = Object.fromEntries(senateMetaArr.map(d => [d.name, d]));
 
     setProgress(20);
     await reloadYear(newYear, pct => setProgress(20 + pct * 0.6));
@@ -420,8 +443,7 @@ async function _changeYear(newYear, base) {
     state.year = newYear;
     _updateScrubber(newYear, _availableYears);
 
-    const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
-    if (!srcMeta[state.selectedArea]) {
+    if (!_getMetaFor(state.selectedAreaType)[state.selectedArea]) {
       state.selectedArea     = 'Salt Lake City';
       state.selectedAreaType = 'city';
     }
@@ -429,7 +451,9 @@ async function _changeYear(newYear, base) {
     initSidebar({
       cityNames:   cityMetaArr.map(d => d.name).filter(n => !n.toLowerCase().includes('unincorporated')).sort(),
       countyNames: countyMetaArr.map(d => d.name).sort(),
-      cityMeta,
+      houseNames:  houseMetaArr.map(d => d.name).sort(),
+      senateNames: senateMetaArr.map(d => d.name).sort(),
+      cityMeta, houseMeta, senateMeta,
       state,
       onSelectionChange: () => refreshVisualization(),
       onAreaFly: () => {},
@@ -454,7 +478,7 @@ async function refreshVisualization() {
   state.loading = true;
 
   try {
-    const isCountyArea = state.selectedAreaType === 'county';
+    const isNonCitySubject = state.selectedAreaType !== 'city';
 
     const [outflows, inflows, totalOut, totalIn, selfCount, reachRawOut, reachRawIn] = await Promise.all([
       queryFlows(state.selectedArea, state.selectedAreaType, 'outflow', state.aggregation),
@@ -462,12 +486,12 @@ async function refreshVisualization() {
       queryTotal(state.selectedArea, state.selectedAreaType, 'outflow'),
       queryTotal(state.selectedArea, state.selectedAreaType, 'inflow'),
       querySelfFlow(state.selectedArea, state.selectedAreaType),
-      isCountyArea ? queryReachFlows(state.selectedArea, 'outflow') : Promise.resolve(null),
-      isCountyArea ? queryReachFlows(state.selectedArea, 'inflow')  : Promise.resolve(null),
+      isNonCitySubject ? queryReachFlows(state.selectedArea, state.selectedAreaType, 'outflow') : Promise.resolve(null),
+      isNonCitySubject ? queryReachFlows(state.selectedArea, state.selectedAreaType, 'inflow')  : Promise.resolve(null),
     ]);
 
-    const srcMeta = state.selectedAreaType === 'city' ? cityMeta : countyMeta;
-    const dstMeta = state.aggregation       === 'city' ? cityMeta : countyMeta;
+    const srcMeta = _getMetaFor(state.selectedAreaType);
+    const dstMeta = _getMetaFor(state.aggregation);
     const src = srcMeta[state.selectedArea];
 
     const enrichedOut = outflows
@@ -492,13 +516,13 @@ async function refreshVisualization() {
     _lastTotalIn   = totalIn;
     _lastSelfCount = selfCount;
 
-    // Reach chart: use city-level pairs for county selections so distances are
-    // measured between city centroids rather than a single county centroid.
-    // Fallback to county centroid for unincorporated areas missing a city entry.
-    if (isCountyArea && reachRawOut) {
+    // Reach chart: use city-level pairs for non-city subjects so distances are
+    // measured between city centroids rather than a single area centroid.
+    // Fallback to county or subject-area centroid for unincorporated areas.
+    if (isNonCitySubject && reachRawOut) {
       const enrichReach = flows => flows.map(f => {
-        const hm = cityMeta[f.home_name] ?? countyMeta[f.home_county];
-        const wm = cityMeta[f.work_name] ?? countyMeta[f.work_county];
+        const hm = cityMeta[f.home_name] ?? countyMeta[f.home_county] ?? _getMetaFor(state.selectedAreaType)[f.home_name];
+        const wm = cityMeta[f.work_name] ?? countyMeta[f.work_county] ?? _getMetaFor(state.aggregation)[f.work_name];
         return { ...f, home_lat: hm?.lat, home_lon: hm?.lon, work_lat: wm?.lat, work_lon: wm?.lon };
       }).filter(f => f.home_lat != null && f.work_lat != null);
       _lastReachOut = enrichReach(reachRawOut);
@@ -554,15 +578,21 @@ function _applyFilter() {
   if (state.selectedAreaType === 'city') {
     const fips = cityMeta[state.selectedArea]?.place_fips;
     if (fips) acsEntry = _acsCity[fips] ?? null;
-  } else {
+  } else if (state.selectedAreaType === 'county') {
     const fips = countyMeta[state.selectedArea]?.county_fips;
     if (fips) acsEntry = _acsCounty[fips] ?? null;
+  } else if (state.selectedAreaType === 'house') {
+    const fips = houseMeta[state.selectedArea]?.house_fips;
+    if (fips) acsEntry = _acsHouse[fips] ?? null;
+  } else if (state.selectedAreaType === 'senate') {
+    const fips = senateMeta[state.selectedArea]?.senate_fips;
+    if (fips) acsEntry = _acsSenate[fips] ?? null;
   }
 
   updateLayers(filtered, state, arcClickHandler, total);
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
   updateCharts(_lastOutflows, _lastInflows, netOut, netIn, _lastSelfCount, state, acsEntry, _lastReachOut, _lastReachIn);
-  updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
+  updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction, state.selectedAreaType);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
   _updateLegend(filtered, state.direction, state.theme);
@@ -653,13 +683,13 @@ function _getUrlYear(availableYears, defaultYear) {
   return (urlYear && availableYears.includes(urlYear)) ? urlYear : defaultYear;
 }
 
-function _applyUrlParams(cm, ctm) {
+function _applyUrlParams() {
   const p = new URLSearchParams(window.location.search);
   const agg = p.get('agg');
-  if (agg === 'city' || agg === 'county') state.aggregation = agg;
+  if (['city', 'county', 'house', 'senate'].includes(agg)) state.aggregation = agg;
   const area = p.get('area');
   if (area) {
-    const meta = state.aggregation === 'county' ? ctm : cm;
+    const meta = _getMetaFor(state.aggregation);
     if (meta[area]) {
       state.selectedArea     = area;
       state.selectedAreaType = state.aggregation;

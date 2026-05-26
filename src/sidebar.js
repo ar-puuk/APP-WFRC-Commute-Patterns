@@ -10,7 +10,7 @@ export function setInfoOnlyPlaces(features) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelectionChange, onAreaFly }) {
+export function initSidebar({ cityNames, countyNames, houseNames, senateNames, cityMeta, houseMeta, senateMeta, state, onSelectionChange, onAreaFly }) {
   _state             = state;
   _onSelectionChange = onSelectionChange;
   _onAreaFly         = onAreaFly;
@@ -19,6 +19,17 @@ export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelecti
   if (!panel) return;
 
   panel.innerHTML = `
+    <!-- AREA TYPE -->
+    <div class="rail-section tight">
+      <div class="eyebrow">Subject Area Type</div>
+      <div class="type-strip" id="areatype-toggle" role="group" aria-label="Subject area type">
+        <button data-value="city"   class="${state.selectedAreaType === 'city'   ? 'active' : ''}">City</button>
+        <button data-value="county" class="${state.selectedAreaType === 'county' ? 'active' : ''}">County</button>
+        <button data-value="house"  class="${state.selectedAreaType === 'house'  ? 'active' : ''}">Utah House</button>
+        <button data-value="senate" class="${state.selectedAreaType === 'senate' ? 'active' : ''}">Utah Senate</button>
+      </div>
+    </div>
+
     <!-- SUBJECT -->
     <div class="rail-section tight">
       <div class="eyebrow">Subject Area</div>
@@ -27,7 +38,7 @@ export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelecti
           id="area-search"
           class="search-input"
           type="text"
-          placeholder="Search city or county&hellip;"
+          placeholder="${_searchPlaceholder(state.selectedAreaType)}"
           autocomplete="off"
           spellcheck="false"
           aria-label="Select area"
@@ -68,9 +79,11 @@ export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelecti
     <!-- AGGREGATION -->
     <div class="rail-section tight">
       <div class="eyebrow">Map Zones</div>
-      <div class="seg" id="aggregation-toggle" role="group" aria-label="Aggregation level">
-        <button data-value="city" class="${state.aggregation === 'city' ? 'active' : ''}">City</button>
+      <div class="type-strip" id="aggregation-toggle" role="group" aria-label="Aggregation level">
+        <button data-value="city"   class="${state.aggregation === 'city'   ? 'active' : ''}">City</button>
         <button data-value="county" class="${state.aggregation === 'county' ? 'active' : ''}">County</button>
+        <button data-value="house"  class="${state.aggregation === 'house'  ? 'active' : ''}">Utah House</button>
+        <button data-value="senate" class="${state.aggregation === 'senate' ? 'active' : ''}">Utah Senate</button>
       </div>
     </div>
 
@@ -118,6 +131,31 @@ export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelecti
   // Reflect direction on body so map toolbar + slider can pick up the accent color
   document.body.dataset.direction = _state.direction;
 
+  // Wire area type toggle
+  document.getElementById('areatype-toggle').addEventListener('click', e => {
+    const btn = e.target.closest('[data-value]');
+    if (!btn) return;
+    const newType = btn.dataset.value;
+    if (newType === _state.selectedAreaType) return;
+
+    _state.selectedAreaType = newType;
+    _setActiveToggle('areatype-toggle', newType);
+
+    const input = document.getElementById('area-search');
+    if (input) input.placeholder = _searchPlaceholder(newType);
+
+    // Reset selected area if it doesn't exist in the new type's list
+    const names = { cityNames, countyNames, houseNames, senateNames };
+    const currentAreas = _getAreaList(newType, names, cityMeta);
+    const existing = currentAreas.find(a => a.label === _state.selectedArea);
+    if (!existing && currentAreas.length) {
+      _state.selectedArea = currentAreas[0].label;
+      if (input) input.value = currentAreas[0].label;
+    }
+
+    _onSelectionChange();
+  });
+
   // Wire direction toggle
   document.getElementById('direction-toggle').addEventListener('click', e => {
     const btn = e.target.closest('[data-value]');
@@ -154,7 +192,7 @@ export function initSidebar({ cityNames, countyNames, cityMeta, state, onSelecti
   });
 
   // Wire search dropdown
-  _initDropdown(cityNames, countyNames, cityMeta);
+  _initDropdown({ cityNames, countyNames, houseNames, senateNames }, cityMeta);
 
   // Credits modal
   _initCreditsModal();
@@ -294,7 +332,18 @@ function _haversineMiles(lat1, lon1, lat2, lon2) {
 }
 
 function _aggregationLabel(agg) {
-  return agg === 'county' ? 'County' : 'City';
+  const labels = { city: 'City', county: 'County', house: 'Utah House District', senate: 'Utah Senate District' };
+  return labels[agg] ?? 'City';
+}
+
+function _searchPlaceholder(type) {
+  const ph = {
+    city:   'Search cities…',
+    county: 'Search counties…',
+    house:  'Search house districts…',
+    senate: 'Search senate districts…',
+  };
+  return ph[type] ?? ph.city;
 }
 
 function _escHtml(str) {
@@ -313,6 +362,16 @@ function _updateSearchContext() {
 }
 
 /**
+ * Return the item list for a given area type.
+ */
+function _getAreaList(type, names, cityMeta) {
+  if (type === 'county') return names.countyNames.map(n => ({ label: n, type: 'county' }));
+  if (type === 'house')  return names.houseNames.map(n => ({ label: n, type: 'house' }));
+  if (type === 'senate') return names.senateNames.map(n => ({ label: n, type: 'senate' }));
+  return names.cityNames.map(n => ({ label: n, type: cityMeta?.[n]?.place_type ?? 'city' }));
+}
+
+/**
  * Set active state on a toggle group. Supports both:
  *   - .seg button[data-value]  (new segmented controls)
  *   - .toggle-btn[data-value]  (backward-compat class)
@@ -325,17 +384,16 @@ function _setActiveToggle(groupId, value) {
   });
 }
 
-function _initDropdown(cityNames, countyNames, cityMeta) {
+function _initDropdown(names, cityMeta) {
   const input    = document.getElementById('area-search');
   const dropdown = document.getElementById('area-dropdown');
   if (!input || !dropdown) return;
 
-  const allAreas = [
-    ...countyNames.map(n => ({ label: n, type: 'county' })),
-    ...cityNames.map(n => ({ label: n, type: cityMeta?.[n]?.place_type ?? 'city' })),
-  ];
-
   let activeIdx = -1;
+
+  function getCurrentAreas() {
+    return _getAreaList(_state.selectedAreaType, names, cityMeta);
+  }
 
   function show(items) {
     if (!items.length) { hide(); return; }
@@ -362,6 +420,10 @@ function _initDropdown(cityNames, countyNames, cityMeta) {
     _state.selectedArea     = label;
     _state.selectedAreaType = effectiveType;
     input.value = label;
+
+    // Sync area type toggle
+    _setActiveToggle('areatype-toggle', effectiveType);
+
     if (effectiveType !== _state.aggregation) {
       _state.aggregation = effectiveType;
       _setActiveToggle('aggregation-toggle', effectiveType);
@@ -374,12 +436,14 @@ function _initDropdown(cityNames, countyNames, cityMeta) {
 
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
-    show(q ? allAreas.filter(a => a.label.toLowerCase().includes(q)) : allAreas.slice(0, 30));
+    const areas = getCurrentAreas();
+    show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas.slice(0, 30));
   });
 
   input.addEventListener('focus', () => {
     const q = input.value.trim().toLowerCase();
-    show(q ? allAreas.filter(a => a.label.toLowerCase().includes(q)) : allAreas.slice(0, 30));
+    const areas = getCurrentAreas();
+    show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas.slice(0, 30));
   });
 
   input.addEventListener('keydown', e => {
@@ -388,7 +452,8 @@ function _initDropdown(cityNames, countyNames, cityMeta) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         const q = input.value.trim().toLowerCase();
-        show(q ? allAreas.filter(a => a.label.toLowerCase().includes(q)) : allAreas.slice(0, 30));
+        const areas = getCurrentAreas();
+        show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas.slice(0, 30));
       }
       return;
     }
@@ -444,8 +509,6 @@ function _initCreditsModal() {
     return;
   }
 
-  const year = new Date().getFullYear();
-
   const backdrop = document.createElement('div');
   backdrop.id = 'credits-backdrop';
   backdrop.className = 'credits-backdrop';
@@ -471,7 +534,7 @@ function _initCreditsModal() {
           </li>
           <li>
             <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html" target="_blank" rel="noopener">US Census TIGER/Line 2024</a>
-            &mdash; Place and county boundary shapefiles
+            &mdash; Place, county, and legislative district boundary shapefiles
           </li>
         </ul>
       </div>

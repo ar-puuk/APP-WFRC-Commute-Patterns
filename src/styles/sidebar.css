@@ -7,15 +7,15 @@
 .rail-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.rail-section.tight { gap: 8px; }
+.rail-section.tight { gap: 7px; }
 
 .rail-rule {
   height: 1px;
   background: var(--rule);
-  margin: 4px -22px;
+  margin: 2px -22px;
 }
 
 /* ============================================================
@@ -148,11 +148,6 @@
 .seg button[data-value="outflow"].active { background: var(--outflow); color: var(--paper); }
 .seg button[data-value="inflow"].active  { background: var(--inflow);  color: var(--paper); }
 
-/* Map Zones toggle: follows current direction color via data-direction on body */
-[data-direction="outflow"] #aggregation-toggle button:hover:not(.active) { background: var(--outflow-tint); color: var(--ink); }
-[data-direction="outflow"] #aggregation-toggle button.active { background: var(--outflow); color: var(--paper); }
-[data-direction="inflow"]  #aggregation-toggle button:hover:not(.active) { background: var(--inflow-tint);  color: var(--ink); }
-[data-direction="inflow"]  #aggregation-toggle button.active { background: var(--inflow);  color: var(--paper); }
 
 .seg.tall button {
   padding: 11px 8px;
@@ -184,6 +179,72 @@
   font-weight: 700;
   letter-spacing: 0.04em;
 }
+
+/* Four-way 2×2 variant (Map Zones) */
+.seg.four-way {
+  grid-template-columns: 1fr 1fr;
+}
+.seg.four-way button:nth-child(2n)  { border-right: 0; }
+.seg.four-way button:nth-child(n+3) { border-top: 1px solid var(--rule-strong); }
+
+/* Map Zones: active button fills with direction accent color */
+[data-direction="outflow"] #aggregation-toggle button:hover:not(.active) { background: var(--outflow-tint); color: var(--ink); }
+[data-direction="outflow"] #aggregation-toggle button.active { background: var(--outflow); color: var(--paper); font-weight: 600; }
+[data-direction="inflow"]  #aggregation-toggle button:hover:not(.active) { background: var(--inflow-tint);  color: var(--ink); }
+[data-direction="inflow"]  #aggregation-toggle button.active { background: var(--inflow);  color: var(--paper); font-weight: 600; }
+
+/* ============================================================
+   TYPE STRIP — underline tabs for Subject Area Type & Map Zones
+   ============================================================ */
+.type-strip {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.type-strip button {
+  padding: 5px 0 8px;
+  margin-right: 16px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: none;
+  border: none;
+  position: relative;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.type-strip button:last-child { margin-right: 0; }
+.type-strip button:hover { color: var(--ink-2); }
+
+.type-strip button.active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.type-strip button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--navy);
+}
+
+/* Subject Area Type: filled pill active — same treatment as Map Zones */
+#areatype-toggle { gap: 4px; border-bottom: none; }
+#areatype-toggle button { padding: 4px 10px 5px; margin-right: 0; border-radius: 2px; }
+#areatype-toggle button.active { background: var(--navy); color: var(--paper); font-weight: 600; }
+#areatype-toggle button.active::after { display: none; }
+#areatype-toggle button:hover:not(.active) { color: var(--navy); }
+
+/* Map Zones: filled pill active — suppress underline, add horizontal padding */
+#aggregation-toggle { gap: 4px; border-bottom: none; }
+#aggregation-toggle button { padding: 4px 10px 5px; margin-right: 0; border-radius: 2px; }
+#aggregation-toggle button.active::after { display: none; }
 
 /* ============================================================
    KPI BLOCK
@@ -235,7 +296,7 @@
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .demo-tabs button {

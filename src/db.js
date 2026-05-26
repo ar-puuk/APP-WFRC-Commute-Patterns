@@ -44,27 +44,38 @@ export async function reloadYear(year, onProgress) {
 async function _loadYearFiles(year, onProgress) {
   const base = import.meta.env.BASE_URL ?? '/';
 
-  const cityBuf = await fetch(`${base}data/lehd/${year}/city_flows.parquet`).then(r => {
-    if (!r.ok) throw new Error(`data/lehd/${year}/city_flows.parquet: ${r.status}`);
-    return r.arrayBuffer();
-  });
+  const [cityBuf, districtBuf] = await Promise.all([
+    fetch(`${base}data/lehd/${year}/city_flows.parquet`).then(r => {
+      if (!r.ok) throw new Error(`city_flows.parquet: ${r.status}`);
+      return r.arrayBuffer();
+    }),
+    fetch(`${base}data/lehd/${year}/district_flows.parquet`).then(r => {
+      if (!r.ok) throw new Error(`district_flows.parquet: ${r.status}`);
+      return r.arrayBuffer();
+    }),
+  ]);
 
   onProgress?.(70);
 
-  // Use year-stamped filename so re-registration across year switches never
-  // conflicts (registerFileBuffer throws if the name is already taken).
-  const cityFile = `city_flows_${year}.parquet`;
-  try { await _db.dropFile(cityFile); } catch {}
-  await _db.registerFileBuffer(cityFile, new Uint8Array(cityBuf));
+  // Use year-stamped filenames so re-registration across year switches never conflicts.
+  const cityFile     = `city_flows_${year}.parquet`;
+  const districtFile = `district_flows_${year}.parquet`;
 
-  // CREATE OR REPLACE avoids a separate DROP VIEW that could fail silently
-  // and leave the view pointing at the previous year's data.
+  for (const f of [cityFile, districtFile]) {
+    try { await _db.dropFile(f); } catch {}
+  }
+
+  await _db.registerFileBuffer(cityFile,     new Uint8Array(cityBuf));
+  await _db.registerFileBuffer(districtFile, new Uint8Array(districtBuf));
+
   await _conn.query(
-    `CREATE OR REPLACE VIEW city_flows AS SELECT * FROM read_parquet('${cityFile}');`
+    `CREATE OR REPLACE VIEW city_flows     AS SELECT * FROM read_parquet('${cityFile}');`
+  );
+  await _conn.query(
+    `CREATE OR REPLACE VIEW district_flows AS SELECT * FROM read_parquet('${districtFile}');`
   );
 
-  // Detect whether this year's parquet includes block-centroid distance band columns.
-  // Older years (pre-2023) were generated without them; queries adapt accordingly.
+  // Detect distance band columns (older years may not have them).
   const colResult = await _conn.query(
     `SELECT column_name FROM information_schema.columns WHERE table_name = 'city_flows'`
   );
@@ -74,42 +85,56 @@ async function _loadYearFiles(year, onProgress) {
   onProgress?.(100);
 }
 
+// ── Geography helpers ─────────────────────────────────────────────────────────
+
+// Map area type → column names for home/work sides.
+const _COLS = {
+  city:   { home: 'home_name',   work: 'work_name'   },
+  county: { home: 'home_county', work: 'work_county' },
+  house:  { home: 'home_house',  work: 'work_house'  },
+  senate: { home: 'home_senate', work: 'work_senate' },
+};
+
+function _cols(type) {
+  return _COLS[type] ?? _COLS.city;
+}
+
+// Use district_flows when either side involves a legislative district.
+function _table(areaType, aggregation) {
+  return (areaType === 'house' || areaType === 'senate' ||
+          aggregation === 'house' || aggregation === 'senate')
+    ? 'district_flows'
+    : 'city_flows';
+}
+
 /**
  * Query destination flows for a selected area.
  *
- * All four combinations work via city_flows (which carries both name and county columns):
- *   city   → city   : WHERE home_name   = X  GROUP BY work_name
- *   city   → county : WHERE home_name   = X  GROUP BY work_county
- *   county → city   : WHERE home_county = X  GROUP BY work_name
- *   county → county : WHERE home_county = X  GROUP BY work_county
- * Inflow queries swap home/work columns throughout.
- *
- * Returns rows with a single `dest_name` field (the grouped destination)
- * plus S000 and the breakdown columns.
+ * Supports all combinations of {city, county, house, senate} for both
+ * areaType (subject filter) and aggregation (destination grouping).
+ * Cross-district queries (house↔senate) use district_flows which carries
+ * all four geography columns.
  */
 export async function queryFlows(area, areaType, direction, aggregation) {
   if (!_conn) throw new Error('DB not initialized');
 
-  const safe = area.replace(/'/g, "''");
+  const safe  = area.replace(/'/g, "''");
+  const table = _table(areaType, aggregation);
 
-  const filterCol = direction === 'outflow'
-    ? (areaType === 'city' ? 'home_name'   : 'home_county')
-    : (areaType === 'city' ? 'work_name'   : 'work_county');
+  const srcCols  = _cols(areaType);
+  const destCols = _cols(aggregation);
 
-  const destCol = direction === 'outflow'
-    ? (aggregation === 'city' ? 'work_name'   : 'work_county')
-    : (aggregation === 'city' ? 'home_name'   : 'home_county');
+  const filterCol = direction === 'outflow' ? srcCols.home  : srcCols.work;
+  const destCol   = direction === 'outflow' ? destCols.work : destCols.home;
 
   const selfClause = (areaType === aggregation)
-    ? `AND ${destCol} != '${safe}'`
+    ? `AND cf.${destCol} != '${safe}'`
     : '';
 
   const bandCols = _hasDistanceBands
     ? 'SUM(cf.d0_10) AS d0_10, SUM(cf.d10_25) AS d10_25, SUM(cf.d25_50) AS d25_50, SUM(cf.d50p) AS d50p,'
     : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p,';
 
-  // dest_total: total flow for each destination area across ALL origins,
-  // so the tooltip can show "X% of [dest] workers/residents".
   const sql = `
     SELECT
       cf.${destCol} AS dest_name,
@@ -119,14 +144,14 @@ export async function queryFlows(area, areaType, direction, aggregation) {
       SUM(cf.SI01)  AS SI01, SUM(cf.SI02) AS SI02, SUM(cf.SI03) AS SI03,
       ${bandCols}
       dt.dest_total
-    FROM city_flows cf
+    FROM ${table} cf
     JOIN (
       SELECT ${destCol} AS key, SUM(S000) AS dest_total
-      FROM city_flows
+      FROM ${table}
       GROUP BY ${destCol}
     ) dt ON dt.key = cf.${destCol}
     WHERE cf.${filterCol} = '${safe}'
-    ${selfClause ? `AND cf.${destCol} != '${safe}'` : ''}
+    ${selfClause}
     GROUP BY cf.${destCol}, dt.dest_total
     ORDER BY S000 DESC
   `;
@@ -137,34 +162,49 @@ export async function queryFlows(area, areaType, direction, aggregation) {
 
 /**
  * Count of workers who both live and work in the same area (self-flow).
- * Only meaningful for city-level queries.
  */
 export async function querySelfFlow(area, areaType) {
   if (!_conn) return 0;
-  const safe = area.replace(/'/g, "''");
-  const col  = areaType === 'city' ? 'home_name' : 'home_county';
-  const col2 = areaType === 'city' ? 'work_name' : 'work_county';
+  const safe  = area.replace(/'/g, "''");
+  const table = _table(areaType, areaType);
+  const col   = _cols(areaType);
   const result = await _conn.query(
-    `SELECT COALESCE(SUM(S000), 0) AS self FROM city_flows WHERE ${col} = '${safe}' AND ${col2} = '${safe}'`
+    `SELECT COALESCE(SUM(S000), 0) AS self
+     FROM ${table}
+     WHERE ${col.home} = '${safe}' AND ${col.work} = '${safe}'`
   );
   return Number(result.toArray()[0].toJSON().self);
 }
 
 /**
  * City-level pair flows for the commute reach chart when a county is selected.
- * Returns one row per (home_city, work_city) pair that crosses the county boundary,
- * with home_county and work_county included so callers can fall back to county
- * centroids for unincorporated areas that lack a city centroid.
+ * For district selections, uses district_flows to get city-level detail.
  */
-export async function queryReachFlows(area, direction) {
+export async function queryReachFlows(area, areaType, direction) {
   if (!_conn) throw new Error('DB not initialized');
-  const safe       = area.replace(/'/g, "''");
-  const filterCol  = direction === 'outflow' ? 'home_county' : 'work_county';
-  const excludeCol = direction === 'outflow' ? 'work_county' : 'home_county';
+  const safe      = area.replace(/'/g, "''");
+  const isDistrict = areaType === 'house' || areaType === 'senate';
+  const distCol   = _cols(areaType);
   const reachBands = _hasDistanceBands
     ? 'd0_10, d10_25, d25_50, d50p'
     : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p';
 
+  if (isDistrict) {
+    // For district subject: return city-level pairs within/outside the district
+    const filterCol  = direction === 'outflow' ? distCol.home : distCol.work;
+    const excludeCol = direction === 'outflow' ? distCol.work : distCol.home;
+    const result = await _conn.query(`
+      SELECT home_name, work_name, home_county, work_county, S000,
+             ${reachBands}
+      FROM district_flows
+      WHERE ${filterCol} = '${safe}' AND ${excludeCol} != '${safe}'
+    `);
+    return result.toArray().map(r => r.toJSON());
+  }
+
+  // County subject: unchanged behaviour
+  const filterCol  = direction === 'outflow' ? 'home_county' : 'work_county';
+  const excludeCol = direction === 'outflow' ? 'work_county' : 'home_county';
   const result = await _conn.query(`
     SELECT home_name, work_name, home_county, work_county, S000,
            ${reachBands}
@@ -179,14 +219,11 @@ export async function queryReachFlows(area, direction) {
  */
 export async function queryTotal(area, areaType, direction) {
   if (!_conn) return 0;
-
-  const filterCol = direction === 'outflow'
-    ? (areaType === 'city' ? 'home_name'   : 'home_county')
-    : (areaType === 'city' ? 'work_name'   : 'work_county');
-  const safe = area.replace(/'/g, "''");
-
+  const safe      = area.replace(/'/g, "''");
+  const table     = _table(areaType, areaType);
+  const filterCol = direction === 'outflow' ? _cols(areaType).home : _cols(areaType).work;
   const result = await _conn.query(
-    `SELECT COALESCE(SUM(S000), 0) AS total FROM city_flows WHERE ${filterCol} = '${safe}'`
+    `SELECT COALESCE(SUM(S000), 0) AS total FROM ${table} WHERE ${filterCol} = '${safe}'`
   );
   return Number(result.toArray()[0].toJSON().total);
 }

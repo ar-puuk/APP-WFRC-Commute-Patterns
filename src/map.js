@@ -62,7 +62,7 @@ function _lerpScheme(scheme, t) {
 let map         = null;
 let deckOverlay = null;
 let _theme      = 'light';
-let _boundaries = { county: null, city: null };
+let _boundaries = { county: null, city: null, house: null, senate: null };
 // Stored so it can be replayed after boundary layers are added asynchronously
 let _pendingChoropleth = null;
 let _tooltipEl  = null;
@@ -219,15 +219,18 @@ export function switchTheme(theme, onReady) {
         .map(l => {
           const paint = { ...l.paint };
           if (l.id === 'county-outline')   paint['line-color'] = outlineColor;
+          if (l.id === 'house-outline')    paint['line-color'] = outlineColor;
+          if (l.id === 'senate-outline')   paint['line-color'] = outlineColor;
           if (l.id === 'city-outline')     paint['line-color'] = outlineColorCity;
           if (l.id === 'county-selected')  paint['line-color'] = selColor;
           if (l.id === 'city-selected')    paint['line-color'] = selColor;
+          if (l.id === 'house-selected')   paint['line-color'] = selColor;
+          if (l.id === 'senate-selected')  paint['line-color'] = selColor;
           if (l.id === 'custom-info-fill') paint['fill-color'] = infoFill;
           if (l.id === 'custom-info-line') paint['line-color'] = infoLine;
           if (pc) {
-            const isCountyFill = l.id === 'county-fill' && pc.aggregation === 'county';
-            const isCityFill   = l.id === 'city-fill'   && pc.aggregation !== 'county';
-            if (isCountyFill || isCityFill) {
+            const activeFill = `${pc.aggregation}-fill`;
+            if (l.id === activeFill) {
               paint['fill-color'] = _buildFillExpr(pc.flows, pc.selectedArea, theme, pc.direction);
             }
           }
@@ -260,7 +263,7 @@ export function switchTheme(theme, onReady) {
   // so we can update theme-sensitive paint properties immediately.
   map.once('style.load', () => {
     _filterLabels();
-    if (_boundaries.county && _boundaries.city) _addBoundaryLayers();
+    if (_boundaries.county || _boundaries.city || _boundaries.house || _boundaries.senate) _addBoundaryLayers();
     _addInfoLayers();
     onReady?.();
   });
@@ -276,7 +279,7 @@ export function setFlowVisible(v) {
 export function setPolygonsVisible(v) {
   _polygonsVisible = v;
   if (!v) {
-    ['county-fill','county-outline','county-selected','city-fill','city-outline','city-selected'].forEach(id => {
+    ['county','city','house','senate'].flatMap(t => [`${t}-fill`,`${t}-outline`,`${t}-selected`]).forEach(id => {
       if (map?.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
   } else if (_pendingChoropleth) {
@@ -289,7 +292,7 @@ export function initPolygonInteraction(onAreaClick) {
   _onPolygonClick = onAreaClick;
   if (!map) return;
 
-  ['county-fill', 'city-fill'].forEach(layerId => {
+  ['county-fill', 'city-fill', 'house-fill', 'senate-fill'].forEach(layerId => {
     map.on('click', layerId, (e) => {
       if (_deckClickedThisTick || !_polygonsVisible) return;
       const name = e.features?.[0]?.properties?.name;
@@ -447,26 +450,31 @@ export function updateLayers(flows, state, onArcClick, total = 0) {
  */
 export async function loadBoundaries(base, theme) {
   _theme = theme;
-  try {
-    const [countyGj, cityGj] = await Promise.all([
-      fetch(`${base}data/county_boundaries.geojson`).then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-      fetch(`${base}data/city_boundaries.geojson`).then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-    ]);
-    _boundaries = { county: countyGj, city: cityGj };
 
-    // If map style is already loaded, add layers now
-    if (map?.isStyleLoaded()) _addBoundaryLayers();
-    return true;
-  } catch (e) {
+  const tryFetch = async (url) => {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return r.json();
+    } catch { return null; }
+  };
+
+  const [countyGj, cityGj, houseGj, senateGj] = await Promise.all([
+    tryFetch(`${base}data/county_boundaries.geojson`),
+    tryFetch(`${base}data/city_boundaries.geojson`),
+    tryFetch(`${base}data/house_boundaries.geojson`),
+    tryFetch(`${base}data/senate_boundaries.geojson`),
+  ]);
+
+  _boundaries = { county: countyGj, city: cityGj, house: houseGj, senate: senateGj };
+
+  if (!countyGj && !cityGj) {
     console.info('Boundary files not available — polygon layer disabled. Run: uv run scripts/process_data.py --boundaries');
     return false;
   }
+
+  if (map?.isStyleLoaded()) _addBoundaryLayers();
+  return true;
 }
 
 // Builds the MapLibre match expression for choropleth fill colors.
@@ -504,50 +512,59 @@ function _buildFillExpr(flows, selectedArea, theme, direction) {
 /**
  * Update choropleth fill colours to reflect the current flow data.
  * Called after each data refresh.
+ *
+ * selectedAreaType: the type of the currently selected subject area. When it
+ * differs from aggregation, an additional outline is drawn for the subject area
+ * so the user can see its geography even when a different zone layer is active.
  */
-export function updateChoropleth(flows, selectedArea, aggregation, theme, direction = 'outflow') {
-  _pendingChoropleth = { flows, selectedArea, aggregation, theme, direction };
+export function updateChoropleth(flows, selectedArea, aggregation, theme, direction = 'outflow', selectedAreaType = null) {
+  _pendingChoropleth = { flows, selectedArea, aggregation, theme, direction, selectedAreaType };
   if (!map) return;
-  // Note: isStyleLoaded() can return false inside the load event callback itself,
-  // so we rely on getLayer() below to bail out when layers aren't ready yet.
 
-  const isCounty = aggregation === 'county';
-  const layers = {
-    fill:    isCounty ? 'county-fill'     : 'city-fill',
-    outline: isCounty ? 'county-outline'  : 'city-outline',
-    sel:     isCounty ? 'county-selected' : 'city-selected',
-    offFill: isCounty ? 'city-fill'       : 'county-fill',
-    offOut:  isCounty ? 'city-outline'    : 'county-outline',
-    offSel:  isCounty ? 'city-selected'   : 'county-selected',
-  };
+  const fillId = `${aggregation}-fill`;
+  const selId  = `${aggregation}-selected`;
 
-  if (!map.getLayer(layers.fill)) return;
+  if (!map.getLayer(fillId)) return;
 
   // If polygons hidden, keep everything invisible
   if (!_polygonsVisible) {
-    ['county-fill','county-outline','county-selected','city-fill','city-outline','city-selected'].forEach(id => {
+    ['county','city','house','senate'].flatMap(t => [`${t}-fill`,`${t}-outline`,`${t}-selected`]).forEach(id => {
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
     return;
   }
 
-  // Toggle layer visibility
-  map.setLayoutProperty(layers.fill,    'visibility', 'visible');
-  map.setLayoutProperty(layers.outline, 'visibility', 'visible');
-  map.setLayoutProperty(layers.sel,     'visibility', 'visible');
-  if (map.getLayer(layers.offFill)) map.setLayoutProperty(layers.offFill, 'visibility', 'none');
-  if (map.getLayer(layers.offOut))  map.setLayoutProperty(layers.offOut,  'visibility', 'none');
-  if (map.getLayer(layers.offSel))  map.setLayoutProperty(layers.offSel,  'visibility', 'none');
+  // Subject area type differs from aggregation — show its selected outline too
+  const showSubjOutline = selectedAreaType && selectedAreaType !== aggregation;
+  const subjSelId = showSubjOutline ? `${selectedAreaType}-selected` : null;
 
-  // Direction-aware selected-area outline
+  ['county', 'city', 'house', 'senate'].forEach(t => {
+    const isAgg  = t === aggregation;
+    const isSubj = showSubjOutline && t === selectedAreaType;
+    if (map.getLayer(`${t}-fill`))     map.setLayoutProperty(`${t}-fill`,     'visibility', isAgg  ? 'visible' : 'none');
+    if (map.getLayer(`${t}-outline`))  map.setLayoutProperty(`${t}-outline`,  'visibility', isAgg  ? 'visible' : 'none');
+    if (map.getLayer(`${t}-selected`)) map.setLayoutProperty(`${t}-selected`, 'visibility', (isAgg || isSubj) ? 'visible' : 'none');
+  });
+
+  // Direction-aware highlight color
   const isOutflow    = direction === 'outflow';
   const selLineColor = isOutflow
     ? (theme === 'dark' ? '#e4895a' : '#cc683a')
     : (theme === 'dark' ? '#5aa6a7' : '#1e6f6f');
-  map.setFilter(layers.sel, ['==', ['get', 'name'], selectedArea ?? '']);
-  if (map.getLayer(layers.sel)) map.setPaintProperty(layers.sel, 'line-color', selLineColor);
 
-  map.setPaintProperty(layers.fill, 'fill-color', _buildFillExpr(flows, selectedArea, theme, direction));
+  // Aggregation zone selected highlight
+  map.setFilter(selId, ['==', ['get', 'name'], selectedArea ?? '']);
+  if (map.getLayer(selId)) map.setPaintProperty(selId, 'line-color', selLineColor);
+
+  // Subject area boundary overlay (thicker dashed line to visually distinguish it)
+  if (subjSelId && map.getLayer(subjSelId)) {
+    map.setFilter(subjSelId, ['==', ['get', 'name'], selectedArea ?? '']);
+    map.setPaintProperty(subjSelId, 'line-color', selLineColor);
+    map.setPaintProperty(subjSelId, 'line-width', 2.5);
+    map.setPaintProperty(subjSelId, 'line-dasharray', [3, 2]);
+  }
+
+  map.setPaintProperty(fillId, 'fill-color', _buildFillExpr(flows, selectedArea, theme, direction));
 }
 
 // ── Fly / fit ─────────────────────────────────────────────────────────────────
@@ -667,48 +684,85 @@ function _filterLabels() {
 }
 
 function _addBoundaryLayers() {
-  if (!map || !_boundaries.county || !_boundaries.city) return;
+  if (!map) return;
 
   const outlineColor     = _theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
   const outlineColorCity = _theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
   const selColor         = _theme === 'dark' ? '#5aa6a7'                : '#1e6f6f';
 
-  // Insert above roads/buildings but below the label stack.
   const before = _fillInsertionLayer();
 
-  // Add (or replace) GeoJSON sources
-  if (map.getSource('county-zones')) {
-    map.getSource('county-zones').setData(_boundaries.county);
-  } else {
-    map.addSource('county-zones', { type: 'geojson', data: _boundaries.county });
-  }
-  if (map.getSource('city-zones')) {
-    map.getSource('city-zones').setData(_boundaries.city);
-  } else {
-    map.addSource('city-zones', { type: 'geojson', data: _boundaries.city });
+  const _addOrUpdate = (srcId, layerId, data, addFn, updateFn) => {
+    if (!data) return;
+    if (map.getSource(srcId)) {
+      map.getSource(srcId).setData(data);
+      updateFn();
+    } else {
+      map.addSource(srcId, { type: 'geojson', data });
+      addFn();
+    }
+  };
+
+  if (_boundaries.county) {
+    _addOrUpdate(
+      'county-zones', 'county-fill', _boundaries.county,
+      () => {
+        map.addLayer({ id: 'county-fill',     type: 'fill', source: 'county-zones', paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
+        map.addLayer({ id: 'county-outline',  type: 'line', source: 'county-zones', paint: { 'line-color': outlineColor, 'line-width': 1 } }, before);
+        map.addLayer({ id: 'county-selected', type: 'line', source: 'county-zones', filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
+      },
+      () => {
+        map.setPaintProperty('county-outline',  'line-color', outlineColor);
+        map.setPaintProperty('county-selected', 'line-color', selColor);
+      },
+    );
   }
 
-  // County layers — add if missing, then always sync paint to current theme
-  if (!map.getLayer('county-fill')) {
-    map.addLayer({ id: 'county-fill',     type: 'fill', source: 'county-zones', paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
-    map.addLayer({ id: 'county-outline',  type: 'line', source: 'county-zones', paint: { 'line-color': outlineColor,     'line-width': 1   } }, before);
-    map.addLayer({ id: 'county-selected', type: 'line', source: 'county-zones', filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
-  } else {
-    map.setPaintProperty('county-outline',  'line-color', outlineColor);
-    map.setPaintProperty('county-selected', 'line-color', selColor);
+  if (_boundaries.city) {
+    _addOrUpdate(
+      'city-zones', 'city-fill', _boundaries.city,
+      () => {
+        map.addLayer({ id: 'city-fill',     type: 'fill', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
+        map.addLayer({ id: 'city-outline',  type: 'line', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColorCity, 'line-width': 0.5 } }, before);
+        map.addLayer({ id: 'city-selected', type: 'line', source: 'city-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
+      },
+      () => {
+        map.setPaintProperty('city-outline',  'line-color', outlineColorCity);
+        map.setPaintProperty('city-selected', 'line-color', selColor);
+      },
+    );
   }
 
-  // City layers — add if missing, then always sync paint to current theme
-  if (!map.getLayer('city-fill')) {
-    map.addLayer({ id: 'city-fill',     type: 'fill', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
-    map.addLayer({ id: 'city-outline',  type: 'line', source: 'city-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColorCity, 'line-width': 0.5 } }, before);
-    map.addLayer({ id: 'city-selected', type: 'line', source: 'city-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
-  } else {
-    map.setPaintProperty('city-outline',  'line-color', outlineColorCity);
-    map.setPaintProperty('city-selected', 'line-color', selColor);
+  if (_boundaries.house) {
+    _addOrUpdate(
+      'house-zones', 'house-fill', _boundaries.house,
+      () => {
+        map.addLayer({ id: 'house-fill',     type: 'fill', source: 'house-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
+        map.addLayer({ id: 'house-outline',  type: 'line', source: 'house-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColor, 'line-width': 0.8 } }, before);
+        map.addLayer({ id: 'house-selected', type: 'line', source: 'house-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
+      },
+      () => {
+        map.setPaintProperty('house-outline',  'line-color', outlineColor);
+        map.setPaintProperty('house-selected', 'line-color', selColor);
+      },
+    );
   }
 
-  // Replay choropleth using the CURRENT theme (not the stored one)
+  if (_boundaries.senate) {
+    _addOrUpdate(
+      'senate-zones', 'senate-fill', _boundaries.senate,
+      () => {
+        map.addLayer({ id: 'senate-fill',     type: 'fill', source: 'senate-zones', layout: { visibility: 'none' }, paint: { 'fill-color': 'rgba(0,0,0,0)' } }, before);
+        map.addLayer({ id: 'senate-outline',  type: 'line', source: 'senate-zones', layout: { visibility: 'none' }, paint: { 'line-color': outlineColor, 'line-width': 1 } }, before);
+        map.addLayer({ id: 'senate-selected', type: 'line', source: 'senate-zones', layout: { visibility: 'none' }, filter: ['==', ['get', 'name'], ''], paint: { 'line-color': selColor, 'line-width': 2.5 } }, before);
+      },
+      () => {
+        map.setPaintProperty('senate-outline',  'line-color', outlineColor);
+        map.setPaintProperty('senate-selected', 'line-color', selColor);
+      },
+    );
+  }
+
   if (_pendingChoropleth) {
     const { flows, selectedArea, aggregation, direction } = _pendingChoropleth;
     updateChoropleth(flows, selectedArea, aggregation, _theme, direction);
