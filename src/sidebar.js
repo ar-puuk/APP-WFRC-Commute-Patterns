@@ -198,6 +198,12 @@ export function initSidebar({ cityNames, countyNames, houseNames, senateNames, c
   _initCreditsModal();
 }
 
+export function syncAreaTypeToggle(type) {
+  _setActiveToggle('areatype-toggle', type);
+  const input = document.getElementById('area-search');
+  if (input) input.placeholder = _searchPlaceholder(type);
+}
+
 export function updateSidebarStats(flows, appState) {
   const state = appState;
 

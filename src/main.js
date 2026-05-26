@@ -4,7 +4,7 @@ import './styles/charts.css';
 import './styles/toolbar.css';
 import { initDB, reloadYear, queryFlows, queryTotal, querySelfFlow, queryReachFlows } from './db.js';
 import { initMap, updateLayers, switchTheme, flyToArea, loadBoundaries, updateChoropleth, setFlowVisible, setPolygonsVisible, setSelfFlow, initPolygonInteraction, loadInfoOnlyPlaces } from './map.js';
-import { initSidebar, updateSidebarStats, setInfoOnlyPlaces } from './sidebar.js';
+import { initSidebar, updateSidebarStats, setInfoOnlyPlaces, syncAreaTypeToggle } from './sidebar.js';
 import { initCharts, updateCharts, exportBarPng, exportBarCsv, exportSankeyPng, exportSankeyCsv, exportDemoPng, exportDemoCsv, exportReachPng, exportReachCsv, exportIndustryPng, exportIndustryCsv, exportTransportPng, exportTransportCsv, exportTravelTimePng, exportTravelTimeCsv, resizeCharts } from './charts.js';
 
 // ── Global app state ─────────────────────────────────────────────────────────
@@ -135,6 +135,7 @@ async function main() {
     if (name === state.selectedArea) return;
     state.selectedArea     = name;
     state.selectedAreaType = state.aggregation;
+    syncAreaTypeToggle(state.aggregation);
     _updateSidebarAreaLabels(name);
     refreshVisualization();
   });
@@ -671,6 +672,7 @@ function arcClickHandler(flow) {
 
   state.selectedArea     = newArea;
   state.selectedAreaType = state.aggregation;
+  syncAreaTypeToggle(state.aggregation);
 
   _updateSidebarAreaLabels(newArea);
   refreshVisualization();
