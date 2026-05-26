@@ -1113,11 +1113,15 @@ function _renderFlowSummary(totalIn, totalOut, selfFlow, state) {
   const R_MAX = 112, MIN_R = 26;
   const font = 'Inter, system-ui, sans-serif';
 
-  // Circles sized by exclusive flows; overlap area ∝ selfFlow on the same scale
-  const maxVal = Math.max(totalIn, totalOut, 1);
+  // Circles sized by total populations (cross-boundary + live&work) so the
+  // overlap geometry stays solvable even when selfFlow >> cross-boundary flows.
+  // Displayed numbers remain the net cross-boundary values (totalIn / totalOut).
+  const rawIn  = totalIn  + selfFlow;
+  const rawOut = totalOut + selfFlow;
+  const maxVal = Math.max(rawIn, rawOut, 1);
 
-  const r_in  = Math.max(R_MAX * Math.sqrt(totalIn  / maxVal), MIN_R);
-  const r_out = Math.max(R_MAX * Math.sqrt(totalOut / maxVal), MIN_R);
+  const r_in  = Math.max(R_MAX * Math.sqrt(rawIn  / maxVal), MIN_R);
+  const r_out = Math.max(R_MAX * Math.sqrt(rawOut / maxVal), MIN_R);
 
   // Find d so lens area ∝ selfFlow
   const targetArea = Math.PI * R_MAX * R_MAX * (selfFlow / maxVal);

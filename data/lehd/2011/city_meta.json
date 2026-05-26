@@ -16,6 +16,22 @@
     "place_fips": "4900650"
   },
   {
+    "name": "Altamont",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.3589765,
+    "lon": -110.2880216,
+    "place_fips": "4900760"
+  },
+  {
+    "name": "Alton",
+    "county": "Kane County, UT",
+    "county_fips": "",
+    "lat": 37.4265391,
+    "lon": -112.5102747,
+    "place_fips": "4900870"
+  },
+  {
     "name": "Amalga",
     "county": "Cache County",
     "county_fips": "49005",
@@ -32,6 +48,46 @@
     "place_fips": "4901310"
   },
   {
+    "name": "Aneth",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.2064905,
+    "lon": -109.165168,
+    "place_fips": "4901530"
+  },
+  {
+    "name": "Annabella",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.7060062,
+    "lon": -112.0585665,
+    "place_fips": "4901750"
+  },
+  {
+    "name": "Antimony",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 38.1030286,
+    "lon": -111.9823193,
+    "place_fips": "4901860"
+  },
+  {
+    "name": "Apple Valley",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.0809722,
+    "lon": -113.1033996,
+    "place_fips": "4901905"
+  },
+  {
+    "name": "Aurora",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.9199606,
+    "lon": -111.9336237,
+    "place_fips": "4902740"
+  },
+  {
     "name": "Avon",
     "county": "Cache County",
     "county_fips": "49005",
@@ -40,12 +96,36 @@
     "place_fips": "4902960"
   },
   {
+    "name": "Ballard",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.2949141,
+    "lon": -109.9493527,
+    "place_fips": "4903345"
+  },
+  {
     "name": "Bear River City",
     "county": "Box Elder County",
     "county_fips": "49003",
     "lat": 41.6123694,
     "lon": -112.1249483,
     "place_fips": "4903950"
+  },
+  {
+    "name": "Beaver",
+    "county": "Beaver County, UT",
+    "county_fips": "",
+    "lat": 38.2758724,
+    "lon": -112.6380976,
+    "place_fips": "4904060"
+  },
+  {
+    "name": "Beaver County, UT Unincorporated",
+    "county": "Beaver County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Benjamin",
@@ -64,6 +144,54 @@
     "place_fips": "4905050"
   },
   {
+    "name": "Beryl Junction",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.7009833,
+    "lon": -113.6534952,
+    "place_fips": "4905380"
+  },
+  {
+    "name": "Bicknell",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.3406563,
+    "lon": -111.5441785,
+    "place_fips": "4905490"
+  },
+  {
+    "name": "Big Water",
+    "county": "Kane County, UT",
+    "county_fips": "",
+    "lat": 37.0728738,
+    "lon": -111.6607624,
+    "place_fips": "4905534"
+  },
+  {
+    "name": "Blanding",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.6231437,
+    "lon": -109.51295,
+    "place_fips": "4906370"
+  },
+  {
+    "name": "Bluebell",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.3513743,
+    "lon": -110.2238169,
+    "place_fips": "4906590"
+  },
+  {
+    "name": "Bluff",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.2903456,
+    "lon": -109.5961037,
+    "place_fips": "4906700"
+  },
+  {
     "name": "Bluffdale",
     "county": "Salt Lake County",
     "county_fips": "49035",
@@ -78,6 +206,14 @@
     "lat": 40.4745506,
     "lon": -111.9402616,
     "place_fips": "4906810"
+  },
+  {
+    "name": "Boulder",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.9227846,
+    "lon": -111.4318537,
+    "place_fips": "4907470"
   },
   {
     "name": "Bountiful",
@@ -96,6 +232,14 @@
     "place_fips": ""
   },
   {
+    "name": "Brian Head",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.697723,
+    "lon": -112.8415704,
+    "place_fips": "4908020"
+  },
+  {
     "name": "Brigham City",
     "county": "Box Elder County",
     "county_fips": "49003",
@@ -110,6 +254,14 @@
     "lat": 40.6106555,
     "lon": -111.6039233,
     "place_fips": "4908570"
+  },
+  {
+    "name": "Bryce Canyon City",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.6819598,
+    "lon": -112.1615671,
+    "place_fips": "4908787"
   },
   {
     "name": "Cache",
@@ -128,6 +280,54 @@
     "place_fips": ""
   },
   {
+    "name": "Cannonville",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.5548268,
+    "lon": -112.0537555,
+    "place_fips": "4910330"
+  },
+  {
+    "name": "Carbon County, UT Unincorporated",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Carbonville",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.626877,
+    "lon": -110.8332624,
+    "place_fips": "4910440"
+  },
+  {
+    "name": "Castle Dale",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.2216611,
+    "lon": -111.0226758,
+    "place_fips": "4910660"
+  },
+  {
+    "name": "Castle Valley",
+    "county": "Grand County, UT",
+    "county_fips": "",
+    "lat": 38.6321189,
+    "lon": -109.3960425,
+    "place_fips": "4911000"
+  },
+  {
+    "name": "Cedar City",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.6838176,
+    "lon": -113.0955403,
+    "place_fips": "4911320"
+  },
+  {
     "name": "Cedar Fort",
     "county": "Utah County",
     "county_fips": "49049",
@@ -144,12 +344,36 @@
     "place_fips": "4911440"
   },
   {
+    "name": "Centerfield",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.1274547,
+    "lon": -111.8184234,
+    "place_fips": "4911870"
+  },
+  {
     "name": "Centerville",
     "county": "Davis County",
     "county_fips": "49011",
     "lat": 40.9262974,
     "lon": -111.8833389,
     "place_fips": "4911980"
+  },
+  {
+    "name": "Central",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.4150054,
+    "lon": -113.6262477,
+    "place_fips": "4912200"
+  },
+  {
+    "name": "Central Valley",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.6992615,
+    "lon": -112.0966819,
+    "place_fips": "4912260"
   },
   {
     "name": "Charleston",
@@ -160,6 +384,14 @@
     "place_fips": "4912420"
   },
   {
+    "name": "Circleville",
+    "county": "Piute County, UT",
+    "county_fips": "",
+    "lat": 38.1684033,
+    "lon": -112.2716098,
+    "place_fips": "4912970"
+  },
+  {
     "name": "Clarkston",
     "county": "Cache County",
     "county_fips": "49005",
@@ -168,12 +400,36 @@
     "place_fips": "4913190"
   },
   {
+    "name": "Clawson",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.131395,
+    "lon": -111.0989315,
+    "place_fips": "4913300"
+  },
+  {
+    "name": "Clear Creek",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.6433428,
+    "lon": -111.1548395,
+    "place_fips": "4913740"
+  },
+  {
     "name": "Clearfield",
     "county": "Davis County",
     "county_fips": "49011",
     "lat": 41.0970119,
     "lon": -112.0179202,
     "place_fips": "4913850"
+  },
+  {
+    "name": "Cleveland",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.3492695,
+    "lon": -110.8554109,
+    "place_fips": "4914070"
   },
   {
     "name": "Clinton",
@@ -232,6 +488,22 @@
     "place_fips": "4916490"
   },
   {
+    "name": "Daggett County, UT Unincorporated",
+    "county": "Daggett County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Dammeron Valley",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.3041734,
+    "lon": -113.6658699,
+    "place_fips": "4918090"
+  },
+  {
     "name": "Daniel",
     "county": "Wasatch County",
     "county_fips": "49051",
@@ -246,6 +518,22 @@
     "lat": null,
     "lon": null,
     "place_fips": ""
+  },
+  {
+    "name": "Delta",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.36327,
+    "lon": -112.5437576,
+    "place_fips": "4918910"
+  },
+  {
+    "name": "Deseret",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.2876213,
+    "lon": -112.6511157,
+    "place_fips": "4919020"
   },
   {
     "name": "Deweyville",
@@ -272,12 +560,36 @@
     "place_fips": "4920120"
   },
   {
+    "name": "Duchesne",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.1752963,
+    "lon": -110.3941456,
+    "place_fips": "4920340"
+  },
+  {
+    "name": "Duchesne County, UT Unincorporated",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
     "name": "Dugway",
     "county": "Tooele County",
     "county_fips": "49045",
     "lat": 40.2306864,
     "lon": -112.7540543,
     "place_fips": "4920450"
+  },
+  {
+    "name": "Dutch John",
+    "county": "Daggett County, UT",
+    "county_fips": "",
+    "lat": 40.9270698,
+    "lon": -109.4031193,
+    "place_fips": "4920780"
   },
   {
     "name": "Eagle Mountain",
@@ -294,6 +606,14 @@
     "lat": 40.7367976,
     "lon": -111.4690664,
     "place_fips": "4920850"
+  },
+  {
+    "name": "East Carbon",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.5330251,
+    "lon": -110.4294497,
+    "place_fips": "4920890"
   },
   {
     "name": "Echo",
@@ -328,12 +648,44 @@
     "place_fips": "4922370"
   },
   {
+    "name": "Elmo",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.3877099,
+    "lon": -110.815613,
+    "place_fips": "4922540"
+  },
+  {
+    "name": "Elsinore",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.6837625,
+    "lon": -112.1400505,
+    "place_fips": "4922650"
+  },
+  {
     "name": "Elwood",
     "county": "Box Elder County",
     "county_fips": "49003",
     "lat": 41.6732105,
     "lon": -112.136645,
     "place_fips": "4922760"
+  },
+  {
+    "name": "Emery",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 38.925179,
+    "lon": -111.2522375,
+    "place_fips": "4922870"
+  },
+  {
+    "name": "Emery County, UT Unincorporated",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Emigration Canyon metro",
@@ -344,6 +696,14 @@
     "place_fips": "4922875"
   },
   {
+    "name": "Enoch",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.7665805,
+    "lon": -113.045257,
+    "place_fips": "4923200"
+  },
+  {
     "name": "Enterprise",
     "county": "Morgan County",
     "county_fips": "49029",
@@ -352,12 +712,36 @@
     "place_fips": "4923310"
   },
   {
+    "name": "Enterprise",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 41.1069856,
+    "lon": -111.730713,
+    "place_fips": "4923310"
+  },
+  {
+    "name": "Ephraim",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.3590672,
+    "lon": -111.5859781,
+    "place_fips": "4923530"
+  },
+  {
     "name": "Erda",
     "county": "Tooele County",
     "county_fips": "49045",
     "lat": 40.618084,
     "lon": -112.3089446,
     "place_fips": "4923640"
+  },
+  {
+    "name": "Escalante",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.76488,
+    "lon": -111.5983962,
+    "place_fips": "4923750"
   },
   {
     "name": "Eureka",
@@ -376,6 +760,14 @@
     "place_fips": "4924410"
   },
   {
+    "name": "Fairview",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.6299674,
+    "lon": -111.4368589,
+    "place_fips": "4924630"
+  },
+  {
     "name": "Farmington",
     "county": "Davis County",
     "county_fips": "49011",
@@ -392,12 +784,60 @@
     "place_fips": "4924850"
   },
   {
+    "name": "Fayette",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.2246366,
+    "lon": -111.8541913,
+    "place_fips": "4925070"
+  },
+  {
+    "name": "Ferron",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.0915984,
+    "lon": -111.1336269,
+    "place_fips": "4925180"
+  },
+  {
     "name": "Fielding",
     "county": "Box Elder County",
     "county_fips": "49003",
     "lat": 41.8124802,
     "lon": -112.1172804,
     "place_fips": "4925290"
+  },
+  {
+    "name": "Fillmore",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 38.964264,
+    "lon": -112.3386788,
+    "place_fips": "4925510"
+  },
+  {
+    "name": "Flaming Gorge",
+    "county": "Daggett County, UT",
+    "county_fips": "",
+    "lat": 40.88915,
+    "lon": -109.4759312,
+    "place_fips": "4925910"
+  },
+  {
+    "name": "Fort Duchesne",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.2818019,
+    "lon": -109.877241,
+    "place_fips": "4926610"
+  },
+  {
+    "name": "Fountain Green",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.6280937,
+    "lon": -111.6413009,
+    "place_fips": "4926720"
   },
   {
     "name": "Francis",
@@ -408,12 +848,44 @@
     "place_fips": "4926940"
   },
   {
+    "name": "Fremont",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.4554486,
+    "lon": -111.6149526,
+    "place_fips": "4927270"
+  },
+  {
     "name": "Fruit Heights",
     "county": "Davis County",
     "county_fips": "49011",
     "lat": 41.0289296,
     "lon": -111.904594,
     "place_fips": "4927490"
+  },
+  {
+    "name": "Garden",
+    "county": "Rich County, UT",
+    "county_fips": "",
+    "lat": 41.874269,
+    "lon": -111.4170295,
+    "place_fips": "4927902"
+  },
+  {
+    "name": "Garden City",
+    "county": "Rich County, UT",
+    "county_fips": "",
+    "lat": 41.9370883,
+    "lon": -111.4121589,
+    "place_fips": "4927930"
+  },
+  {
+    "name": "Garfield County, UT Unincorporated",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Garland",
@@ -432,12 +904,36 @@
     "place_fips": "4928810"
   },
   {
+    "name": "Glendale",
+    "county": "Kane County, UT",
+    "county_fips": "",
+    "lat": 37.334232,
+    "lon": -112.6035033,
+    "place_fips": "4929360"
+  },
+  {
+    "name": "Glenwood",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.7624492,
+    "lon": -111.987597,
+    "place_fips": "4929580"
+  },
+  {
     "name": "Goshen",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 39.9511137,
     "lon": -111.9008264,
     "place_fips": "4930130"
+  },
+  {
+    "name": "Grand County, UT Unincorporated",
+    "county": "Grand County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Granite",
@@ -456,12 +952,52 @@
     "place_fips": "4931120"
   },
   {
+    "name": "Green River",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 38.9934597,
+    "lon": -110.1734243,
+    "place_fips": "4931670"
+  },
+  {
+    "name": "Gunnison",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.1569299,
+    "lon": -111.8135157,
+    "place_fips": "4932660"
+  },
+  {
+    "name": "Halls Crossing",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.4658163,
+    "lon": -110.6654429,
+    "place_fips": "4933027"
+  },
+  {
+    "name": "Hanksville",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.371999,
+    "lon": -110.713454,
+    "place_fips": "4933100"
+  },
+  {
     "name": "Harrisville",
     "county": "Weber County",
     "county_fips": "49057",
     "lat": 41.2853182,
     "lon": -111.9859701,
     "place_fips": "4933540"
+  },
+  {
+    "name": "Hatch",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.649192,
+    "lon": -112.4348766,
+    "place_fips": "4933760"
   },
   {
     "name": "Heber",
@@ -472,12 +1008,28 @@
     "place_fips": "4934200"
   },
   {
+    "name": "Helper",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.6896282,
+    "lon": -110.8595989,
+    "place_fips": "4934530"
+  },
+  {
     "name": "Henefer",
     "county": "Summit County",
     "county_fips": "49043",
     "lat": 41.0138135,
     "lon": -111.4932727,
     "place_fips": "4934640"
+  },
+  {
+    "name": "Henrieville",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.5638911,
+    "lon": -112.0019057,
+    "place_fips": "4934750"
   },
   {
     "name": "Herriman",
@@ -504,12 +1056,36 @@
     "place_fips": "4935190"
   },
   {
+    "name": "Hildale",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.0154228,
+    "lon": -112.9998457,
+    "place_fips": "4935300"
+  },
+  {
+    "name": "Hinckley",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.3335949,
+    "lon": -112.6734815,
+    "place_fips": "4935740"
+  },
+  {
     "name": "Hobble Creek",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 40.1917204,
     "lon": -111.4967074,
     "place_fips": "4935823"
+  },
+  {
+    "name": "Holden",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.1000945,
+    "lon": -112.2704132,
+    "place_fips": "4935960"
   },
   {
     "name": "Holladay",
@@ -552,12 +1128,28 @@
     "place_fips": "4936730"
   },
   {
+    "name": "Huntington",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.3301157,
+    "lon": -110.9628098,
+    "place_fips": "4936950"
+  },
+  {
     "name": "Huntsville",
     "county": "Weber County",
     "county_fips": "49057",
     "lat": 41.2597822,
     "lon": -111.7712625,
     "place_fips": "4937060"
+  },
+  {
+    "name": "Hurricane",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.1484734,
+    "lon": -113.3588625,
+    "place_fips": "4937170"
   },
   {
     "name": "Hyde Park",
@@ -592,6 +1184,38 @@
     "place_fips": "4937924"
   },
   {
+    "name": "Iron County, UT Unincorporated",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Ivins",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.1738031,
+    "lon": -113.6808298,
+    "place_fips": "4938710"
+  },
+  {
+    "name": "Jensen",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.3695285,
+    "lon": -109.3555719,
+    "place_fips": "4939040"
+  },
+  {
+    "name": "Joseph",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.624845,
+    "lon": -112.2198245,
+    "place_fips": "4939370"
+  },
+  {
     "name": "Juab County Unincorporated",
     "county": "Juab County",
     "county_fips": "49023",
@@ -600,12 +1224,52 @@
     "place_fips": ""
   },
   {
+    "name": "Junction",
+    "county": "Piute County, UT",
+    "county_fips": "",
+    "lat": 38.2361484,
+    "lon": -112.224615,
+    "place_fips": "4939590"
+  },
+  {
     "name": "Kamas",
     "county": "Summit County",
     "county_fips": "49043",
     "lat": 40.6499963,
     "lon": -111.2734223,
     "place_fips": "4939810"
+  },
+  {
+    "name": "Kanab",
+    "county": "Kane County, UT",
+    "county_fips": "",
+    "lat": 37.0259962,
+    "lon": -112.5237243,
+    "place_fips": "4939920"
+  },
+  {
+    "name": "Kanarraville",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.5378373,
+    "lon": -113.1809831,
+    "place_fips": "4940030"
+  },
+  {
+    "name": "Kane County, UT Unincorporated",
+    "county": "Kane County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Kanosh",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 38.8013961,
+    "lon": -112.4374255,
+    "place_fips": "4940250"
   },
   {
     "name": "Kaysville",
@@ -624,6 +1288,46 @@
     "place_fips": "4940470"
   },
   {
+    "name": "Kenilworth",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.6803245,
+    "lon": -110.8145389,
+    "place_fips": "4941020"
+  },
+  {
+    "name": "Kingston",
+    "county": "Piute County, UT",
+    "county_fips": "",
+    "lat": 38.2066679,
+    "lon": -112.1792659,
+    "place_fips": "4941350"
+  },
+  {
+    "name": "Koosharem",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.5134017,
+    "lon": -111.8819188,
+    "place_fips": "4941680"
+  },
+  {
+    "name": "La Sal",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 38.3011469,
+    "lon": -109.2656514,
+    "place_fips": "4943110"
+  },
+  {
+    "name": "La Verkin",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.2315285,
+    "lon": -113.2505548,
+    "place_fips": "4943440"
+  },
+  {
     "name": "Lake Point",
     "county": "Tooele County",
     "county_fips": "49045",
@@ -640,12 +1344,44 @@
     "place_fips": "4942230"
   },
   {
+    "name": "Laketown",
+    "county": "Rich County, UT",
+    "county_fips": "",
+    "lat": 41.8293201,
+    "lon": -111.3326819,
+    "place_fips": "4942560"
+  },
+  {
+    "name": "Lapoint",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.4042175,
+    "lon": -109.7969783,
+    "place_fips": "4942890"
+  },
+  {
     "name": "Layton",
     "county": "Davis County",
     "county_fips": "49011",
     "lat": 41.077423,
     "lon": -111.9607269,
     "place_fips": "4943660"
+  },
+  {
+    "name": "Leamington",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.5313108,
+    "lon": -112.2852265,
+    "place_fips": "4943880"
+  },
+  {
+    "name": "Leeds",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.2371856,
+    "lon": -113.3470704,
+    "place_fips": "4944100"
   },
   {
     "name": "Lehi",
@@ -688,6 +1424,14 @@
     "place_fips": "4945090"
   },
   {
+    "name": "Loa",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.4037692,
+    "lon": -111.6451386,
+    "place_fips": "4945530"
+  },
+  {
     "name": "Logan",
     "county": "Cache County",
     "county_fips": "49005",
@@ -696,12 +1440,52 @@
     "place_fips": "4945860"
   },
   {
+    "name": "Lyman",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.3966272,
+    "lon": -111.5893378,
+    "place_fips": "4946410"
+  },
+  {
+    "name": "Lynndyl",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.5085847,
+    "lon": -112.3934436,
+    "place_fips": "4946740"
+  },
+  {
+    "name": "Maeser",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.471838,
+    "lon": -109.5786205,
+    "place_fips": "4947180"
+  },
+  {
     "name": "Magna metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
     "lat": 40.7595377,
     "lon": -112.1827299,
     "place_fips": "4947290"
+  },
+  {
+    "name": "Manila",
+    "county": "Daggett County, UT",
+    "county_fips": "",
+    "lat": 40.9921577,
+    "lon": -109.7210332,
+    "place_fips": "4947620"
+  },
+  {
+    "name": "Manti",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.2664698,
+    "lon": -111.6353272,
+    "place_fips": "4947730"
   },
   {
     "name": "Mantua",
@@ -736,12 +1520,44 @@
     "place_fips": "4948300"
   },
   {
+    "name": "Marysvale",
+    "county": "Piute County, UT",
+    "county_fips": "",
+    "lat": 38.436649,
+    "lon": -112.2619677,
+    "place_fips": "4948610"
+  },
+  {
+    "name": "Mayfield",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.1193092,
+    "lon": -111.7080397,
+    "place_fips": "4948720"
+  },
+  {
+    "name": "Meadow",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 38.8862228,
+    "lon": -112.4071421,
+    "place_fips": "4948830"
+  },
+  {
     "name": "Mendon",
     "county": "Cache County",
     "county_fips": "49005",
     "lat": 41.7115378,
     "lon": -111.9775373,
     "place_fips": "4949160"
+  },
+  {
+    "name": "Mexican Hat",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.174258,
+    "lon": -109.8835779,
+    "place_fips": "4949380"
   },
   {
     "name": "Midvale",
@@ -760,6 +1576,22 @@
     "place_fips": "4949820"
   },
   {
+    "name": "Milford",
+    "county": "Beaver County, UT",
+    "county_fips": "",
+    "lat": 38.3945028,
+    "lon": -113.0122651,
+    "place_fips": "4950040"
+  },
+  {
+    "name": "Millard County, UT Unincorporated",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
     "name": "Millcreek",
     "county": "Salt Lake County",
     "county_fips": "49035",
@@ -776,12 +1608,60 @@
     "place_fips": "4950370"
   },
   {
+    "name": "Minersville",
+    "county": "Beaver County, UT",
+    "county_fips": "",
+    "lat": 38.2480113,
+    "lon": -112.9789888,
+    "place_fips": "4950590"
+  },
+  {
+    "name": "Moab",
+    "county": "Grand County, UT",
+    "county_fips": "",
+    "lat": 38.5700851,
+    "lon": -109.5478126,
+    "place_fips": "4950700"
+  },
+  {
+    "name": "Modena",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.7947118,
+    "lon": -113.9274604,
+    "place_fips": "4950810"
+  },
+  {
     "name": "Mona",
     "county": "Juab County",
     "county_fips": "49023",
     "lat": 39.8118039,
     "lon": -111.8415287,
     "place_fips": "4951140"
+  },
+  {
+    "name": "Monroe",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.6230095,
+    "lon": -112.1196124,
+    "place_fips": "4951360"
+  },
+  {
+    "name": "Montezuma Creek",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.2515,
+    "lon": -109.3037098,
+    "place_fips": "4951470"
+  },
+  {
+    "name": "Monticello",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.8685342,
+    "lon": -109.3362004,
+    "place_fips": "4951580"
   },
   {
     "name": "Morgan",
@@ -800,6 +1680,22 @@
     "place_fips": ""
   },
   {
+    "name": "Moroni",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.5270284,
+    "lon": -111.5830674,
+    "place_fips": "4952130"
+  },
+  {
+    "name": "Mount Pleasant",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.5407437,
+    "lon": -111.4558654,
+    "place_fips": "4953010"
+  },
+  {
     "name": "Mountain Green",
     "county": "Morgan County",
     "county_fips": "49029",
@@ -816,12 +1712,52 @@
     "place_fips": "4953230"
   },
   {
+    "name": "Myton",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.1932646,
+    "lon": -110.0625119,
+    "place_fips": "4953340"
+  },
+  {
+    "name": "Naples",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.4317495,
+    "lon": -109.4912732,
+    "place_fips": "4953560"
+  },
+  {
+    "name": "Navajo Mountain",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.0470288,
+    "lon": -110.7899347,
+    "place_fips": "4953890"
+  },
+  {
+    "name": "Neola",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.4348058,
+    "lon": -110.0308204,
+    "place_fips": "4954110"
+  },
+  {
     "name": "Nephi",
     "county": "Juab County",
     "county_fips": "49023",
     "lat": 39.7046974,
     "lon": -111.8333498,
     "place_fips": "4954220"
+  },
+  {
+    "name": "Newcastle",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.662854,
+    "lon": -113.5643662,
+    "place_fips": "4954330"
   },
   {
     "name": "Newton",
@@ -864,12 +1800,28 @@
     "place_fips": "4955210"
   },
   {
+    "name": "Oak City",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.3747382,
+    "lon": -112.3383423,
+    "place_fips": "4955430"
+  },
+  {
     "name": "Oakley",
     "county": "Summit County",
     "county_fips": "49043",
     "lat": 40.7405212,
     "lon": -111.2740987,
     "place_fips": "4955650"
+  },
+  {
+    "name": "Oasis",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.2923055,
+    "lon": -112.6289509,
+    "place_fips": "4955760"
   },
   {
     "name": "Ogden",
@@ -880,12 +1832,36 @@
     "place_fips": "4955980"
   },
   {
+    "name": "Oljato-Monument Valley",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.030747,
+    "lon": -110.2510942,
+    "place_fips": "4956440"
+  },
+  {
     "name": "Ophir",
     "county": "Tooele County",
     "county_fips": "49045",
     "lat": 40.3700553,
     "lon": -112.255963,
     "place_fips": "4956750"
+  },
+  {
+    "name": "Orangeville",
+    "county": "Emery County, UT",
+    "county_fips": "",
+    "lat": 39.2308242,
+    "lon": -111.0591725,
+    "place_fips": "4956860"
+  },
+  {
+    "name": "Orderville",
+    "county": "Kane County, UT",
+    "county_fips": "",
+    "lat": 37.2539579,
+    "lon": -112.6573969,
+    "place_fips": "4957080"
   },
   {
     "name": "Orem",
@@ -904,12 +1880,28 @@
     "place_fips": "4957630"
   },
   {
+    "name": "Panguitch",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.8228543,
+    "lon": -112.4341686,
+    "place_fips": "4957740"
+  },
+  {
     "name": "Paradise",
     "county": "Cache County",
     "county_fips": "49005",
     "lat": 41.5681757,
     "lon": -111.8333489,
     "place_fips": "4957850"
+  },
+  {
+    "name": "Paragonah",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.8853791,
+    "lon": -112.7710891,
+    "place_fips": "4957960"
   },
   {
     "name": "Park City",
@@ -926,6 +1918,14 @@
     "lat": 40.6573283,
     "lon": -111.4937559,
     "place_fips": "4958070"
+  },
+  {
+    "name": "Parowan",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.8325786,
+    "lon": -112.8296226,
+    "place_fips": "4958510"
   },
   {
     "name": "Payson",
@@ -958,6 +1958,22 @@
     "lat": 41.7774283,
     "lon": -112.0006443,
     "place_fips": "4959555"
+  },
+  {
+    "name": "Pine Valley",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.3903687,
+    "lon": -113.5060334,
+    "place_fips": "4960270"
+  },
+  {
+    "name": "Piute County, UT Unincorporated",
+    "county": "Piute County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Plain City",
@@ -1000,6 +2016,14 @@
     "place_fips": "4961590"
   },
   {
+    "name": "Price",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.6040008,
+    "lon": -110.8003519,
+    "place_fips": "4962030"
+  },
+  {
     "name": "Providence",
     "county": "Cache County",
     "county_fips": "49005",
@@ -1014,6 +2038,46 @@
     "lat": 40.2453116,
     "lon": -111.6450565,
     "place_fips": "4962470"
+  },
+  {
+    "name": "Randlett",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.2267483,
+    "lon": -109.83081,
+    "place_fips": "4962910"
+  },
+  {
+    "name": "Randolph",
+    "county": "Rich County, UT",
+    "county_fips": "",
+    "lat": 41.6655249,
+    "lon": -111.1846332,
+    "place_fips": "4963020"
+  },
+  {
+    "name": "Redmond",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 39.0052597,
+    "lon": -111.8672419,
+    "place_fips": "4963240"
+  },
+  {
+    "name": "Rich County, UT Unincorporated",
+    "county": "Rich County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Richfield",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.7613112,
+    "lon": -112.092861,
+    "place_fips": "4963570"
   },
   {
     "name": "Richmond",
@@ -1056,12 +2120,28 @@
     "place_fips": "4964340"
   },
   {
+    "name": "Rockville",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.1478171,
+    "lon": -113.0547903,
+    "place_fips": "4964560"
+  },
+  {
     "name": "Rocky Ridge",
     "county": "Juab County",
     "county_fips": "49023",
     "lat": 39.919747,
     "lon": -111.8257475,
     "place_fips": "4964590"
+  },
+  {
+    "name": "Roosevelt",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.2877269,
+    "lon": -109.9879829,
+    "place_fips": "4964670"
   },
   {
     "name": "Roy",
@@ -1088,6 +2168,14 @@
     "place_fips": "4965770"
   },
   {
+    "name": "Salina",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.9388387,
+    "lon": -111.8652089,
+    "place_fips": "4965880"
+  },
+  {
     "name": "Salt Lake City",
     "county": "Salt Lake County",
     "county_fips": "49035",
@@ -1112,12 +2200,36 @@
     "place_fips": "4967400"
   },
   {
+    "name": "San Juan County, UT Unincorporated",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
     "name": "Sandy",
     "county": "Salt Lake County",
     "county_fips": "49035",
     "lat": 40.5717144,
     "lon": -111.8498697,
     "place_fips": "4967440"
+  },
+  {
+    "name": "Sanpete County, UT Unincorporated",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Santa Clara",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.131398,
+    "lon": -113.6566457,
+    "place_fips": "4967660"
   },
   {
     "name": "Santaquin",
@@ -1142,6 +2254,38 @@
     "lat": 40.3446076,
     "lon": -111.9158934,
     "place_fips": "4967825"
+  },
+  {
+    "name": "Scipio",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.2490802,
+    "lon": -112.1044107,
+    "place_fips": "4967880"
+  },
+  {
+    "name": "Scofield",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.719827,
+    "lon": -111.1622597,
+    "place_fips": "4967990"
+  },
+  {
+    "name": "Sevier County, UT Unincorporated",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
+    "name": "Sigurd",
+    "county": "Sevier County, UT",
+    "county_fips": "",
+    "lat": 38.8662197,
+    "lon": -111.9631411,
+    "place_fips": "4968650"
   },
   {
     "name": "Silver Summit",
@@ -1224,12 +2368,44 @@
     "place_fips": "4971290"
   },
   {
+    "name": "Spanish Valley",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 38.4742626,
+    "lon": -109.4209722,
+    "place_fips": "4971455"
+  },
+  {
+    "name": "Spring City",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.4798648,
+    "lon": -111.4917636,
+    "place_fips": "4971730"
+  },
+  {
+    "name": "Spring Glen",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.6560098,
+    "lon": -110.8460807,
+    "place_fips": "4972060"
+  },
+  {
     "name": "Spring Lake",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 40.0085342,
     "lon": -111.7506365,
     "place_fips": "4972170"
+  },
+  {
+    "name": "Springdale",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.1816732,
+    "lon": -113.0050071,
+    "place_fips": "4971840"
   },
   {
     "name": "Springville",
@@ -1240,6 +2416,14 @@
     "place_fips": "4972280"
   },
   {
+    "name": "St. George",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.0770058,
+    "lon": -113.5765342,
+    "place_fips": "4965330"
+  },
+  {
     "name": "Stansbury Park",
     "county": "Tooele County",
     "county_fips": "49045",
@@ -1248,12 +2432,28 @@
     "place_fips": "4972720"
   },
   {
+    "name": "Sterling",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.1933208,
+    "lon": -111.690405,
+    "place_fips": "4972940"
+  },
+  {
     "name": "Stockton",
     "county": "Tooele County",
     "county_fips": "49045",
     "lat": 40.4441322,
     "lon": -112.3744198,
     "place_fips": "4973050"
+  },
+  {
+    "name": "Summit",
+    "county": "Iron County, UT",
+    "county_fips": "",
+    "lat": 37.8053369,
+    "lon": -112.9331349,
+    "place_fips": "4974040"
   },
   {
     "name": "Summit County Unincorporated",
@@ -1288,12 +2488,28 @@
     "place_fips": "4974480"
   },
   {
+    "name": "Sutherland",
+    "county": "Millard County, UT",
+    "county_fips": "",
+    "lat": 39.3895808,
+    "lon": -112.6399402,
+    "place_fips": "4974590"
+  },
+  {
     "name": "Syracuse",
     "county": "Davis County",
     "county_fips": "49011",
     "lat": 41.085847,
     "lon": -112.0687381,
     "place_fips": "4974810"
+  },
+  {
+    "name": "Tabiona",
+    "county": "Duchesne County, UT",
+    "county_fips": "",
+    "lat": 40.3542162,
+    "lon": -110.7095587,
+    "place_fips": "4974920"
   },
   {
     "name": "Taylorsville",
@@ -1304,12 +2520,28 @@
     "place_fips": "4975360"
   },
   {
+    "name": "Teasdale",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.2850969,
+    "lon": -111.4723666,
+    "place_fips": "4975470"
+  },
+  {
     "name": "Thatcher",
     "county": "Box Elder County",
     "county_fips": "49003",
     "lat": 41.6815219,
     "lon": -112.3200432,
     "place_fips": "4975800"
+  },
+  {
+    "name": "Thompson Springs",
+    "county": "Grand County, UT",
+    "county_fips": "",
+    "lat": 38.9635749,
+    "lon": -109.7037194,
+    "place_fips": "4976180"
   },
   {
     "name": "Timber Lakes",
@@ -1336,6 +2568,22 @@
     "place_fips": ""
   },
   {
+    "name": "Toquerville",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.2665455,
+    "lon": -113.2951348,
+    "place_fips": "4976900"
+  },
+  {
+    "name": "Torrey",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": 38.3073371,
+    "lon": -111.4271331,
+    "place_fips": "4977010"
+  },
+  {
     "name": "Tremonton",
     "county": "Box Elder County",
     "county_fips": "49003",
@@ -1352,12 +2600,36 @@
     "place_fips": "4977230"
   },
   {
+    "name": "Tropic",
+    "county": "Garfield County, UT",
+    "county_fips": "",
+    "lat": 37.6330544,
+    "lon": -112.0879592,
+    "place_fips": "4977560"
+  },
+  {
+    "name": "Tselakai Dezza",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.2100083,
+    "lon": -109.6090957,
+    "place_fips": "4977697"
+  },
+  {
     "name": "Uintah",
     "county": "Weber County",
     "county_fips": "49057",
     "lat": 41.1413571,
     "lon": -111.9323852,
     "place_fips": "4977890"
+  },
+  {
+    "name": "Uintah County, UT Unincorporated",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
   },
   {
     "name": "Utah County Unincorporated",
@@ -1368,6 +2640,14 @@
     "place_fips": ""
   },
   {
+    "name": "Vernal",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.4517007,
+    "lon": -109.538007,
+    "place_fips": "4980090"
+  },
+  {
     "name": "Vernon",
     "county": "Tooele County",
     "county_fips": "49045",
@@ -1376,12 +2656,36 @@
     "place_fips": "4980200"
   },
   {
+    "name": "Veyo",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.3375016,
+    "lon": -113.6930276,
+    "place_fips": "4980310"
+  },
+  {
     "name": "Vineyard",
     "county": "Utah County",
     "county_fips": "49049",
     "lat": 40.3050555,
     "lon": -111.7547837,
     "place_fips": "4980420"
+  },
+  {
+    "name": "Virgin",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.194738,
+    "lon": -113.2055387,
+    "place_fips": "4980530"
+  },
+  {
+    "name": "Wales",
+    "county": "Sanpete County, UT",
+    "county_fips": "",
+    "lat": 39.4851799,
+    "lon": -111.6360791,
+    "place_fips": "4980860"
   },
   {
     "name": "Wallsburg",
@@ -1408,6 +2712,22 @@
     "place_fips": ""
   },
   {
+    "name": "Washington",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": 37.1266758,
+    "lon": -113.4877594,
+    "place_fips": "4981960"
+  },
+  {
+    "name": "Washington County, UT Unincorporated",
+    "county": "Washington County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
     "name": "Washington Terrace",
     "county": "Weber County",
     "county_fips": "49057",
@@ -1416,12 +2736,28 @@
     "place_fips": "4982070"
   },
   {
+    "name": "Wayne County, UT Unincorporated",
+    "county": "Wayne County, UT",
+    "county_fips": "",
+    "lat": null,
+    "lon": null,
+    "place_fips": ""
+  },
+  {
     "name": "Weber County Unincorporated",
     "county": "Weber County",
     "county_fips": "49057",
     "lat": null,
     "lon": null,
     "place_fips": ""
+  },
+  {
+    "name": "Wellington",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.5358601,
+    "lon": -110.7343743,
+    "place_fips": "4982510"
   },
   {
     "name": "Wellsville",
@@ -1488,12 +2824,36 @@
     "place_fips": "4983470"
   },
   {
+    "name": "West Wood",
+    "county": "Carbon County, UT",
+    "county_fips": "",
+    "lat": 39.6051581,
+    "lon": -110.8424243,
+    "place_fips": "4983730"
+  },
+  {
     "name": "White City metro",
     "county": "Salt Lake County",
     "county_fips": "49035",
     "lat": 40.568742,
     "lon": -111.8626405,
     "place_fips": "4984050"
+  },
+  {
+    "name": "White Mesa",
+    "county": "San Juan County, UT",
+    "county_fips": "",
+    "lat": 37.4596213,
+    "lon": -109.4599635,
+    "place_fips": "4984095"
+  },
+  {
+    "name": "Whiterocks",
+    "county": "Uintah County, UT",
+    "county_fips": "",
+    "lat": 40.4721466,
+    "lon": -109.9412201,
+    "place_fips": "4984160"
   },
   {
     "name": "Willard",
@@ -1526,6 +2886,14 @@
     "lat": 40.0133653,
     "lon": -111.6560037,
     "place_fips": "4985050"
+  },
+  {
+    "name": "Woodruff",
+    "county": "Rich County, UT",
+    "county_fips": "",
+    "lat": 41.5211828,
+    "lon": -111.1639306,
+    "place_fips": "4985260"
   },
   {
     "name": "Woods Cross",

@@ -80,7 +80,8 @@ WFRC_COUNTIES = {
 LODES_BASE = "https://lehd.ces.census.gov/data/lodes/LODES8/ut"
 # LODES8 covers 2002-2023; try from newest downward when no --year given
 LODES_YEARS_DEFAULT = [str(y) for y in range(2023, 2001, -1)]
-OD_TEMPLATE = LODES_BASE + "/od/ut_od_main_JT00_{year}.csv.gz"
+OD_TEMPLATE  = LODES_BASE + "/od/ut_od_main_JT00_{year}.csv.gz"
+AUX_TEMPLATE = LODES_BASE + "/od/ut_od_aux_JT00_{year}.csv.gz"
 XWALK_URL = LODES_BASE + "/ut_xwalk.csv.gz"
 
 # ── Census TIGER 2024 URLs (Utah state FIPS = 49) ────────────────────────────
@@ -95,23 +96,41 @@ BAND_COLS = ["d0_10", "d10_25", "d25_50", "d50p"]
 
 
 def load_od(years=LODES_YEARS_DEFAULT):
-    """Download OD CSV.GZ (cached), trying each year until one succeeds."""
+    """Download main + aux OD CSV.GZ files (cached), trying each year until one succeeds.
+
+    Main file: home AND work both in Utah.
+    Aux  file: home in Utah, work OUTSIDE Utah (captures Utah residents commuting
+               out of state, closing the outflow gap vs Census OnTheMap).
+    """
     for year in years:
-        url = OD_TEMPLATE.format(year=year)
-        filename = f"ut_od_main_JT00_{year}.csv.gz"
+        main_url  = OD_TEMPLATE.format(year=year)
+        aux_url   = AUX_TEMPLATE.format(year=year)
+        main_file = f"ut_od_main_JT00_{year}.csv.gz"
+        aux_file  = f"ut_od_aux_JT00_{year}.csv.gz"
         print(f"  Trying OD data for {year}...")
         try:
-            local = download_cached(url, filename)
-            df = pd.read_csv(
-                local,
+            main_local = download_cached(main_url, main_file)
+            main_df = pd.read_csv(
+                main_local,
                 dtype={"w_geocode": str, "h_geocode": str},
                 usecols=["w_geocode", "h_geocode"] + AGG_COLS,
             )
-            print(f"  Loaded {len(df):,} OD records for {year}")
+            try:
+                aux_local = download_cached(aux_url, aux_file)
+                aux_df = pd.read_csv(
+                    aux_local,
+                    dtype={"w_geocode": str, "h_geocode": str},
+                    usecols=["w_geocode", "h_geocode"] + AGG_COLS,
+                )
+                df = pd.concat([main_df, aux_df], ignore_index=True)
+                print(f"  Loaded {len(main_df):,} main + {len(aux_df):,} aux = {len(df):,} OD records for {year}")
+            except Exception as aux_err:
+                print(f"  Aux file unavailable ({aux_err}), using main only.")
+                df = main_df
+                print(f"  Loaded {len(df):,} OD records for {year}")
             return df, year
         except Exception as e:
-            # Remove a failed/partial cache entry so next run retries the download
-            bad = CACHE_DIR / filename
+            bad = CACHE_DIR / main_file
             if bad.exists():
                 bad.unlink()
             print(f"  Failed ({e}), trying next year...")
@@ -175,9 +194,42 @@ def join_od_with_lookup(od, lookup):
     return od
 
 
+def mark_out_of_state(od):
+    """Label home/work geocodes outside Utah (non-49 FIPS prefix) as 'Out of State'.
+
+    Aux file rows have work in Utah but home in another state — the Utah crosswalk
+    leaves those h_geocode lookups as NaN, and pandas groupby silently drops NaN
+    keys, so we must assign a concrete label before aggregation.
+    Main file rows are all Utah–Utah; this is a no-op for them.
+    """
+    oos_home = ~od["h_geocode"].str.startswith("49")
+    nh = oos_home.sum()
+    if nh:
+        od.loc[oos_home, "h_city"]   = "Out of State"
+        od.loc[oos_home, "h_county"] = "Out of State"
+        od.loc[oos_home, "h_cty"]    = "00000"
+        print(f"  Out-of-state home records: {nh:,}")
+
+    oos_work = ~od["w_geocode"].str.startswith("49")
+    nw = oos_work.sum()
+    if nw:
+        od.loc[oos_work, "w_city"]   = "Out of State"
+        od.loc[oos_work, "w_county"] = "Out of State"
+        od.loc[oos_work, "w_cty"]    = "00000"
+        print(f"  Out-of-state work records: {nw:,}")
+
+    return od
+
+
 def filter_wfrc(od):
-    """Keep only rows where BOTH home and work blocks are in WFRC counties."""
-    mask = od["h_cty"].isin(WFRC_COUNTIES) & od["w_cty"].isin(WFRC_COUNTIES)
+    """Keep rows where at least one of home or work is in a WFRC county.
+
+    Using OR (not AND) ensures that flows between a WFRC county and a non-WFRC
+    Utah county are included, so inflow/outflow totals match Census OnTheMap.
+    The previous AND filter silently dropped e.g. SL County residents working
+    in Washington County, causing totals to undercount vs Census by ~15-33k.
+    """
+    mask = od["h_cty"].isin(WFRC_COUNTIES) | od["w_cty"].isin(WFRC_COUNTIES)
     filtered = od[mask].copy()
     print(f"  WFRC OD rows: {len(filtered):,} (of {len(od):,})")
     return filtered
@@ -333,6 +385,8 @@ def build_city_meta(city_flows, xw, places):
     unmatched = []
 
     for city_name, county_name in sorted(city_county_pairs):
+        if city_name == "Out of State":
+            continue
         place_fips = name_to_plc.get(city_name)
         lat, lon = None, None
 
@@ -506,6 +560,7 @@ def main():
     # 5. Join OD with lookup
     print("\n4. Joining OD with crosswalk...")
     od = join_od_with_lookup(od, lookup)
+    od = mark_out_of_state(od)
 
     # 6. Filter to WFRC region
     print("\n5. Filtering to WFRC 9-county region...")
