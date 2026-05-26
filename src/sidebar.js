@@ -397,7 +397,7 @@ function _initDropdown(names, cityMeta) {
 
   function show(items) {
     if (!items.length) { hide(); return; }
-    dropdown.innerHTML = items.slice(0, 50).map((a, i) => `
+    dropdown.innerHTML = items.map((a, i) => `
       <li role="option" data-value="${_escHtml(a.label)}" data-type="${a.type}"
           aria-selected="false" id="drop-item-${i}">
         <span>${_escHtml(a.label)}</span>
@@ -437,13 +437,13 @@ function _initDropdown(names, cityMeta) {
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
     const areas = getCurrentAreas();
-    show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas.slice(0, 30));
+    show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas);
   });
 
   input.addEventListener('focus', () => {
     const q = input.value.trim().toLowerCase();
     const areas = getCurrentAreas();
-    show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas.slice(0, 30));
+    show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas);
   });
 
   input.addEventListener('keydown', e => {
@@ -453,7 +453,7 @@ function _initDropdown(names, cityMeta) {
         e.preventDefault();
         const q = input.value.trim().toLowerCase();
         const areas = getCurrentAreas();
-        show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas.slice(0, 30));
+        show(q ? areas.filter(a => a.label.toLowerCase().includes(q)) : areas);
       }
       return;
     }
