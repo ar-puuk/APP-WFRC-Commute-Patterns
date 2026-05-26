@@ -540,7 +540,9 @@ async function refreshVisualization() {
 
 function _applyFilter() {
   const dirFlows = state.direction === 'outflow' ? _lastOutflows : _lastInflows;
-  const total    = state.direction === 'outflow' ? _lastTotalOut : _lastTotalIn;
+  const netOut   = Math.max(_lastTotalOut - _lastSelfCount, 0);
+  const netIn    = Math.max(_lastTotalIn  - _lastSelfCount, 0);
+  const total    = state.direction === 'outflow' ? netOut : netIn;
 
   const filtered = state.aggregation === 'county'
     ? dirFlows
@@ -558,7 +560,7 @@ function _applyFilter() {
 
   updateLayers(filtered, state, arcClickHandler, total);
   // Charts always show both directions unfiltered — top N by volume handles their own slicing
-  updateCharts(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastSelfCount, state, acsEntry, _lastReachOut, _lastReachIn);
+  updateCharts(_lastOutflows, _lastInflows, netOut, netIn, _lastSelfCount, state, acsEntry, _lastReachOut, _lastReachIn);
   updateChoropleth(dirFlows, state.selectedArea, state.aggregation, state.theme, state.direction);
   updateSidebarStats(dirFlows, state);
   _updateDataline(total, state);
