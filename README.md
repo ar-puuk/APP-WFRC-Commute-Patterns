@@ -15,7 +15,8 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
 ## Features
 
 - **Arc flow map** — curved arcs connect origins and destinations; arc width and opacity scale with commuter volume
-- **Four geography levels** — select any city, county, Utah House district, or Utah Senate district; display destinations at any of those same levels independently
+- **Four subject area types** — select any city, county, Utah House district, or Utah Senate district as the subject of analysis
+- **Two map zone levels** — display destination choropleth and flow arcs aggregated at city or county level
 - **Both flow directions** — "where residents work" and "where workers live"
 - **22 years of data** — LEHD LODES data from 2002–2023; switch years from the header
 - **Six chart panels** (right sidebar, collapsible and resizable):

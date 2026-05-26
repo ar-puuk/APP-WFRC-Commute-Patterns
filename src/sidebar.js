@@ -82,8 +82,9 @@ export function initSidebar({ cityNames, countyNames, houseNames, senateNames, c
       <div class="type-strip" id="aggregation-toggle" role="group" aria-label="Aggregation level">
         <button data-value="city"   class="${state.aggregation === 'city'   ? 'active' : ''}">City</button>
         <button data-value="county" class="${state.aggregation === 'county' ? 'active' : ''}">County</button>
-        <button data-value="house"  class="${state.aggregation === 'house'  ? 'active' : ''}">Utah House</button>
-        <button data-value="senate" class="${state.aggregation === 'senate' ? 'active' : ''}">Utah Senate</button>
+        <!-- TO RE-ENABLE district map zones: uncomment the two lines below -->
+        <!-- <button data-value="house"  class="${state.aggregation === 'house'  ? 'active' : ''}">Utah House</button> -->
+        <!-- <button data-value="senate" class="${state.aggregation === 'senate' ? 'active' : ''}">Utah Senate</button> -->
       </div>
     </div>
 

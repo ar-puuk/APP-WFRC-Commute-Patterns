@@ -699,7 +699,9 @@ function _getUrlYear(availableYears, defaultYear) {
 function _applyUrlParams() {
   const p = new URLSearchParams(window.location.search);
   const agg = p.get('agg');
-  if (['city', 'county', 'house', 'senate'].includes(agg)) state.aggregation = agg;
+  // TO RE-ENABLE district map zones: replace the line below with the commented-out one
+  if (['city', 'county'].includes(agg)) state.aggregation = agg;
+  // if (['city', 'county', 'house', 'senate'].includes(agg)) state.aggregation = agg;
   const area = p.get('area');
   if (area) {
     const meta = _getMetaFor(state.aggregation);

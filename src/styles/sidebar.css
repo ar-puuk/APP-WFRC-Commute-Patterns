@@ -219,6 +219,9 @@
 .type-strip button:last-child { margin-right: 0; }
 .type-strip button:hover { color: var(--ink-2); }
 
+/* TO RE-ENABLE district map zones: remove the rule below (4 buttons fill naturally) */
+#aggregation-toggle button { flex: 1; margin-right: 0; text-align: center; }
+
 .type-strip button.active {
   color: var(--ink);
   font-weight: 600;
