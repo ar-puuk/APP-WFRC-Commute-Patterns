@@ -434,11 +434,18 @@ function _initDropdown(names, cityMeta) {
     // Sync area type toggle
     _setActiveToggle('areatype-toggle', effectiveType);
 
-    if (effectiveType !== _state.aggregation) {
+    // TO RE-ENABLE district map zones: replace the current if-block with the commented one
+    const _ZONE_TYPES = ['city', 'county'];
+    if (_ZONE_TYPES.includes(effectiveType) && effectiveType !== _state.aggregation) {
       _state.aggregation = effectiveType;
       _setActiveToggle('aggregation-toggle', effectiveType);
       _updateSearchContext();
     }
+    // if (effectiveType !== _state.aggregation) {  // ← restore this block instead
+    //   _state.aggregation = effectiveType;
+    //   _setActiveToggle('aggregation-toggle', effectiveType);
+    //   _updateSearchContext();
+    // }
     hide();
     _onAreaFly?.(label, effectiveType);
     _onSelectionChange();
