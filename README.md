@@ -27,7 +27,7 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
   - *Commute Reach* — distance-band distribution (< 10 mi, 10–25 mi, 25–50 mi, 50+ mi) with block-level weighted mean and median commute distance
   - *Industry Mix* — stacked bar across top-5 destinations with inflow/outflow toggle
 - **Export** — every chart exports as PNG or CSV
-- **Clickable zone polygons** — click any city, county, or legislative district polygon on the map to select it directly
+- **Clickable zone polygons** — click any city or county polygon on the map to select it directly
 - **Layer controls** — toggle flow lines and polygon choropleth; set a minimum-commuter threshold for flow lines
 - **Gradient color legend** — top-left overlay shows the flow color scale matching arc colors exactly
 - **Map controls** — zoom, compass with pitch visualization, reset tilt & north, reset to full Utah view, geolocate, fullscreen, scale bar
