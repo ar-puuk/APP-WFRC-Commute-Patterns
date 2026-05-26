@@ -6,7 +6,9 @@ An interactive WebAssembly-powered map for exploring commute flow patterns acros
 
 **GitHub Pages mirror:** https://wfrcanalytics.github.io/APP-WFRC-Commute-Patterns/
 
-![App screenshot](screenshot.png)
+| Light mode | Dark mode |
+|:---:|:---:|
+| ![Light mode](docs/screenshot-light.png) | ![Dark mode](docs/screenshot-dark.png) |
 
 ---
 
@@ -166,7 +168,8 @@ To enable GitHub Pages on a new repository fork:
 │   ├── process_data.py         # Offline data pipeline (LEHD + TIGER + ACS)
 │   ├── fetch_acs.py            # Fetches ACS 5-Year Estimates via Census API
 │   ├── custom_places.py        # Modular extension for non-Census employment sites
-│   └── verify_custom_places.py # LEHD coverage audit for custom places
+│   ├── verify_custom_places.py # LEHD coverage audit for custom places
+│   └── screenshot.cjs          # Playwright script — captures light/dark screenshots into docs/
 │
 ├── public/
 │   ├── favicon-light.svg           # Theme-aware favicon (light mode)
