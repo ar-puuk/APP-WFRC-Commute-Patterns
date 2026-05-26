@@ -261,20 +261,21 @@ export function updateSidebarStats(flows, appState) {
       + _bdRow('Services', bd.SI03, industrySum, dirClass);
   }
 
-  // ── Reach ──────────────────────────────────────────────────────────────────
-  const reachPairs = flows
-    .filter(f => f.home_lat != null && f.work_lat != null)
-    .map(f => ({ mi: _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon), n: Number(f.S000) }));
+  // ── Reach — block-level weighted mean and band-interpolated median ───────────
+  // dist_wsum = Σ(S000 × block_haversine_miles) per destination zone pair
+  // dist_n    = Σ(S000) for block pairs with valid coordinates
+  // Summing across all destination zones gives the true weighted mean for the subject area.
+  const totalWsum = flows.reduce((s, f) => s + Number(f.dist_wsum || 0), 0);
+  const totalN    = flows.reduce((s, f) => s + Number(f.dist_n    || 0), 0);
+  const avgMiles  = totalN > 0 ? totalWsum / totalN : null;
 
-  let avgMiles = null, medianMiles = null;
-  if (reachPairs.length) {
-    const sumN = reachPairs.reduce((s, p) => s + p.n, 0);
-    avgMiles = reachPairs.reduce((s, p) => s + p.mi * p.n, 0) / sumN;
-    const sorted = [...reachPairs].sort((a, b) => a.mi - b.mi);
-    const half = sumN / 2;
-    let cum = 0;
-    for (const p of sorted) { cum += p.n; if (cum >= half) { medianMiles = p.mi; break; } }
-  }
+  // Median: interpolate within the band that straddles the 50th percentile.
+  // Upper bound of d50p is approximated at 100 miles for interpolation.
+  const bn0  = flows.reduce((s, f) => s + Number(f.d0_10  || 0), 0);
+  const bn10 = flows.reduce((s, f) => s + Number(f.d10_25 || 0), 0);
+  const bn25 = flows.reduce((s, f) => s + Number(f.d25_50 || 0), 0);
+  const bn50 = flows.reduce((s, f) => s + Number(f.d50p   || 0), 0);
+  const medianMiles = _bandMedian(bn0, bn10, bn25, bn50);
 
   const avgEl    = document.getElementById('reach-avg');
   const medianEl = document.getElementById('reach-median');
@@ -327,14 +328,16 @@ function _clearDemoRows() {
   });
 }
 
-function _haversineMiles(lat1, lon1, lat2, lon2) {
-  const R    = 3958.8;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a    = Math.sin(dLat / 2) ** 2
-    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
-    * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function _bandMedian(n0, n10, n25, n50) {
+  const total = n0 + n10 + n25 + n50;
+  if (total === 0) return null;
+  const half = total / 2;
+  let cum = 0;
+  for (const [lo, hi, n] of [[0, 10, n0], [10, 25, n10], [25, 50, n25], [50, 100, n50]]) {
+    if (n > 0 && cum + n >= half) return lo + ((half - cum) / n) * (hi - lo);
+    cum += n;
+  }
+  return null;
 }
 
 function _aggregationLabel(agg) {

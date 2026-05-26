@@ -3,6 +3,7 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 let _db               = null;
 let _conn             = null;
 let _hasDistanceBands = false;
+let _hasDistWsum      = false;
 
 /**
  * Initialize DuckDB-WASM and load Parquet files for the given year.
@@ -81,6 +82,7 @@ async function _loadYearFiles(year, onProgress) {
   );
   const colNames = new Set(colResult.toArray().map(r => r.toJSON().column_name));
   _hasDistanceBands = ['d0_10', 'd10_25', 'd25_50', 'd50p'].every(c => colNames.has(c));
+  _hasDistWsum      = colNames.has('dist_wsum');
 
   onProgress?.(100);
 }
@@ -135,6 +137,10 @@ export async function queryFlows(area, areaType, direction, aggregation) {
     ? 'SUM(cf.d0_10) AS d0_10, SUM(cf.d10_25) AS d10_25, SUM(cf.d25_50) AS d25_50, SUM(cf.d50p) AS d50p,'
     : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p,';
 
+  const distCols = _hasDistWsum
+    ? 'SUM(cf.dist_wsum) AS dist_wsum, SUM(cf.dist_n) AS dist_n,'
+    : '0 AS dist_wsum, 0 AS dist_n,';
+
   const sql = `
     SELECT
       cf.${destCol} AS dest_name,
@@ -143,6 +149,7 @@ export async function queryFlows(area, areaType, direction, aggregation) {
       SUM(cf.SE01)  AS SE01, SUM(cf.SE02) AS SE02, SUM(cf.SE03) AS SE03,
       SUM(cf.SI01)  AS SI01, SUM(cf.SI02) AS SI02, SUM(cf.SI03) AS SI03,
       ${bandCols}
+      ${distCols}
       dt.dest_total
     FROM ${table} cf
     JOIN (

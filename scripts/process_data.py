@@ -114,7 +114,8 @@ SLDU_URL     = f"{TIGER_BASE}/SLDU/tl_2024_49_sldu.zip"    # state senate distri
 # ── LEHD OD columns to aggregate ─────────────────────────────────────────────
 AGG_COLS  = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
 # Distance-band worker counts added by add_distance_bands() before aggregation
-BAND_COLS = ["d0_10", "d10_25", "d25_50", "d50p"]
+BAND_COLS = ["d0_10", "d10_25", "d25_50", "d50p", "dist_n"]   # integer columns
+DIST_COLS = ["dist_wsum"]                                        # float column
 
 
 def load_od(years=LODES_YEARS_DEFAULT):
@@ -342,10 +343,14 @@ def _haversine_miles_vec(lat1, lon1, lat2, lon2):
 
 
 def add_distance_bands(od):
-    """Add 4 worker-count columns bucketed by block-centroid haversine distance.
+    """Add distance-band count columns and block-level weighted-distance aggregates.
 
     Band thresholds match the frontend REACH_BANDS: <10, 10-25, 25-50, 50+ miles.
-    Rows missing either block coordinate contribute 0 to all band columns.
+    Rows missing either block coordinate contribute 0 to all band/distance columns.
+
+    New columns:
+      dist_wsum — Σ(S000 × miles) per block pair; sum across pairs gives weighted total
+      dist_n    — Σ(S000) for pairs with valid block coordinates; use as denominator
     """
     valid = od["h_blk_lat"].notna() & od["w_blk_lat"].notna()
     miles = pd.Series(np.nan, index=od.index, dtype="float64")
@@ -362,13 +367,16 @@ def add_distance_bands(od):
     od["d10_25"] = s.where((miles >= 10) & (miles <  25),    0)
     od["d25_50"] = s.where((miles >= 25) & (miles <  50),    0)
     od["d50p"]   = s.where(miles >= 50,                      0)
+    # Weighted-distance aggregates for exact avg/median in the frontend
+    od["dist_wsum"] = (s * miles).fillna(0).astype("float32")
+    od["dist_n"]    = s.where(valid, 0)
     pct = valid.mean() * 100
     print(f"  Block-level distance coverage: {valid.sum():,}/{len(od):,} pairs ({pct:.1f}%)")
     return od
 
 
 def aggregate_city_flows(od):
-    cols = AGG_COLS + BAND_COLS
+    cols = AGG_COLS + BAND_COLS + DIST_COLS
     grouped = (
         od.groupby(["h_city", "w_city", "h_county", "w_county"])[cols]
         .sum()
@@ -381,7 +389,7 @@ def aggregate_city_flows(od):
 
 
 def aggregate_county_flows(od):
-    cols = AGG_COLS + BAND_COLS
+    cols = AGG_COLS + BAND_COLS + DIST_COLS
     grouped = (
         od.groupby(["h_county", "w_county"])[cols]
         .sum()
@@ -401,7 +409,7 @@ def aggregate_district_flows(od):
     senate↔city, senate↔county, and the city/county↔district reverses.
     Rows with null district assignments (rare) are kept via dropna=False.
     """
-    cols = AGG_COLS + BAND_COLS
+    cols = AGG_COLS + BAND_COLS + DIST_COLS
     grouped = (
         od.groupby(
             ["h_house", "w_house", "h_senate", "w_senate",
@@ -843,6 +851,7 @@ def main():
 
     # 12. Export Parquet files
     print("\n12. Exporting data files...")
+    # int_cols excludes dist_wsum (float) — it is written as-is from the DataFrame
     export_parquet(city_flows,     year_dir / "city_flows.parquet",     AGG_COLS + BAND_COLS)
     export_parquet(county_flows,   year_dir / "county_flows.parquet",   AGG_COLS + BAND_COLS)
     export_parquet(district_flows, year_dir / "district_flows.parquet", AGG_COLS + BAND_COLS)
