@@ -185,10 +185,13 @@ async function main() {
   });
 
   // 9. Wire export buttons
-  document.getElementById('export-bar-png')?.addEventListener('click', () => exportBarPng());
-  document.getElementById('export-bar-csv')?.addEventListener('click', () => exportBarCsv());
-  document.getElementById('export-sankey-png')?.addEventListener('click', () => exportSankeyPng());
-  document.getElementById('export-sankey-csv')?.addEventListener('click', () => exportSankeyCsv());
+  // export-bar-* and export-sankey-* live in the re-rendered sidebar → use event delegation
+  document.body.addEventListener('click', e => {
+    if (e.target.id === 'export-bar-png')    exportBarPng();
+    if (e.target.id === 'export-bar-csv')    exportBarCsv();
+    if (e.target.id === 'export-sankey-png') exportSankeyPng();
+    if (e.target.id === 'export-sankey-csv') exportSankeyCsv();
+  });
   document.getElementById('export-demo-png')?.addEventListener('click', () => exportDemoPng());
   document.getElementById('export-demo-csv')?.addEventListener('click', () => exportDemoCsv());
   document.getElementById('export-reach-png')?.addEventListener('click', () => exportReachPng());

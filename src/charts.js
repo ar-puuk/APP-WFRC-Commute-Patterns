@@ -46,6 +46,21 @@ export function initCharts(onAreaSelect) {
     });
   });
 
+  // ── Worker Demographics tab switching (Age / Earnings in right panel) ────
+  document.getElementById('demo-tabs')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-tab]');
+    if (!btn) return;
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('#demo-tabs button').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+      b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+    });
+    ['age', 'earnings'].forEach(t => {
+      const el = document.getElementById(`demo-rows-${t}`);
+      if (el) el.hidden = t !== tab;
+    });
+  });
+
   // ── Worker Demographics dimension toggle (hidden demo chart) ──────────────
   document.querySelectorAll('#dim-toggle .mini-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -66,36 +81,42 @@ export function initCharts(onAreaSelect) {
     });
   });
 
-  // ── Flow Overview / Venn tab toggle ──────────────────────────────────────
-  document.querySelectorAll('#flow-tab-toggle .mini-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+  // ── Delegated click handler — covers elements in re-rendered sidebar ─────
+  document.addEventListener('click', e => {
+    // Flow Overview / Venn tab toggle (lives in re-rendered sidebar)
+    const flowTabBtn = e.target.closest('#flow-tab-toggle .mini-toggle-btn');
+    if (flowTabBtn) {
       document.querySelectorAll('#flow-tab-toggle .mini-toggle-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.dataset.tab;
-      document.getElementById('flow-overview-panel').style.display = tab === 'overview' ? '' : 'none';
-      document.getElementById('flow-venn-panel').style.display     = tab === 'venn'     ? '' : 'none';
-    });
-  });
+      flowTabBtn.classList.add('active');
+      const tab = flowTabBtn.dataset.tab;
+      const overviewPanel = document.getElementById('flow-overview-panel');
+      const vennPanel     = document.getElementById('flow-venn-panel');
+      if (overviewPanel) overviewPanel.style.display = tab === 'overview' ? '' : 'none';
+      if (vennPanel)     vennPanel.style.display     = tab === 'venn'     ? '' : 'none';
+      return;
+    }
 
-  // ── Balance sort toggle ───────────────────────────────────────────────────
-  document.querySelectorAll('.balance-sort-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    // Balance sort buttons
+    const sortBtn = e.target.closest('.balance-sort-btn');
+    if (sortBtn) {
       document.querySelectorAll('.balance-sort-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      _balanceSort = btn.dataset.sort;
+      sortBtn.classList.add('active');
+      _balanceSort = sortBtn.dataset.sort;
       if (_lastState) _renderBar(_lastOutflows, _lastInflows, _lastTotalOut, _lastTotalIn, _lastState);
-    });
-  });
+      return;
+    }
 
-  // ── Balance / Top Flows tab toggle ───────────────────────────────────────
-  document.querySelectorAll('#balance-tab-toggle .mini-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    // Balance tab toggle
+    const tabBtn = e.target.closest('#balance-tab-toggle .mini-toggle-btn');
+    if (tabBtn) {
       document.querySelectorAll('#balance-tab-toggle .mini-toggle-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.dataset.tab;
-      document.getElementById('balance-tab-panel').style.display    = tab === 'balance'   ? '' : 'none';
-      document.getElementById('top-flows-tab-panel').style.display  = tab === 'top-flows' ? '' : 'none';
-    });
+      tabBtn.classList.add('active');
+      const tab = tabBtn.dataset.tab;
+      const bPanel = document.getElementById('balance-tab-panel');
+      const tPanel = document.getElementById('top-flows-tab-panel');
+      if (bPanel) bPanel.style.display = tab === 'balance'   ? '' : 'none';
+      if (tPanel) tPanel.style.display = tab === 'top-flows' ? '' : 'none';
+    }
   });
 }
 
@@ -510,10 +531,12 @@ export function exportIndustryPng() {
   const ink3    = dk ? '#92929a' : '#5b6071';
   const ruleBg  = dk ? 'rgba(232,229,220,0.09)' : 'rgba(18,23,38,0.10)';
   const ruleStr = dk ? 'rgba(232,229,220,0.20)' : 'rgba(18,23,38,0.22)';
-  const goodsC  = dk ? '#b58e54' : '#8b6b3a';
-  const tradeC  = dk ? '#e4895a' : '#cc683a';
-  const servC   = dk ? '#5aa6a7' : '#1e6f6f';
   const paper   = dk ? '#0a0e17' : '#f6f3eb';
+  // Single color ramp (8/30/52% paper mix), direction-aware, matching CSS
+  const isInflow = _industryDir === 'inflow';
+  const [goodsC, tradeC, servC] = isInflow
+    ? (dk ? ['#4a9394', '#376f6f', '#244b4b'] : ['#1c6b6b', '#125252', '#083939'])
+    : (dk ? ['#d47f52', '#a8603a', '#7d4222'] : ['#c4613a', '#a24926', '#803112']);
 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
@@ -734,6 +757,11 @@ function _renderBar(outflows, inflows, totalOut, totalIn, state) {
 
   if (axisL) axisL.textContent = axisMax.toLocaleString();
   if (axisR) axisR.textContent = axisMax.toLocaleString();
+
+  // Sync sort button state after sidebar re-render
+  document.querySelectorAll('.balance-sort-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === _balanceSort);
+  });
 
   const VISIBLE = 8;
   const rowHTML = r => `
@@ -970,9 +998,9 @@ function _renderFlowWheel(totalIn, totalOut, selfFlow, state) {
   if (!totalIn && !totalOut && !selfFlow) { el.innerHTML = ''; return; }
 
   const font = 'Inter, system-ui, sans-serif';
-  const W = 460, H = 188;
-  const cx = W / 2, cy = H / 2;  // 230, 94
-  const R  = 66;
+  const W = 460, H = 270;
+  const cx = W / 2, cy = H / 2;  // 230, 135
+  const R  = 88;
 
   const hasSelf = selfFlow > 0;
   const selfPct = (totalOut + selfFlow) > 0
@@ -996,7 +1024,7 @@ function _renderFlowWheel(totalIn, totalOut, selfFlow, state) {
 
   // Ribbon sizing ∝ sqrt(flow/max) — same scale as Venn radii
   const RW_MAX = 78, RW_MIN = 22, W_TIP = 10;
-  const tipLen = 22, overlap = 12;
+  const tipLen = 22, overlap = 36;
   const maxFlow = Math.max(totalIn, totalOut, 1);
   const rw_in  = Math.max(RW_MAX * (totalIn  / maxFlow), RW_MIN);
   const rw_out = Math.max(RW_MAX * (totalOut / maxFlow), RW_MIN);
@@ -1045,16 +1073,16 @@ function _renderFlowWheel(totalIn, totalOut, selfFlow, state) {
       <text x="${ltx.toFixed(1)}" y="${cy - 7}" text-anchor="middle"
             font-size="22" font-weight="700" font-family="${font}"
             fill="var(--inflow)">${fmt(totalIn)}</text>
-      <text x="${ltx.toFixed(1)}" y="${cy + 11}" text-anchor="middle"
-            font-size="9" font-family="${font}" fill="var(--inflow)"
-            opacity="0.70" letter-spacing="0.09em">WORKERS IN</text>
+      <text x="${ltx.toFixed(1)}" y="${cy + 13}" text-anchor="middle"
+            font-size="12" font-family="${font}" fill="var(--inflow)"
+            opacity="0.70" letter-spacing="0.03em">WORKERS IN</text>
 
       <text x="${rtx.toFixed(1)}" y="${cy - 7}" text-anchor="middle"
             font-size="22" font-weight="700" font-family="${font}"
             fill="var(--outflow)">${fmt(totalOut)}</text>
-      <text x="${rtx.toFixed(1)}" y="${cy + 11}" text-anchor="middle"
-            font-size="9" font-family="${font}" fill="var(--outflow)"
-            opacity="0.70" letter-spacing="0.09em">RESIDENTS OUT</text>
+      <text x="${rtx.toFixed(1)}" y="${cy + 13}" text-anchor="middle"
+            font-size="12" font-family="${font}" fill="var(--outflow)"
+            opacity="0.70" letter-spacing="0.03em">RESIDENTS OUT</text>
 
       <!-- Arrowheads: left → tip at circle, right → tip at right edge -->
       <polygon points="${lTipX},${cy} ${lBodyX},${cy - lAhW} ${lBodyX},${cy + lAhW}"
@@ -1074,18 +1102,18 @@ function _renderFlowWheel(totalIn, totalOut, selfFlow, state) {
 
       <!-- Center text: label → number → pct -->
       ${hasSelf ? `
-        <text x="${cx}" y="${cy - 19}" text-anchor="middle"
-              font-size="10" font-family="${font}" fill="${overlapColor}"
+        <text x="${cx}" y="${cy - 22}" text-anchor="middle"
+              font-size="13" font-family="${font}" fill="${overlapColor}"
               letter-spacing="0.06em">LIVE &amp; WORK</text>
-        <text x="${cx}" y="${cy + 7}" text-anchor="middle"
-              font-size="26" font-weight="700" font-family="${font}"
+        <text x="${cx}" y="${cy + 8}" text-anchor="middle"
+              font-size="32" font-weight="700" font-family="${font}"
               fill="var(--ink)">${fmt(selfFlow)}</text>
-        <text x="${cx}" y="${cy + 26}" text-anchor="middle"
-              font-size="13" font-weight="600" font-family="${font}"
+        <text x="${cx}" y="${cy + 30}" text-anchor="middle"
+              font-size="17" font-weight="600" font-family="${font}"
               fill="${overlapColor}">${selfPct}%</text>
       ` : `
         <text x="${cx}" y="${cy + 4}" text-anchor="middle"
-              font-size="9" font-family="${font}" fill="var(--ink-4)"
+              font-size="12" font-family="${font}" fill="var(--ink-4)"
               letter-spacing="0.06em">NO LOCAL DATA</text>
       `}
 
@@ -1126,7 +1154,7 @@ function _renderFlowSummary(totalIn, totalOut, selfFlow, state) {
     return (lo + hi) / 2;
   }
 
-  const W = 460;
+  const W = 460, H = 270;
   const cy = 112;
   const R_MAX = 112, MIN_R = 26;
   const font = 'Inter, system-ui, sans-serif';
@@ -1158,9 +1186,8 @@ function _renderFlowSummary(totalIn, totalOut, selfFlow, state) {
   const selfPct = (totalOut + selfFlow) > 0
     ? Math.round(selfFlow / (totalOut + selfFlow) * 100) : 0;
 
-  // Legend below circles
-  const legendY = cy + Math.max(r_in, r_out) + 18;
-  const H = legendY + 28;
+  // Legend below circles — legendY pinned to H=270 to match flow wheel height
+  const legendY = H - 28;
   const dotR = 5, textOff = dotR * 2 + 6;
   const hasSelf = selfFlow > 0;
   const overlapColor = state.theme === 'dark' ? '#b78564' : '#ac7453';
@@ -1318,6 +1345,9 @@ function _renderReach(outflows, inflows, state) {
 function _renderIndustry(outflows, inflows, state) {
   const stackEl = document.getElementById('industry-stack');
   if (!stackEl) return;
+
+  const blockEl = document.getElementById('industry-chart-block');
+  if (blockEl) blockEl.dataset.industryDir = _industryDir;
 
   const flows = _industryDir === 'outflow' ? outflows : inflows;
   const top5  = flows.slice(0, 5);

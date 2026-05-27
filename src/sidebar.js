@@ -90,33 +90,27 @@ export function initSidebar({ cityNames, countyNames, houseNames, senateNames, c
 
     <div class="rail-rule"></div>
 
-    <!-- DEMOGRAPHIC PROFILE -->
-    <div class="rail-section">
-      <div class="eyebrow">Demographic Profile</div>
-      <div class="demo-tabs" id="demo-tabs" role="tablist">
-        <button class="active" data-tab="age" role="tab" aria-selected="true">Age</button>
-        <button data-tab="earnings" role="tab" aria-selected="false">Earnings</button>
-        <button data-tab="industry" role="tab" aria-selected="false">Industry</button>
+    <!-- AGGREGATE FLOWS -->
+    <div class="rail-section" id="flow-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+        <div class="eyebrow">Commute Balance</div>
+        <div style="display:flex;gap:5px;">
+          <button class="chart-tool" id="export-sankey-png">PNG</button>
+          <button class="chart-tool" id="export-sankey-csv">CSV</button>
+        </div>
       </div>
-      <div id="demo-rows-age"></div>
-      <div id="demo-rows-earnings" hidden></div>
-      <div id="demo-rows-industry" hidden></div>
-    </div>
-
-    <div class="rail-rule"></div>
-
-    <!-- REACH -->
-    <div class="rail-section">
-      <div class="eyebrow">Commute Reach</div>
-      <div class="reach-stat-row">
-        <div class="stat-pair">
-          <div class="lbl">Average</div>
-          <div class="val" id="reach-avg">&mdash;<span class="unit">mi</span></div>
-        </div>
-        <div class="stat-pair" style="align-items:flex-end;text-align:right;">
-          <div class="lbl">Median</div>
-          <div class="val" id="reach-median">&mdash;<span class="unit">mi</span></div>
-        </div>
+      <div class="mini-toggle" id="flow-tab-toggle">
+        <button class="mini-toggle-btn active" data-tab="overview">Overview</button>
+        <button class="mini-toggle-btn" data-tab="venn">Venn</button>
+      </div>
+      <div id="flow-overview-panel">
+        <div id="flow-wheel"></div>
+      </div>
+      <div id="flow-venn-panel" style="display:none;">
+        <div class="flow-summary" id="flow-summary"></div>
+      </div>
+      <div class="cp-info-note" style="margin-top:10px;margin-bottom:0;">
+        <strong>Note:</strong> Outflow totals reflect jobs within Utah only &mdash; out-of-state commuters are not captured in LEHD data.
       </div>
     </div>
 
@@ -175,21 +169,6 @@ export function initSidebar({ cityNames, countyNames, houseNames, senateNames, c
     _setActiveToggle('aggregation-toggle', btn.dataset.value);
     _updateSearchContext();
     _onSelectionChange();
-  });
-
-  // Wire demo tab switching
-  document.getElementById('demo-tabs').addEventListener('click', e => {
-    const btn = e.target.closest('[data-tab]');
-    if (!btn) return;
-    const tab = btn.dataset.tab;
-    document.querySelectorAll('#demo-tabs button').forEach(b => {
-      b.classList.toggle('active', b.dataset.tab === tab);
-      b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
-    });
-    ['age', 'earnings', 'industry'].forEach(t => {
-      const el = document.getElementById(`demo-rows-${t}`);
-      if (el) el.hidden = t !== tab;
-    });
   });
 
   // Wire search dropdown
@@ -319,7 +298,7 @@ function _updateInfoNote(state) {
     `federal and military positions are not UI-insured. ` +
     `Commute flows to/from this site are not reflected in these figures.`;
 
-  document.getElementById('demo-tabs')?.closest('.rail-section')?.before(note);
+  document.getElementById('flow-section')?.before(note);
 }
 
 function _clearDemoRows() {

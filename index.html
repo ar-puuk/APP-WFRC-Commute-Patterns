@@ -123,55 +123,23 @@
       <aside class="right-rail" id="right-panel">
         <div class="right-resize-handle" id="right-resize-handle" title="Drag to resize panel"></div>
 
-        <!-- 01 · Flow Diagram -->
+        <!-- 01 · Commute Balance -->
         <div class="chart-block">
           <div class="chart-head">
             <div class="chart-title-group">
-              <span class="chart-sub" id="sankey-sub">01 &middot; Summary</span>
-              <span class="chart-title">Aggregate Flows</span>
-            </div>
-            <div class="chart-tools">
-              <button class="chart-tool" id="export-sankey-png">PNG</button>
-              <button class="chart-tool" id="export-sankey-csv">CSV</button>
-            </div>
-          </div>
-          <div class="mini-toggle" id="flow-tab-toggle" style="margin-bottom:14px;">
-            <button class="mini-toggle-btn active" data-tab="overview">Overview</button>
-            <button class="mini-toggle-btn" data-tab="venn">Venn</button>
-          </div>
-          <div id="flow-overview-panel">
-            <div id="flow-wheel"></div>
-          </div>
-          <div id="flow-venn-panel" style="display:none;">
-            <div class="flow-summary" id="flow-summary"></div>
-          </div>
-          <div class="cp-info-note" style="margin-top:10px;margin-bottom:0;">
-            <strong>Note:</strong> Outflow totals reflect jobs within Utah only &mdash; out-of-state commuters are not captured in LEHD data.
-          </div>
-        </div>
-
-        <!-- 02 · Commute Balance -->
-        <div class="chart-block">
-          <div class="chart-head">
-            <div class="chart-title-group">
-              <span class="chart-sub">02 &middot; Bidirectional</span>
-              <span class="chart-title">Commute Balance</span>
+              <span class="chart-sub">01 &middot; Bidirectional</span>
+              <span class="chart-title">Top Flows</span>
             </div>
             <div class="chart-tools">
               <button class="chart-tool" id="export-bar-png">PNG</button>
               <button class="chart-tool" id="export-bar-csv">CSV</button>
             </div>
           </div>
-          <div class="mini-toggle" id="balance-tab-toggle" style="margin-bottom:14px;">
-            <button class="mini-toggle-btn active" data-tab="balance">Balance</button>
-            <button class="mini-toggle-btn" data-tab="top-flows">Top Flows</button>
+          <div class="balance-legend" style="margin-bottom:14px;">
+            <button class="balance-sort-btn active" data-sort="inflow"><span class="pip in"></span> Inflow</button>
+            <button class="balance-sort-btn" data-sort="outflow"><span class="pip out"></span> Outflow</button>
           </div>
-          <!-- Balance tab -->
           <div id="balance-tab-panel">
-            <div class="balance-legend">
-              <button class="balance-sort-btn active" data-sort="inflow"><span class="pip in"></span> Inflow</button>
-              <button class="balance-sort-btn" data-sort="outflow"><span class="pip out"></span> Outflow</button>
-            </div>
             <div class="balance-axis" id="balance-axis">
               <div class="axis-line"></div>
               <div class="axis-num left far" id="balance-axis-l">&mdash;</div>
@@ -180,34 +148,50 @@
             </div>
             <div class="balance" id="balance-rows"></div>
           </div>
-          <!-- Top Flows tab -->
+          <!--
+          <div class="mini-toggle" id="balance-tab-toggle" style="margin-bottom:14px;">
+            <button class="mini-toggle-btn active" data-tab="balance">Balance</button>
+            <button class="mini-toggle-btn" data-tab="top-flows">Top Flows</button>
+          </div>
           <div id="top-flows-tab-panel" style="display:none;">
             <div class="sankey-wrap" id="sankey-wrap">
               <svg id="sankey-svg" viewBox="0 0 460 280"></svg>
             </div>
           </div>
+          -->
         </div>
 
-        <!-- 03 · Means of Transportation -->
+        <!-- 02 · Commute Length -->
+        <div class="chart-block">
+          <div class="chart-head">
+            <div class="chart-title-group">
+              <span class="chart-sub">02 &middot; Distance Distribution</span>
+              <span class="chart-title">Commute Length</span>
+            </div>
+            <div class="chart-tools">
+              <button class="chart-tool" id="export-reach-png">PNG</button>
+              <button class="chart-tool" id="export-reach-csv">CSV</button>
+            </div>
+          </div>
+          <div class="reach-stat-row" style="margin-bottom:14px;">
+            <div class="stat-pair">
+              <div class="lbl">Average</div>
+              <div class="val" id="reach-avg">&mdash;<span class="unit">mi</span></div>
+            </div>
+            <div class="stat-pair" style="align-items:flex-end;text-align:right;">
+              <div class="lbl">Median</div>
+              <div class="val" id="reach-median">&mdash;<span class="unit">mi</span></div>
+            </div>
+          </div>
+          <div class="reach-bands" id="reach-bands"></div>
+          <div class="reach-legend" id="reach-legend"></div>
+        </div>
+
+        <!-- 03 · Travel Time to Work -->
         <div class="chart-block">
           <div class="chart-head">
             <div class="chart-title-group">
               <span class="chart-sub">03 &middot; ACS 5-Year</span>
-              <span class="chart-title">Means of Transportation</span>
-            </div>
-            <div class="chart-tools">
-              <button class="chart-tool" id="export-transport-png">PNG</button>
-              <button class="chart-tool" id="export-transport-csv">CSV</button>
-            </div>
-          </div>
-          <div class="acs-body" id="transport-body"></div>
-        </div>
-
-        <!-- 04 · Travel Time to Work -->
-        <div class="chart-block">
-          <div class="chart-head">
-            <div class="chart-title-group">
-              <span class="chart-sub">04 &middot; ACS 5-Year</span>
               <span class="chart-title">Travel Time to Work</span>
             </div>
             <div class="chart-tools">
@@ -218,27 +202,26 @@
           <div class="acs-body" id="traveltime-body"></div>
         </div>
 
-        <!-- 05 · Commute Reach -->
+        <!-- 04 · Means of Transportation -->
         <div class="chart-block">
           <div class="chart-head">
             <div class="chart-title-group">
-              <span class="chart-sub">05 &middot; Distance Distribution</span>
-              <span class="chart-title">Commute Reach</span>
+              <span class="chart-sub">04 &middot; ACS 5-Year</span>
+              <span class="chart-title">Means of Transportation</span>
             </div>
             <div class="chart-tools">
-              <button class="chart-tool" id="export-reach-png">PNG</button>
-              <button class="chart-tool" id="export-reach-csv">CSV</button>
+              <button class="chart-tool" id="export-transport-png">PNG</button>
+              <button class="chart-tool" id="export-transport-csv">CSV</button>
             </div>
           </div>
-          <div class="reach-bands" id="reach-bands"></div>
-          <div class="reach-legend" id="reach-legend"></div>
+          <div class="acs-body" id="transport-body"></div>
         </div>
 
-        <!-- 06 · Industry Mix -->
-        <div class="chart-block" style="border-bottom:0;">
+        <!-- 05 · Industry Mix -->
+        <div class="chart-block" id="industry-chart-block">
           <div class="chart-head">
             <div class="chart-title-group">
-              <span class="chart-sub">06 &middot; Sector Breakdown</span>
+              <span class="chart-sub">05 &middot; Sector Breakdown</span>
               <span class="chart-title">Industry Mix</span>
             </div>
             <div class="chart-tools">
@@ -247,8 +230,8 @@
             </div>
           </div>
           <div class="mini-toggle" id="industry-dir-toggle" style="margin-bottom:14px;">
-            <button class="mini-toggle-btn active" data-dir="outflow">Destinations</button>
-            <button class="mini-toggle-btn" data-dir="inflow">Origins</button>
+            <button class="mini-toggle-btn active" data-dir="outflow">Outflow</button>
+            <button class="mini-toggle-btn" data-dir="inflow">Inflow</button>
           </div>
           <div class="industry-stack" id="industry-stack"></div>
           <div class="industry-legend">
@@ -258,7 +241,23 @@
           </div>
         </div>
 
-        <!-- Worker Demographics: hidden; demographic profile shown in left rail -->
+        <!-- 06 · Worker Demographics -->
+        <div class="chart-block" style="border-bottom:0;">
+          <div class="chart-head">
+            <div class="chart-title-group">
+              <span class="chart-sub">06 &middot; Worker Profile</span>
+              <span class="chart-title">Demographics</span>
+            </div>
+          </div>
+          <div class="demo-tabs" id="demo-tabs" role="tablist">
+            <button class="active" data-tab="age" role="tab" aria-selected="true">Age</button>
+            <button data-tab="earnings" role="tab" aria-selected="false">Earnings</button>
+          </div>
+          <div id="demo-rows-age" style="margin-top:6px;"></div>
+          <div id="demo-rows-earnings" hidden style="margin-top:6px;"></div>
+        </div>
+
+        <!-- Worker Demographics ECharts: hidden, used only for PNG export -->
         <div style="display:none;" aria-hidden="true">
           <div id="dim-toggle">
             <button class="mini-toggle-btn active" data-dim="age">Age</button>

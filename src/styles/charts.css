@@ -311,10 +311,15 @@
   white-space: nowrap;
 }
 
-.industry-row .ir-bar .seg-goods    { background: #8b6b3a; }
-.industry-row .ir-bar .seg-trade    { background: var(--outflow); }
-.industry-row .ir-bar .seg-services { background: var(--inflow); }
-[data-theme="dark"] .industry-row .ir-bar .seg-goods { background: #b58e54; }
+/* Default outflow color ramp — darkest to lightest */
+.industry-row .ir-bar .seg-goods    { background: color-mix(in oklab, var(--outflow), var(--paper) 8%); }
+.industry-row .ir-bar .seg-trade    { background: color-mix(in oklab, var(--outflow), var(--paper) 30%); }
+.industry-row .ir-bar .seg-services { background: color-mix(in oklab, var(--outflow), var(--paper) 52%); }
+
+/* Inflow ramp */
+#industry-chart-block[data-industry-dir="inflow"] .industry-row .ir-bar .seg-goods    { background: color-mix(in oklab, var(--inflow), var(--paper) 8%); }
+#industry-chart-block[data-industry-dir="inflow"] .industry-row .ir-bar .seg-trade    { background: color-mix(in oklab, var(--inflow), var(--paper) 30%); }
+#industry-chart-block[data-industry-dir="inflow"] .industry-row .ir-bar .seg-services { background: color-mix(in oklab, var(--inflow), var(--paper) 52%); }
 
 .industry-legend {
   display: flex;
@@ -331,10 +336,16 @@
 
 .industry-legend .lg { display: flex; align-items: center; gap: 6px; }
 .industry-legend .lg .sw { width: 10px; height: 10px; flex-shrink: 0; }
-.industry-legend .lg .sw.goods    { background: #8b6b3a; }
-.industry-legend .lg .sw.trade    { background: var(--outflow); }
-.industry-legend .lg .sw.services { background: var(--inflow); }
-[data-theme="dark"] .industry-legend .lg .sw.goods { background: #b58e54; }
+
+/* Default outflow swatches */
+.industry-legend .lg .sw.goods    { background: color-mix(in oklab, var(--outflow), var(--paper) 8%); }
+.industry-legend .lg .sw.trade    { background: color-mix(in oklab, var(--outflow), var(--paper) 30%); }
+.industry-legend .lg .sw.services { background: color-mix(in oklab, var(--outflow), var(--paper) 52%); }
+
+/* Inflow swatches */
+#industry-chart-block[data-industry-dir="inflow"] .industry-legend .lg .sw.goods    { background: color-mix(in oklab, var(--inflow), var(--paper) 8%); }
+#industry-chart-block[data-industry-dir="inflow"] .industry-legend .lg .sw.trade    { background: color-mix(in oklab, var(--inflow), var(--paper) 30%); }
+#industry-chart-block[data-industry-dir="inflow"] .industry-legend .lg .sw.services { background: color-mix(in oklab, var(--inflow), var(--paper) 52%); }
 
 /* ── 01 Commute Balance — diverging bars ───────────────────── */
 .balance-legend {

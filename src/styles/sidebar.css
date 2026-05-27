@@ -238,8 +238,8 @@
 }
 
 /* Subject Area Type: filled pill active — direction-aware, same as Map Zones */
-#areatype-toggle { gap: 4px; border-bottom: none; }
-#areatype-toggle button { padding: 4px 10px 5px; margin-right: 0; border-radius: 2px; }
+#areatype-toggle { gap: 4px; border-bottom: none; width: 100%; }
+#areatype-toggle button { padding: 4px 10px 5px; margin-right: 0; border-radius: 2px; flex: 1; text-align: center; }
 #areatype-toggle button.active::after { display: none; }
 [data-direction="outflow"] #areatype-toggle button.active { background: var(--outflow); color: var(--paper); font-weight: 600; }
 [data-direction="outflow"] #areatype-toggle button:hover:not(.active) { color: var(--outflow); }
