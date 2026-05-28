@@ -211,8 +211,8 @@ export function switchTheme(theme, onReady) {
       // Direction-aware selected border — matches updateChoropleth logic exactly.
       const selIsOutflow = pc?.direction !== 'inflow';
       const selColor = selIsOutflow
-        ? (theme === 'dark' ? '#e4895a' : '#cc683a')
-        : (theme === 'dark' ? '#5aa6a7' : '#1e6f6f');
+        ? (theme === 'dark' ? '#5aa6a7' : '#1e6f6f')
+        : (theme === 'dark' ? '#e4895a' : '#cc683a');
 
       const preservedLayers = (prevStyle.layers ?? [])
         .filter(l => !styleLayerIds.has(l.id))
@@ -265,6 +265,7 @@ export function switchTheme(theme, onReady) {
     _filterLabels();
     if (_boundaries.county || _boundaries.city || _boundaries.house || _boundaries.senate) _addBoundaryLayers();
     _addInfoLayers();
+    _enforceLayerOrder();
     onReady?.();
   });
 }
@@ -551,15 +552,21 @@ export function updateChoropleth(flows, selectedArea, aggregation, theme, direct
     if (map.getLayer(`${t}-selected`)) map.setLayoutProperty(`${t}-selected`, 'visibility', (isAgg || isSubj) ? 'visible' : 'none');
   });
 
-  // Direction-aware highlight color
+  // Direction-aware highlight color — inverted so the selected subject area
+  // contrasts with the flow-colored destination zones.
   const isOutflow    = direction === 'outflow';
   const selLineColor = isOutflow
-    ? (theme === 'dark' ? '#e4895a' : '#cc683a')
-    : (theme === 'dark' ? '#5aa6a7' : '#1e6f6f');
+    ? (theme === 'dark' ? '#5aa6a7' : '#1e6f6f')
+    : (theme === 'dark' ? '#e4895a' : '#cc683a');
 
-  // Aggregation zone selected highlight
+  // Aggregation zone selected highlight — always reset dasharray in case this
+  // layer was previously used as the dashed subject-area overlay.
   map.setFilter(selId, ['==', ['get', 'name'], selectedArea ?? '']);
-  if (map.getLayer(selId)) map.setPaintProperty(selId, 'line-color', selLineColor);
+  if (map.getLayer(selId)) {
+    map.setPaintProperty(selId, 'line-color', selLineColor);
+    map.setPaintProperty(selId, 'line-width', 2.5);
+    map.setPaintProperty(selId, 'line-dasharray', null);
+  }
 
   // Subject area boundary overlay (thicker dashed line to visually distinguish it)
   if (subjSelId && map.getLayer(subjSelId)) {
@@ -621,6 +628,7 @@ function _addInfoLayers() {
     paint: { 'line-color': lineColor, 'line-width': 1.5, 'line-dasharray': [3, 2] },
   }, before);
   _ensureLabelsOnTop();
+  _enforceLayerOrder();
 
   map.on('mouseenter', 'custom-info-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', 'custom-info-fill', () => { map.getCanvas().style.cursor = ''; });
@@ -664,6 +672,17 @@ function _fillInsertionLayer() {
   return undefined;
 }
 
+// Enforces z-order: *-selected borders sit just below custom-info-* layers so the
+// selected zone outline renders above the choropleth but below HAFB and tooltips.
+// Called after any layer-adding operation to guard against fetch-order races.
+function _enforceLayerOrder() {
+  if (!map || !map.getLayer('custom-info-fill')) return;
+  for (const t of ['county', 'city', 'house', 'senate']) {
+    const id = `${t}-selected`;
+    if (map.getLayer(id)) map.moveLayer(id, 'custom-info-fill');
+  }
+}
+
 // Moves all kept place-label layers to the very top of the layer stack so they
 // always render above our choropleth fills, regardless of how layers were added.
 function _ensureLabelsOnTop() {
@@ -693,7 +712,7 @@ function _addBoundaryLayers() {
 
   const outlineColor     = _theme === 'dark' ? 'rgba(232,229,220,0.15)' : 'rgba(18,23,38,0.18)';
   const outlineColorCity = _theme === 'dark' ? 'rgba(232,229,220,0.10)' : 'rgba(18,23,38,0.12)';
-  const selColor         = _theme === 'dark' ? '#5aa6a7'                : '#1e6f6f';
+  const selColor         = _theme === 'dark' ? '#e4895a'                : '#cc683a';
 
   const before = _fillInsertionLayer();
 
@@ -774,4 +793,5 @@ function _addBoundaryLayers() {
   }
 
   _ensureLabelsOnTop();
+  _enforceLayerOrder();
 }
