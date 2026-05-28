@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    Sidebar / Left rail — dossier styles
    "Planning agency editorial" aesthetic
    ============================================================ */
@@ -242,9 +242,9 @@
 #areatype-toggle button { padding: 4px 10px 5px; margin-right: 0; border-radius: 2px; flex: 1; text-align: center; }
 #areatype-toggle button.active::after { display: none; }
 [data-direction="outflow"] #areatype-toggle button.active { background: var(--outflow); color: var(--paper); font-weight: 600; }
-[data-direction="outflow"] #areatype-toggle button:hover:not(.active) { color: var(--outflow); }
+[data-direction="outflow"] #areatype-toggle button:hover:not(.active) { background: var(--outflow-tint); }
 [data-direction="inflow"]  #areatype-toggle button.active { background: var(--inflow);  color: var(--paper); font-weight: 600; }
-[data-direction="inflow"]  #areatype-toggle button:hover:not(.active) { color: var(--inflow); }
+[data-direction="inflow"]  #areatype-toggle button:hover:not(.active) { background: var(--inflow-tint); }
 
 /* Map Zones: filled pill active — suppress underline, add horizontal padding */
 #aggregation-toggle { gap: 4px; border-bottom: none; }
@@ -664,3 +664,4 @@
   color: var(--ink);
   border-color: var(--ink-3);
 }
+

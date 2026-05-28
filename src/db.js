@@ -81,7 +81,7 @@ async function _loadYearFiles(year, onProgress) {
     `SELECT column_name FROM information_schema.columns WHERE table_name = 'city_flows'`
   );
   const colNames = new Set(colResult.toArray().map(r => r.toJSON().column_name));
-  _hasDistanceBands = ['d0_10', 'd10_25', 'd25_50', 'd50p'].every(c => colNames.has(c));
+  _hasDistanceBands = ['d0_5', 'd5_10', 'd10_25', 'd25_50', 'd50_100', 'd100p'].every(c => colNames.has(c));
   _hasDistWsum      = colNames.has('dist_wsum');
 
   onProgress?.(100);
@@ -134,8 +134,8 @@ export async function queryFlows(area, areaType, direction, aggregation) {
     : '';
 
   const bandCols = _hasDistanceBands
-    ? 'SUM(cf.d0_10) AS d0_10, SUM(cf.d10_25) AS d10_25, SUM(cf.d25_50) AS d25_50, SUM(cf.d50p) AS d50p,'
-    : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p,';
+    ? 'SUM(cf.d0_5) AS d0_5, SUM(cf.d5_10) AS d5_10, SUM(cf.d10_25) AS d10_25, SUM(cf.d25_50) AS d25_50, SUM(cf.d50_100) AS d50_100, SUM(cf.d100p) AS d100p,'
+    : '0 AS d0_5, 0 AS d5_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50_100, 0 AS d100p,';
 
   const distCols = _hasDistWsum
     ? 'SUM(cf.dist_wsum) AS dist_wsum, SUM(cf.dist_n) AS dist_n,'
@@ -193,8 +193,8 @@ export async function queryReachFlows(area, areaType, direction) {
   const isDistrict = areaType === 'house' || areaType === 'senate';
   const distCol   = _cols(areaType);
   const reachBands = _hasDistanceBands
-    ? 'd0_10, d10_25, d25_50, d50p'
-    : '0 AS d0_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50p';
+    ? 'd0_5, d5_10, d10_25, d25_50, d50_100, d100p'
+    : '0 AS d0_5, 0 AS d5_10, 0 AS d10_25, 0 AS d25_50, 0 AS d50_100, 0 AS d100p';
 
   if (isDistrict) {
     // For district subject: return city-level pairs within/outside the district

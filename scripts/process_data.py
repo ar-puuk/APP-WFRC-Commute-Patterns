@@ -114,7 +114,7 @@ SLDU_URL     = f"{TIGER_BASE}/SLDU/tl_2024_49_sldu.zip"    # state senate distri
 # ── LEHD OD columns to aggregate ─────────────────────────────────────────────
 AGG_COLS  = ["S000", "SA01", "SA02", "SA03", "SE01", "SE02", "SE03", "SI01", "SI02", "SI03"]
 # Distance-band worker counts added by add_distance_bands() before aggregation
-BAND_COLS = ["d0_10", "d10_25", "d25_50", "d50p", "dist_n"]   # integer columns
+BAND_COLS = ["d0_5", "d5_10", "d10_25", "d25_50", "d50_100", "d100p", "dist_n"]  # integer columns
 DIST_COLS = ["dist_wsum"]                                        # float column
 
 
@@ -345,7 +345,7 @@ def _haversine_miles_vec(lat1, lon1, lat2, lon2):
 def add_distance_bands(od):
     """Add distance-band count columns and block-level weighted-distance aggregates.
 
-    Band thresholds match the frontend REACH_BANDS: <10, 10-25, 25-50, 50+ miles.
+    Band thresholds match the frontend REACH_BANDS: <5, 5-10, 10-25, 25-50, 50-100, 100+ miles.
     Rows missing either block coordinate contribute 0 to all band/distance columns.
 
     New columns:
@@ -363,10 +363,12 @@ def add_distance_bands(od):
         )
     s = od["S000"].fillna(0)
     # NaN comparisons return False, so missing-coord rows fall through to 0
-    od["d0_10"]  = s.where(miles <  10,                      0)
-    od["d10_25"] = s.where((miles >= 10) & (miles <  25),    0)
-    od["d25_50"] = s.where((miles >= 25) & (miles <  50),    0)
-    od["d50p"]   = s.where(miles >= 50,                      0)
+    od["d0_5"]    = s.where(miles <   5,                        0)
+    od["d5_10"]   = s.where((miles >=   5) & (miles <  10),     0)
+    od["d10_25"]  = s.where((miles >=  10) & (miles <  25),     0)
+    od["d25_50"]  = s.where((miles >=  25) & (miles <  50),     0)
+    od["d50_100"] = s.where((miles >=  50) & (miles < 100),     0)
+    od["d100p"]   = s.where(miles >= 100,                       0)
     # Weighted-distance aggregates for exact avg/median in the frontend
     od["dist_wsum"] = (s * miles).fillna(0).astype("float32")
     od["dist_n"]    = s.where(valid, 0)

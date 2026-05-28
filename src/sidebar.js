@@ -250,12 +250,13 @@ export function updateSidebarStats(flows, appState) {
   const avgMiles  = totalN > 0 ? totalWsum / totalN : null;
 
   // Median: interpolate within the band that straddles the 50th percentile.
-  // Upper bound of d50p is approximated at 100 miles for interpolation.
-  const bn0  = flows.reduce((s, f) => s + Number(f.d0_10  || 0), 0);
-  const bn10 = flows.reduce((s, f) => s + Number(f.d10_25 || 0), 0);
-  const bn25 = flows.reduce((s, f) => s + Number(f.d25_50 || 0), 0);
-  const bn50 = flows.reduce((s, f) => s + Number(f.d50p   || 0), 0);
-  const medianMiles = _bandMedian(bn0, bn10, bn25, bn50);
+  const bn0   = flows.reduce((s, f) => s + Number(f.d0_5    || 0), 0);
+  const bn5   = flows.reduce((s, f) => s + Number(f.d5_10   || 0), 0);
+  const bn10  = flows.reduce((s, f) => s + Number(f.d10_25  || 0), 0);
+  const bn25  = flows.reduce((s, f) => s + Number(f.d25_50  || 0), 0);
+  const bn50  = flows.reduce((s, f) => s + Number(f.d50_100 || 0), 0);
+  const bn100 = flows.reduce((s, f) => s + Number(f.d100p   || 0), 0);
+  const medianMiles = _bandMedian(bn0, bn5, bn10, bn25, bn50, bn100);
 
   const avgEl    = document.getElementById('reach-avg');
   const medianEl = document.getElementById('reach-median');
@@ -308,12 +309,15 @@ function _clearDemoRows() {
   });
 }
 
-function _bandMedian(n0, n10, n25, n50) {
-  const total = n0 + n10 + n25 + n50;
+function _bandMedian(n0_5, n5_10, n10_25, n25_50, n50_100, n100p) {
+  const total = n0_5 + n5_10 + n10_25 + n25_50 + n50_100 + n100p;
   if (total === 0) return null;
   const half = total / 2;
   let cum = 0;
-  for (const [lo, hi, n] of [[0, 10, n0], [10, 25, n10], [25, 50, n25], [50, 100, n50]]) {
+  for (const [lo, hi, n] of [
+    [0, 5, n0_5], [5, 10, n5_10], [10, 25, n10_25],
+    [25, 50, n25_50], [50, 100, n50_100], [100, 150, n100p],
+  ]) {
     if (n > 0 && cum + n >= half) return lo + ((half - cum) / n) * (hi - lo);
     cum += n;
   }

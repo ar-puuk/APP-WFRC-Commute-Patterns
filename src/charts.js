@@ -15,9 +15,11 @@ let _lastReachOut  = [];
 let _lastReachIn   = [];
 
 // Per-chart UI state (not reset on data change)
-let _demoDimension = 'age';      // 'age' | 'earnings' | 'industry'
-let _industryDir   = 'outflow';  // 'outflow' | 'inflow'
-let _balanceSort   = 'inflow';   // 'inflow'  | 'outflow'
+let _demoDimension  = 'age';      // 'age' | 'earnings' | 'industry'
+let _industryDir    = 'outflow';  // 'outflow' | 'inflow'
+let _balanceSort    = 'inflow';   // 'inflow'  | 'outflow'
+let _reachOutVisible = true;
+let _reachInVisible  = true;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -93,6 +95,16 @@ export function initCharts(onAreaSelect) {
       const vennPanel     = document.getElementById('flow-venn-panel');
       if (overviewPanel) overviewPanel.style.display = tab === 'overview' ? '' : 'none';
       if (vennPanel)     vennPanel.style.display     = tab === 'venn'     ? '' : 'none';
+      return;
+    }
+
+    // Reach direction toggle (must come before balance-sort-btn handler)
+    const reachBtn = e.target.closest('.reach-dir-btn');
+    if (reachBtn) {
+      const dir = reachBtn.dataset.dir;
+      if (dir === 'outflow') _reachOutVisible = !_reachOutVisible;
+      if (dir === 'inflow')  _reachInVisible  = !_reachInVisible;
+      if (_lastState) _renderReach(_lastReachOut, _lastReachIn, _lastState);
       return;
     }
 
@@ -354,93 +366,100 @@ export function exportReachPng() {
   const inT  = inB.reduce((s, v) => s + v, 0) || 1;
   const dk   = _lastState.theme === 'dark';
 
-  // Band colors per direction — approximating color-mix(in oklab, base, paper X%)
-  // Outflow (orange): #cc683a light / #e4895a dark; Inflow (teal): #1e6f6f light / #5aa6a7 dark
-  const outflowBands = dk
-    ? ['#e4895a', '#d07344', '#bc5d2e', '#a84a1e']   // dark outflow tints (8/26/44/62% paper)
-    : ['#cc683a', '#b85528', '#a44216', '#904000'];   // light outflow tints
-  const inflowBands = dk
-    ? ['#5aa6a7', '#478e8f', '#347677', '#215e5f']    // dark inflow tints
-    : ['#1e6f6f', '#185a5a', '#124545', '#0c3030'];   // light inflow tints
+  const outColor = dk ? '#e4895a' : '#cc683a';
+  const inColor  = dk ? '#5aa6a7' : '#1e6f6f';
+  const bg       = dk ? '#0a0e17' : '#f6f3eb';
+  const ink4     = dk ? '#696a73' : '#898d9c';
+  const axisLine = dk ? 'rgba(232,229,220,0.09)' : 'rgba(18,23,38,0.10)';
 
-  const W = 560, PAD = 24, LBL_W = 84, BAR_H = 36, ROW_GAP = 10;
-  const LGD_ROW_H = 16;
-  const H = PAD + BAR_H + ROW_GAP + BAR_H + 14 + 1 + 10 + LGD_ROW_H + PAD;
+  const W = 560, H = 260;
+  const ml = 48, mr = 16, mt = 24, mb = 44, lgdH = 22;
+  const ch = H - mt - mb - lgdH;
+  const cw = W - ml - mr;
 
   const canvas = document.createElement('canvas');
-  canvas.width  = W * 2; canvas.height = H * 2;
+  canvas.width = W * 2; canvas.height = H * 2;
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
-
-  const bg    = dk ? '#0a0e17' : '#f6f3eb';
-  const ink4  = dk ? '#696a73' : '#898d9c';
-  const rule  = dk ? 'rgba(232,229,220,0.20)' : 'rgba(18,23,38,0.22)';
-  const paper = dk ? '#0a0e17' : '#f6f3eb';
 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  const barW = W - PAD - LBL_W - PAD;
-  const barX = PAD + LBL_W;
+  const maxCount = Math.max(...outB, ...inB) || 1;
+  const step = _niceStep(maxCount);
+  const yMax = Math.ceil(maxCount / step) * step || 1;
+  const yFmt = v => v >= 1_000_000 ? (v / 1_000_000).toFixed(1) + 'M'
+    : v >= 1000 ? Math.round(v / 1000) + 'k' : v.toString();
 
-  function drawRow(buckets, total, y, label, bandColors) {
+  // Gridlines + Y labels
+  for (let i = 0; i <= 4; i++) {
+    const val = (yMax / 4) * i;
+    const y   = mt + ch - (val / yMax) * ch;
+    ctx.strokeStyle = axisLine; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(W - mr, y); ctx.stroke();
     ctx.fillStyle = ink4;
-    ctx.font = '600 10px Inter, system-ui, sans-serif';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(label, PAD, y + BAR_H / 2);
-
-    let x = barX;
-    buckets.forEach((n, i) => {
-      const pct = n / total;
-      const sw  = pct * barW;
-      if (sw < 0.5) { x += sw; return; }
-      ctx.fillStyle = bandColors[i];
-      ctx.fillRect(x, y, sw, BAR_H);
-      if (pct >= 0.10) {
-        ctx.fillStyle = paper;
-        ctx.font = '700 11px Inter, system-ui, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(`${Math.round(pct * 100)}%`, x + sw / 2, y + BAR_H / 2);
-      }
-      x += sw;
-    });
+    ctx.font = '500 9.5px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(yFmt(val), ml - 5, y);
   }
 
-  let y = PAD;
-  drawRow(outB, outT, y, 'Outflow', outflowBands);
-  y += BAR_H + ROW_GAP;
-  drawRow(inB,  inT,  y, 'Inflow',  inflowBands);
-  y += BAR_H + 14;
+  // Baseline
+  const bly = mt + ch;
+  ctx.strokeStyle = axisLine; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(ml, bly); ctx.lineTo(W - mr, bly); ctx.stroke();
 
-  ctx.fillStyle = rule;
-  ctx.fillRect(PAD, y, W - PAD * 2, 1);
-  y += 10;
+  const groupW  = cw / 6;
+  const barW    = Math.min(22, groupW * 0.28);
+  const barGap  = 4;
+  const pairOff = (groupW - barW * 2 - barGap) / 2;
 
-  const SW = 13;
-  let lx = PAD;
-  ctx.font = '600 10px Inter, system-ui, sans-serif';
   REACH_LABELS.forEach((lbl, i) => {
-    // Top-left triangle — inflow
-    ctx.fillStyle = inflowBands[i];
-    ctx.beginPath();
-    ctx.moveTo(lx,      y);
-    ctx.lineTo(lx + SW, y);
-    ctx.lineTo(lx,      y + SW);
-    ctx.closePath();
-    ctx.fill();
-    // Bottom-right triangle — outflow
-    ctx.fillStyle = outflowBands[i];
-    ctx.beginPath();
-    ctx.moveTo(lx + SW, y);
-    ctx.lineTo(lx + SW, y + SW);
-    ctx.lineTo(lx,      y + SW);
-    ctx.closePath();
-    ctx.fill();
+    const ov = outB[i], iv = inB[i];
+    const opct = Math.round((ov / outT) * 100);
+    const ipct = Math.round((iv / inT) * 100);
+
+    const gx = ml + i * groupW;
+    const ox = gx + pairOff;
+    const ix = ox + barW + barGap;
+    const oh = (ov / yMax) * ch;
+    const ih = (iv / yMax) * ch;
+    const oy = mt + ch - oh;
+    const iy = mt + ch - ih;
+
+    ctx.fillStyle = outColor;
+    ctx.fillRect(Math.round(ox), Math.round(oy), barW, Math.round(oh));
+    ctx.fillStyle = inColor;
+    ctx.fillRect(Math.round(ix), Math.round(iy), barW, Math.round(ih));
+
+    ctx.font = '500 9px Inter, system-ui, sans-serif';
+    ctx.textBaseline = 'bottom';
+    if (oh > 12) {
+      ctx.fillStyle = ink4; ctx.textAlign = 'center';
+      ctx.fillText(`${opct}%`, ox + barW / 2, oy - 2);
+    }
+    if (ih > 12) {
+      ctx.fillStyle = ink4; ctx.textAlign = 'center';
+      ctx.fillText(`${ipct}%`, ix + barW / 2, iy - 2);
+    }
 
     ctx.fillStyle = ink4;
+    ctx.font = '500 9.5px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(lbl, gx + groupW / 2, bly + 6);
+  });
+
+  // Legend
+  const lgdY = H - lgdH + 4;
+  const SW = 10;
+  let lx = ml;
+  [['Outflow', outColor], ['Inflow', inColor]].forEach(([label, color]) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(lx, lgdY, SW, SW);
+    ctx.fillStyle = ink4;
+    ctx.font = '500 10px Inter, system-ui, sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(lbl, lx + SW + 5, y + SW / 2);
-    lx += SW + 5 + ctx.measureText(lbl).width + 14;
+    ctx.fillText(label, lx + SW + 4, lgdY + SW / 2);
+    lx += SW + 4 + ctx.measureText(label).width + 16;
   });
 
   _dlUrl(canvas.toDataURL('image/png'), `commute-reach-${_lastState.selectedArea ?? 'chart'}-${_lastState.year ?? ''}.png`);
@@ -669,23 +688,25 @@ function _aggregate(flows) {
   }), { SA01:0, SA02:0, SA03:0, SE01:0, SE02:0, SE03:0, SI01:0, SI02:0, SI03:0 });
 }
 
-const REACH_BANDS  = [10, 25, 50, Infinity];
-const REACH_LABELS = ['< 10 mi', '10–25 mi', '25–50 mi', '50+ mi'];
+const REACH_BANDS  = [5, 10, 25, 50, 100, Infinity];
+const REACH_LABELS = ['< 5 mi', '5–10 mi', '10–25 mi', '25–50 mi', '50–100 mi', '100+ mi'];
 
 function _bucketFlows(flows) {
-  if (!flows.length) return [0, 0, 0, 0];
+  if (!flows.length) return [0, 0, 0, 0, 0, 0];
   // Use precomputed block-centroid distance bands when available (more accurate than city centroids)
-  if (flows[0].d0_10 != null) {
+  if (flows[0].d0_5 != null) {
     return flows.reduce((acc, f) => {
-      acc[0] += Number(f.d0_10  || 0);
-      acc[1] += Number(f.d10_25 || 0);
-      acc[2] += Number(f.d25_50 || 0);
-      acc[3] += Number(f.d50p   || 0);
+      acc[0] += Number(f.d0_5    || 0);
+      acc[1] += Number(f.d5_10   || 0);
+      acc[2] += Number(f.d10_25  || 0);
+      acc[3] += Number(f.d25_50  || 0);
+      acc[4] += Number(f.d50_100 || 0);
+      acc[5] += Number(f.d100p   || 0);
       return acc;
-    }, [0, 0, 0, 0]);
+    }, [0, 0, 0, 0, 0, 0]);
   }
   // Fallback: compute from city/county centroids (legacy data without band columns)
-  const counts = [0, 0, 0, 0];
+  const counts = [0, 0, 0, 0, 0, 0];
   flows.forEach(f => {
     if (f.home_lat == null || f.work_lat == null) return;
     const mi = _haversineMiles(f.home_lat, f.home_lon, f.work_lat, f.work_lon);
@@ -1310,7 +1331,7 @@ function _renderDemographics(outflows, inflows, state) {
   _demoChart.resize();
 }
 
-// ── 4. Commute Reach — distance-band stacked bars (HTML/CSS) ─────────────────
+// ── 4. Commute Length — frequency-distribution column chart ──────────────────
 
 function _renderReach(outflows, inflows, state) {
   const bandsEl  = document.getElementById('reach-bands');
@@ -1322,21 +1343,77 @@ function _renderReach(outflows, inflows, state) {
   const outT = outB.reduce((s, v) => s + v, 0) || 1;
   const inT  = inB.reduce((s, v) => s + v, 0) || 1;
 
-  function row(label, buckets, total, dirClass) {
-    const segs = buckets.map((n, i) => {
-      const pct = n / total;
-      const w   = (pct * 100).toFixed(1);
-      return `<span class="rb-${i}" style="width:${w}%">${pct >= 0.10 ? Math.round(pct * 100) + '%' : ''}</span>`;
-    }).join('');
-    return `<div class="reach-row ${dirClass}"><span class="reach-row-lbl">${label}</span><div class="reach-bar">${segs}</div></div>`;
+  // Scale to visible directions only
+  const visibleCounts = [
+    ...(_reachOutVisible ? outB : []),
+    ...(_reachInVisible  ? inB  : []),
+  ];
+  const maxCount = Math.max(...visibleCounts, 1);
+  const step = _niceStep(maxCount);
+  const yMax = Math.ceil(maxCount / step) * step || 1;
+  const yPx  = n => ch - (n / yMax) * ch;
+  const yFmt = v => v >= 1_000_000 ? (v / 1_000_000).toFixed(1) + 'M'
+    : v >= 1000 ? Math.round(v / 1000) + 'k' : v.toString();
+
+  // SVG with CSS-variable colours + font-family:inherit so it renders
+  // identically to the rest of the panel.
+  const W = 460, H = 190;
+  const ml = 38, mr = 4, mt = 20, mb = 34;
+  const cw = W - ml - mr;
+  const ch = H - mt - mb;
+
+  const groupW = cw / REACH_LABELS.length;
+  const barSep = 1;
+  const barW   = (groupW - barSep) / 2;
+
+  let svg = '';
+
+  // Gridlines + Y labels — all colours via CSS vars
+  for (let i = 0; i <= 4; i++) {
+    const val = (yMax / 4) * i;
+    const y   = (mt + yPx(val)).toFixed(1);
+    svg += `<line x1="${ml}" x2="${W - mr}" y1="${y}" y2="${y}" style="stroke:var(--rule);stroke-width:1"/>`;
+    svg += `<text x="${ml - 5}" y="${(parseFloat(y) + 4).toFixed(1)}" text-anchor="end" style="font-size:9.5px;fill:var(--ink-4);font-weight:500;">${yFmt(val)}</text>`;
   }
 
-  bandsEl.innerHTML = row('Outflow', outB, outT, 'outflow') + row('Inflow', inB, inT, 'inflow');
+  // Baseline
+  svg += `<line x1="${ml}" x2="${W - mr}" y1="${(mt + ch).toFixed(1)}" y2="${(mt + ch).toFixed(1)}" style="stroke:var(--rule-strong);stroke-width:1.5"/>`;
 
+  // Bars — inflow first (left), outflow second (right)
+  REACH_LABELS.forEach((lbl, i) => {
+    const ov   = outB[i], iv = inB[i];
+    const opct = Math.round((ov / outT) * 100);
+    const ipct = Math.round((iv / inT) * 100);
+    const gx   = ml + i * groupW;
+    const inX  = gx;
+    const outX = gx + barW + barSep;
+
+    if (_reachInVisible) {
+      const ih = ((iv / yMax) * ch).toFixed(1);
+      const iy = (mt + ch - parseFloat(ih)).toFixed(1);
+      svg += `<rect x="${inX.toFixed(1)}" y="${iy}" width="${barW.toFixed(1)}" height="${ih}" style="fill:var(--inflow)"/>`;
+      if (ipct > 0)
+        svg += `<text x="${(inX + barW / 2).toFixed(1)}" y="${(parseFloat(iy) - 3).toFixed(1)}" text-anchor="middle" style="font-size:9px;fill:var(--ink-4);font-weight:600;">${ipct}%</text>`;
+    }
+
+    if (_reachOutVisible) {
+      const oh = ((ov / yMax) * ch).toFixed(1);
+      const oy = (mt + ch - parseFloat(oh)).toFixed(1);
+      svg += `<rect x="${outX.toFixed(1)}" y="${oy}" width="${barW.toFixed(1)}" height="${oh}" style="fill:var(--outflow)"/>`;
+      if (opct > 0)
+        svg += `<text x="${(outX + barW / 2).toFixed(1)}" y="${(parseFloat(oy) - 3).toFixed(1)}" text-anchor="middle" style="font-size:9px;fill:var(--ink-4);font-weight:600;">${opct}%</text>`;
+    }
+
+    svg += `<text x="${(gx + groupW / 2).toFixed(1)}" y="${H - mb + 14}" text-anchor="middle" style="font-size:9.5px;fill:var(--ink-4);font-weight:500;">${lbl}</text>`;
+  });
+
+  bandsEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible;font-family:inherit;">${svg}</svg>`;
+
+  // Legend — inflow first to match bar order
   if (legendEl) {
-    legendEl.innerHTML = REACH_LABELS.map((l, i) =>
-      `<span class="rk"><span class="rk-sw rk-diag-${i}"></span>${l}</span>`
-    ).join('');
+    legendEl.innerHTML =
+      `<button class="balance-sort-btn reach-dir-btn${_reachInVisible  ? ' active' : ''}" data-dir="inflow"><span class="pip in"></span>Inflow</button>` +
+      `<button class="balance-sort-btn reach-dir-btn${_reachOutVisible ? ' active' : ''}" data-dir="outflow"><span class="pip out"></span>Outflow</button>`;
   }
 }
 
