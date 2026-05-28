@@ -1373,7 +1373,7 @@ function _renderReach(outflows, inflows, state) {
     const val = (yMax / 4) * i;
     const y   = (mt + yPx(val)).toFixed(1);
     svg += `<line x1="${ml}" x2="${W - mr}" y1="${y}" y2="${y}" style="stroke:var(--rule);stroke-width:1"/>`;
-    svg += `<text x="${ml - 5}" y="${(parseFloat(y) + 4).toFixed(1)}" text-anchor="end" style="font-size:9.5px;fill:var(--ink-4);font-weight:500;">${yFmt(val)}</text>`;
+    svg += `<text x="${ml - 5}" y="${(parseFloat(y) + 4).toFixed(1)}" text-anchor="end" style="font-size:12px;fill:var(--ink-4);font-weight:500;">${yFmt(val)}</text>`;
   }
 
   // Baseline
@@ -1393,7 +1393,7 @@ function _renderReach(outflows, inflows, state) {
       const iy = (mt + ch - parseFloat(ih)).toFixed(1);
       svg += `<rect x="${inX.toFixed(1)}" y="${iy}" width="${barW.toFixed(1)}" height="${ih}" style="fill:var(--inflow)"/>`;
       if (ipct > 0)
-        svg += `<text x="${(inX + barW / 2).toFixed(1)}" y="${(parseFloat(iy) - 3).toFixed(1)}" text-anchor="middle" style="font-size:9px;fill:var(--ink-4);font-weight:600;">${ipct}%</text>`;
+        svg += `<text x="${(inX + barW / 2).toFixed(1)}" y="${(parseFloat(iy) - 3).toFixed(1)}" text-anchor="middle" style="font-size:12px;fill:var(--ink-4);font-weight:600;">${ipct}%</text>`;
     }
 
     if (_reachOutVisible) {
@@ -1401,10 +1401,10 @@ function _renderReach(outflows, inflows, state) {
       const oy = (mt + ch - parseFloat(oh)).toFixed(1);
       svg += `<rect x="${outX.toFixed(1)}" y="${oy}" width="${barW.toFixed(1)}" height="${oh}" style="fill:var(--outflow)"/>`;
       if (opct > 0)
-        svg += `<text x="${(outX + barW / 2).toFixed(1)}" y="${(parseFloat(oy) - 3).toFixed(1)}" text-anchor="middle" style="font-size:9px;fill:var(--ink-4);font-weight:600;">${opct}%</text>`;
+        svg += `<text x="${(outX + barW / 2).toFixed(1)}" y="${(parseFloat(oy) - 3).toFixed(1)}" text-anchor="middle" style="font-size:12px;fill:var(--ink-4);font-weight:600;">${opct}%</text>`;
     }
 
-    svg += `<text x="${(gx + groupW / 2).toFixed(1)}" y="${H - mb + 14}" text-anchor="middle" style="font-size:9.5px;fill:var(--ink-4);font-weight:500;">${lbl}</text>`;
+    svg += `<text x="${(gx + groupW / 2).toFixed(1)}" y="${H - mb + 14}" text-anchor="middle" style="font-size:12px;fill:var(--ink-4);font-weight:500;">${lbl}</text>`;
   });
 
   bandsEl.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible;font-family:inherit;">${svg}</svg>`;
